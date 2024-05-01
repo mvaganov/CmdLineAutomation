@@ -3,14 +3,14 @@
   "displayName": "CmdLineAutomation",
   "version": "0.0.1",
   "unity": "2021.3",
-  "description": "Visual scripting is a workflow that uses visual, node-based graphs to design behaviors rather than write lines of C# script.\n\nEnabling artists, designers and programmers alike, visual scripting can be used to design final logic, quickly create prototypes, iterate on gameplay and create custom nodes to help streamline collaboration.\n\nVisual scripting is compatible with third-party APIs, including most packages, assets and custom libraries.",
+  "description": "Run commands from the Unity editor",
   "type": "tool",
   "dependencies": {
   },
   "relatedPackages": {
   },
   "repository": {
-    "url": "",
+    "url": "https://github.com/mvaganov/CmdLineAutomation",
     "type": "git"
   }
 }
