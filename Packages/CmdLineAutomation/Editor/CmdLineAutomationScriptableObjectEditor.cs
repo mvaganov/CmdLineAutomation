@@ -4,46 +4,60 @@ using System.Collections.Generic;
 
 [CustomEditor(typeof(CmdLineAutomationScriptableObject))]
 [CanEditMultipleObjects]
-public class LookAtPointEditor : Editor {
-
+public class CmdLineAutomationScriptableObjectEditor : Editor {
 	CmdLineAutomationScriptableObject _target;
-	private IMGUIInteractiveShell _shellGui;
+	private ImguiInteractiveShell _shellGui;
+	private List<string> lines = new List<string>();
+	private string _lastRuntime;
+	private GUIStyle textStyleNoWrap = null;
 
 	public CmdLineAutomationScriptableObject Target => _target != null ? _target
 		: _target = target as CmdLineAutomationScriptableObject;
 
-	public IMGUIInteractiveShell Shell => _shellGui != null ? _shellGui : _shellGui = new IMGUIInteractiveShell();
-
-	void OnEnable() {
-		//scriptableObject = serializedObject.FindProperty("lookAtPoint");
-	}
+	public ImguiInteractiveShell ShellGui => _shellGui != null ? _shellGui : _shellGui = new ImguiInteractiveShell();
 
 	public override void OnInspectorGUI() {
-		if (DrawDefaultInspector()) {
+		if (textStyleNoWrap == null) {
+			textStyleNoWrap = new GUIStyle("label");
+			textStyleNoWrap.wordWrap = false;
+			textStyleNoWrap.font = Font.CreateDynamicFontFromOSFont("Consolas", 12);
 		}
+		DrawDefaultInspector();
+		string command = ShellGui.PromptGUI(textStyleNoWrap);
+		if (command != null) {
+			EditorUtility.SetDirty(Target);
+		}
+		GUILayout.BeginHorizontal();
 		if (GUILayout.Button("Run Commands")) {
-			if (_shellGui.IsStarted) {
+			if (ShellGui.IsStarted) {
 				RunCommands();
 			} else {
-				_shellGui.Start();
-				_shellGui.shell.OnLineRead += PopulateOutputText;
+				ShellGui.OnLineRead = PopulateOutputText;
+				ShellGui.Start();
 				EditorApplication.delayCall += RunCommands;
 			}
 		}
+		ShellGui.ButtonGUI(textStyleNoWrap);
+		if (GUILayout.Button("Clear Output")) {
+			ClearLines();
+		}
+		GUILayout.EndHorizontal();
+		EditorGUILayout.TextArea(_lastRuntime, textStyleNoWrap);
 		serializedObject.Update();
-		Shell.OnGUI();
 		serializedObject.ApplyModifiedProperties();
 	}
 
+	private void ClearLines() {
+		lines.Clear();
+		_lastRuntime = "";
+	}
+
 	private void PopulateOutputText() {
-		List<string> lines = new List<string>();
-		Shell.shell.PeekRecentLines(lines);
-		Target.LastRuntimeOutput = string.Join("\n", lines);
+		ShellGui.shell.GetRecentLines(lines);
+		_lastRuntime = string.Join("\n", lines);
 	}
 
 	private void RunCommands() {
-		for (int i = 0; i < Target.Commands.Length; i++) {
-			_shellGui.shell.RunCommand(Target.Commands[i]);
-		}
+		Target.RunCommands(_shellGui.shell);
 	}
 }

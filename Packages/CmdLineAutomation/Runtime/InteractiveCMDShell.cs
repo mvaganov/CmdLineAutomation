@@ -1,19 +1,18 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
-using System.Text;
 
-public class InteractiveCMDShell {
+public class InteractiveCmdShell {
 	System.Diagnostics.ProcessStartInfo startInfo;
 	System.Diagnostics.Process process;
 	System.Threading.Thread thread;
 	System.IO.StreamReader output;
-	StringBuilder lineBuffer = new StringBuilder();
+	string lineBuffer = ""; // StringBuilder is faster but less stable
 	List<string> lines = new List<string>();
 	bool m_Running = false;
 	public Action OnLineRead = delegate { };
 
-	public InteractiveCMDShell() {
+	public InteractiveCmdShell() {
 		startInfo = new System.Diagnostics.ProcessStartInfo("Cmd.exe");
 		startInfo.WorkingDirectory = "C:\\Windows\\System32\\";
 		startInfo.UseShellExecute = false;
@@ -29,7 +28,8 @@ public class InteractiveCMDShell {
 		thread = new System.Threading.Thread(Thread);
 		thread.Start();
 	}
-	~InteractiveCMDShell() {
+
+	~InteractiveCmdShell() {
 		try {
 			Stop();
 		} catch { }
@@ -41,26 +41,28 @@ public class InteractiveCMDShell {
 			process.StandardInput.Flush();
 		}
 	}
+
 	public void Stop() {
+		m_Running = false;
 		if (process != null) {
 			process.Kill();
 			thread.Join(200);
 			thread.Abort();
 			process = null;
 			thread = null;
-			m_Running = false;
 		}
 	}
+
 	public string GetCurrentLine() {
 		if (!m_Running)
 			return "";
 		return lineBuffer.ToString();
 	}
+
 	public void GetRecentLines(List<string> aLines) {
-		if (!m_Running || aLines == null)
+		if (!m_Running || aLines == null || lines.Count == 0) {
 			return;
-		if (lines.Count == 0)
-			return;
+		}
 		PeekRecentLines(aLines);
 		lock (lines) {
 			lines.Clear();
@@ -78,22 +80,26 @@ public class InteractiveCMDShell {
 	void Thread() {
 		m_Running = true;
 		try {
-			while (m_Running) {
-				int c = output.Read();
-				if (c <= 0)
-					break;
-				else if (c == '\n') {
-					lock (lines) {
-						lines.Add(GetCurrentLine());
-						lineBuffer.Clear();
-						OnLineRead.Invoke();
-					}
-				} else if (c != '\r')
-					lineBuffer.Append((char)c);
-			}
+			while (m_Running && Reading()) ;
 		} catch (Exception e) {
 			Debug.LogException(e);
 		}
 		m_Running = false;
+	}
+
+	private bool Reading() {
+		int c = output.Read();
+		if (c <= 0) {
+			return false;
+		} else if (c == '\n') {
+			lock (lines) {
+				lines.Add(GetCurrentLine());
+				lineBuffer = "";//.Clear();
+				OnLineRead.Invoke();
+			}
+		} else if (c != '\r') {
+			lineBuffer += ((char)c);
+		}
+		return true;
 	}
 }
