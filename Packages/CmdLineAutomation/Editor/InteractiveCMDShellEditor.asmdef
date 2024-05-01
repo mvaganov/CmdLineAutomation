@@ -1,0 +1,16 @@
+{
+    "name": "InteractiveCMDShellEditor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:263a5a125fc76ab4eb678c82dc70ac3b"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
