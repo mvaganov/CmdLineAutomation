@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 public class ImguiInteractiveShell {
@@ -11,7 +12,7 @@ public class ImguiInteractiveShell {
 	public bool IsStarted => _shell != null;
 
 	public void Start() {
-		_shell = new InteractiveCmdShell();
+		_shell = new InteractiveCmdShell("cmd.exe", Path.Combine(Application.dataPath, ".."));
 		_shell.OnLineRead = OnLineRead;
 	}
 
@@ -25,7 +26,7 @@ public class ImguiInteractiveShell {
 	public InteractiveCmdShell shell {
 		get {
 			if (_shell == null) {
-				_shell = new InteractiveCmdShell();
+				Start();
 			}
 			return _shell;
 		}

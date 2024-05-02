@@ -12,9 +12,9 @@ public class InteractiveCmdShell {
 	bool m_Running = false;
 	public Action OnLineRead = delegate { };
 
-	public InteractiveCmdShell() {
-		startInfo = new System.Diagnostics.ProcessStartInfo("Cmd.exe");
-		startInfo.WorkingDirectory = "C:\\Windows\\System32\\";
+	public InteractiveCmdShell(string command = "Cmd.exe", string workingDirectory = "C:\\Windows\\System32\\") {
+		startInfo = new System.Diagnostics.ProcessStartInfo(command);
+		startInfo.WorkingDirectory = workingDirectory;
 		startInfo.UseShellExecute = false;
 		startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
 		startInfo.CreateNoWindow = true;

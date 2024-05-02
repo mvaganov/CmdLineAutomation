@@ -59,5 +59,6 @@ public class CmdLineAutomationScriptableObjectEditor : Editor {
 
 	private void RunCommands() {
 		Target.RunCommands(_shellGui.shell);
+		EditorUtility.SetDirty(Target);
 	}
 }
