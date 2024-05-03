@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
+/// <summary>
+/// Manages a command line shell for any Unity UI that supports OnGUI
+/// </summary>
 public class ImguiInteractiveShell {
 	private InteractiveCmdShell _shell;
 	private string cmd = "";
@@ -32,6 +35,9 @@ public class ImguiInteractiveShell {
 		}
 	}
 
+	/// <summary>
+	/// <see cref="OnGUI"/> or <see cref="UnityEngine.Editor.OnInspectorGUI"/>
+	/// </summary>
 	public void ButtonGUI(GUIStyle style) {
 		if (_shell == null) {
 			if (GUILayout.Button("Start Process")) {
@@ -56,11 +62,14 @@ public class ImguiInteractiveShell {
 		GUILayout.EndHorizontal();
 		Event e = Event.current;
 		if (cmd != "" && e.type == EventType.KeyUp && e.keyCode == KeyCode.Return) {
-			shell.RunCommand(cmd);
-			string executedComand = cmd;
+			string result = cmd;
 			cmd = "";
-			return executedComand;
+			return result;
 		}
 		return null;
+	}
+
+	public void Execute(string command) {
+		shell.RunCommand(command);
 	}
 }

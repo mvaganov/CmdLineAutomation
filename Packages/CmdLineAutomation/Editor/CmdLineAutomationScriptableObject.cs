@@ -10,8 +10,8 @@ public class CmdLineAutomationScriptableObject : ScriptableObject {
 		public bool Comment;
 	}
 	private InteractiveCmdShell shell;
-	public Command[] Commands;
 	public Data _details;
+	public Command[] CommandsToDo;
 
 	public void RunCommand(string command) {
 		shell.RunCommand(command);
@@ -19,9 +19,9 @@ public class CmdLineAutomationScriptableObject : ScriptableObject {
 
 	public void RunCommands(InteractiveCmdShell shell) {
 		this.shell = shell;
-		for (int i = 0; i < Commands.Length; i++) {
-			if (Commands[i].Comment) { continue; }
-			RunCommand(Commands[i].Text);
+		for (int i = 0; i < CommandsToDo.Length; i++) {
+			if (CommandsToDo[i].Comment) { continue; }
+			RunCommand(CommandsToDo[i].Text);
 		}
 	}
 }

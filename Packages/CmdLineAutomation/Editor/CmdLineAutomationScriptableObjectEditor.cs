@@ -2,33 +2,38 @@ using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
 
+// TODO create custom commands for
+// * `folderrefresh` reimports the current folder (so changes show up in the project view)
 [CustomEditor(typeof(CmdLineAutomationScriptableObject))]
 [CanEditMultipleObjects]
 public class CmdLineAutomationScriptableObjectEditor : Editor {
-	CmdLineAutomationScriptableObject _target;
+	private CmdLineAutomationScriptableObject _target;
 	private ImguiInteractiveShell _shellGui;
-	private List<string> lines = new List<string>();
+	private List<string> _lines = new List<string>();
 	private string _lastRuntime;
-	private GUIStyle textStyleNoWrap = null;
+	private GUIStyle _consoleTextStyle = null;
 
 	public CmdLineAutomationScriptableObject Target => _target != null ? _target
 		: _target = target as CmdLineAutomationScriptableObject;
 
 	public ImguiInteractiveShell ShellGui => _shellGui != null ? _shellGui : _shellGui = new ImguiInteractiveShell();
 
+	public void RefreshInspector() { EditorUtility.SetDirty(Target); }
+
 	public override void OnInspectorGUI() {
-		if (textStyleNoWrap == null) {
-			textStyleNoWrap = new GUIStyle("label");
-			textStyleNoWrap.wordWrap = false;
-			textStyleNoWrap.font = Font.CreateDynamicFontFromOSFont("Consolas", 12);
+		if (_consoleTextStyle == null) {
+			_consoleTextStyle = new GUIStyle("label");
+			_consoleTextStyle.wordWrap = false;
+			_consoleTextStyle.font = Font.CreateDynamicFontFromOSFont("Consolas", 12);
 		}
 		DrawDefaultInspector();
-		string command = ShellGui.PromptGUI(textStyleNoWrap);
-		if (command != null) {
-			EditorUtility.SetDirty(Target);
+		string command = ShellGui.PromptGUI(_consoleTextStyle);
+		if (command != null && !RunInternalCommand(command)) {
+			ShellGui.Execute(command);
+			RefreshInspector();
 		}
 		GUILayout.BeginHorizontal();
-		if (GUILayout.Button("Run Commands")) {
+		if (GUILayout.Button("Run Commands To Do")) {
 			if (ShellGui.IsStarted) {
 				RunCommands();
 			} else {
@@ -37,28 +42,44 @@ public class CmdLineAutomationScriptableObjectEditor : Editor {
 				EditorApplication.delayCall += RunCommands;
 			}
 		}
-		ShellGui.ButtonGUI(textStyleNoWrap);
+		ShellGui.ButtonGUI(_consoleTextStyle);
 		if (GUILayout.Button("Clear Output")) {
 			ClearLines();
 		}
 		GUILayout.EndHorizontal();
-		EditorGUILayout.TextArea(_lastRuntime, textStyleNoWrap);
+		EditorGUILayout.TextArea(_lastRuntime, _consoleTextStyle);
 		serializedObject.Update();
 		serializedObject.ApplyModifiedProperties();
 	}
 
+	private bool RunInternalCommand(string command) {
+		string firstToken = FirstToken(command);
+		switch (firstToken.ToLower()) {
+			case "cls":
+				ClearLines();
+				RefreshInspector();
+				return true;
+		}
+		return false;
+	}
+
+	private static string FirstToken(string command) {
+		int endOfFirstToken = command.IndexOf(' ');
+		return endOfFirstToken > 0 ? command.Substring(endOfFirstToken) : command;
+	}
+
 	private void ClearLines() {
-		lines.Clear();
+		_lines.Clear();
 		_lastRuntime = "";
 	}
 
 	private void PopulateOutputText() {
-		ShellGui.shell.GetRecentLines(lines);
-		_lastRuntime = string.Join("\n", lines);
+		ShellGui.shell.GetRecentLines(_lines);
+		_lastRuntime = string.Join("\n", _lines);
 	}
 
 	private void RunCommands() {
 		Target.RunCommands(_shellGui.shell);
-		EditorUtility.SetDirty(Target);
+		RefreshInspector();
 	}
 }
