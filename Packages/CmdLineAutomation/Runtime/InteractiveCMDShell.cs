@@ -10,7 +10,7 @@ public class InteractiveCmdShell : ICmd {
 	private string _lineBuffer = ""; // StringBuilder is faster but less stable
 	private List<string> _lines = new List<string>();
 	private bool _running = false;
-	public Action OnLineRead = delegate { };
+	//public Action OnLineRead = delegate { };
 	public Action<string> LineOutput = delegate { };
 
 	public string Token => null;
@@ -38,9 +38,9 @@ public class InteractiveCmdShell : ICmd {
 		} catch { }
 	}
 
-	public void RunCommand(string aInput) {
+	public void RunCommand(string command) {
 		if (_running) {
-			_process.StandardInput.WriteLine(aInput);
+			_process.StandardInput.WriteLine(command);
 			_process.StandardInput.Flush();
 		}
 	}
@@ -63,13 +63,11 @@ public class InteractiveCmdShell : ICmd {
 	}
 
 	public void GetRecentLines(List<string> aLines) {
-		if (!_running || aLines == null || _lines.Count == 0) {
+		if (!_running || aLines == null) {
 			return;
 		}
 		PeekRecentLines(aLines);
-		lock (_lines) {
-			_lines.Clear();
-		}
+		//ClearLines();
 	}
 
 	public void PeekRecentLines(List<string> aLines) {
@@ -103,7 +101,7 @@ public class InteractiveCmdShell : ICmd {
 				string line = GetCurrentLine();
 				_lines.Add(line);
 				_lineBuffer = "";//.Clear();
-				OnLineRead.Invoke();
+				//OnLineRead.Invoke();
 				LineOutput.Invoke(line);
 			}
 		} else if (c != '\r') {
@@ -112,7 +110,13 @@ public class InteractiveCmdShell : ICmd {
 		return true;
 	}
 
-	public string CommandFilter(string command, Action<string> stdOutput) {
+	public void ClearLines() {
+		lock (_lines) {
+			_lines.Clear();
+		}
+	}
+
+	public string CommandFilter(object context, string command, Action<string> stdOutput) {
 		LineOutput = stdOutput;
 		RunCommand(command);
 		return null;

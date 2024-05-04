@@ -18,7 +18,13 @@ public class CmdLineAutomationScriptableObjectEditor : Editor {
 
 	public ImguiInteractiveShell ShellGui => _shellGui != null ? _shellGui : _shellGui = new ImguiInteractiveShell();
 
-	public void RefreshInspector() { EditorUtility.SetDirty(Target); }
+	public void RefreshInspector() {
+		EditorApplication.delayCall += RefreshInspectorInternal;
+	}
+
+	private void RefreshInspectorInternal() {
+		EditorUtility.SetDirty(Target);
+	}
 
 	public override void OnInspectorGUI() {
 		if (_consoleTextStyle == null) {
@@ -28,8 +34,9 @@ public class CmdLineAutomationScriptableObjectEditor : Editor {
 		}
 		DrawDefaultInspector();
 		string command = ShellGui.PromptGUI(_consoleTextStyle);
-		if (command != null && !RunInternalCommand(command)) {
-			ShellGui.Execute(command);
+		if (command != null) { // && !RunInternalCommand(command)) {
+			//ShellGui.Execute(command);
+			RunInternalCommand(command);
 			RefreshInspector();
 		}
 		GUILayout.BeginHorizontal();
@@ -37,14 +44,15 @@ public class CmdLineAutomationScriptableObjectEditor : Editor {
 			if (ShellGui.IsStarted) {
 				RunCommands();
 			} else {
-				ShellGui.OnLineRead = PopulateOutputText;
+				//ShellGui.OnLineRead = PopulateOutputText;
 				ShellGui.Start();
 				EditorApplication.delayCall += RunCommands;
 			}
 		}
 		ShellGui.ButtonGUI(_consoleTextStyle);
 		if (GUILayout.Button("Clear Output")) {
-			ClearLines();
+			CmdCls.ClearLines(ShellGui.Shell);
+			PopulateOutputText();
 		}
 		GUILayout.EndHorizontal();
 		EditorGUILayout.TextArea(_lastRuntime, _consoleTextStyle);
@@ -53,13 +61,15 @@ public class CmdLineAutomationScriptableObjectEditor : Editor {
 	}
 
 	private bool RunInternalCommand(string command) {
-		string firstToken = FirstToken(command);
-		switch (firstToken.ToLower()) {
-			case "cls":
-				ClearLines();
-				RefreshInspector();
-				return true;
-		}
+		//string firstToken = FirstToken(command);
+		//switch (firstToken.ToLower()) {
+		//	case "cls":
+		//		ClearLines();
+		//		RefreshInspector();
+		//		return true;
+		//}
+		command = Target.CommandFilter(ShellGui.Shell, command, PopulateOutputText);
+		PopulateOutputText();
 		return false;
 	}
 
@@ -68,18 +78,29 @@ public class CmdLineAutomationScriptableObjectEditor : Editor {
 		return endOfFirstToken > 0 ? command.Substring(endOfFirstToken) : command;
 	}
 
-	private void ClearLines() {
-		_lines.Clear();
-		_lastRuntime = "";
+	//private void ClearLines() {
+	//	_lines.Clear();
+	//	_lastRuntime = "";
+	//}
+
+	private void PopulateOutputText(string latestLine) {
+		PopulateOutputText();
 	}
 
 	private void PopulateOutputText() {
-		ShellGui.shell.GetRecentLines(_lines);
+		_lines.Clear();
+		ShellGui.Shell.GetRecentLines(_lines);
 		_lastRuntime = string.Join("\n", _lines);
+		//Debug.Log("LINES "+_lastRuntime);
+		RefreshInspector();
 	}
 
 	private void RunCommands() {
-		Target.RunCommands(_shellGui.shell);
+		Target.RunCommands(_shellGui.Shell, StdOutput);
 		RefreshInspector();
+	}
+
+	private void StdOutput(string line) {
+		PopulateOutputText();
 	}
 }

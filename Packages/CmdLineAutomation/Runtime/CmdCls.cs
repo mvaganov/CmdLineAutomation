@@ -1,18 +1,19 @@
-using System.Collections;
-using System.Collections.Generic;
+using System;
 using UnityEngine;
 
-public class CmdCls : MonoBehaviour
-{
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
+[CreateAssetMenu(fileName = "Data", menuName = "ScriptableObjects/Commands/CmdLineAutomation")]
+public class CmdCls : ScriptableObject, ICmd {
+	public string Token => this.name;
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+	public string CommandFilter(object context, string command, Action<string> stdOutput) {
+		if (context is InteractiveCmdShell cmdShell) {
+			ClearLines(cmdShell);
+			return null;
+		}
+		return command;
+	}
+
+	public static void ClearLines(InteractiveCmdShell cmdShell) {
+		cmdShell.ClearLines();
+	}
 }

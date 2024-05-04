@@ -10,23 +10,23 @@ public class ImguiInteractiveShell : ICmd {
 	private InteractiveCmdShell _shell;
 	private string cmd = "";
 	List<string> lineBuffer = new List<string>();
-	public Action OnLineRead = delegate { };
+	//public Action OnLineRead = delegate { };
 
 	public bool IsStarted => _shell != null;
 
 	public void Start() {
 		_shell = new InteractiveCmdShell("cmd.exe", Path.Combine(Application.dataPath, ".."));
-		_shell.OnLineRead = OnLineRead;
+		//_shell.OnLineRead = OnLineRead;
 	}
 
 	public void Stop() {
 		if (IsStarted) {
-			shell.Stop();
+			Shell.Stop();
 		}
 		_shell = null;
 	}
 
-	public InteractiveCmdShell shell {
+	public InteractiveCmdShell Shell {
 		get {
 			if (_shell == null) {
 				Start();
@@ -58,8 +58,8 @@ public class ImguiInteractiveShell : ICmd {
 			return null;
 		}
 		GUILayout.BeginHorizontal();
-		shell.GetRecentLines(lineBuffer);
-		GUILayout.Label(shell.GetCurrentLine(), style, GUILayout.ExpandWidth(false));
+		Shell.GetRecentLines(lineBuffer);
+		GUILayout.Label(Shell.GetCurrentLine(), style, GUILayout.ExpandWidth(false));
 		cmd = GUILayout.TextField(cmd, style, GUILayout.ExpandWidth(true));
 		GUILayout.EndHorizontal();
 		Event e = Event.current;
@@ -72,14 +72,14 @@ public class ImguiInteractiveShell : ICmd {
 	}
 
 	public void Execute(string command) {
-		shell.RunCommand(command);
+		Shell.RunCommand(command);
 	}
 
 	/// <inheritdoc/>
-	public string CommandFilter(string command, Action<string> stdOutput) {
+	public string CommandFilter(object context, string command, Action<string> stdOutput) {
 		if (!IsStarted) {
 			Start();
 		}
-		return _shell.CommandFilter(command, stdOutput);
+		return _shell.CommandFilter(context, command, stdOutput);
 	}
 }
