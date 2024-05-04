@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
-public class InteractiveCmdShell {
+public class InteractiveCmdShell : ICmd {
 	private System.Diagnostics.ProcessStartInfo _startInfo;
 	private System.Diagnostics.Process _process;
 	private System.Threading.Thread _thread;
@@ -11,6 +11,9 @@ public class InteractiveCmdShell {
 	private List<string> _lines = new List<string>();
 	private bool _running = false;
 	public Action OnLineRead = delegate { };
+	public Action<string> LineOutput = delegate { };
+
+	public string Token => null;
 
 	public InteractiveCmdShell(string command = "Cmd.exe", string workingDirectory = "C:\\Windows\\System32\\") {
 		_startInfo = new System.Diagnostics.ProcessStartInfo(command);
@@ -97,13 +100,21 @@ public class InteractiveCmdShell {
 			return false;
 		} else if (c == '\n') {
 			lock (_lines) {
-				_lines.Add(GetCurrentLine());
+				string line = GetCurrentLine();
+				_lines.Add(line);
 				_lineBuffer = "";//.Clear();
 				OnLineRead.Invoke();
+				LineOutput.Invoke(line);
 			}
 		} else if (c != '\r') {
 			_lineBuffer += ((char)c);
 		}
 		return true;
+	}
+
+	public string CommandFilter(string command, Action<string> stdOutput) {
+		LineOutput = stdOutput;
+		RunCommand(command);
+		return null;
 	}
 }

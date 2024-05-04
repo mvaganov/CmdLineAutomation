@@ -6,7 +6,7 @@ using UnityEngine;
 /// <summary>
 /// Manages a command line shell for any Unity UI that supports OnGUI
 /// </summary>
-public class ImguiInteractiveShell {
+public class ImguiInteractiveShell : ICmd {
 	private InteractiveCmdShell _shell;
 	private string cmd = "";
 	List<string> lineBuffer = new List<string>();
@@ -34,6 +34,8 @@ public class ImguiInteractiveShell {
 			return _shell;
 		}
 	}
+
+	public string Token => throw new NotImplementedException();
 
 	/// <summary>
 	/// <see cref="OnGUI"/> or <see cref="UnityEngine.Editor.OnInspectorGUI"/>
@@ -71,5 +73,13 @@ public class ImguiInteractiveShell {
 
 	public void Execute(string command) {
 		shell.RunCommand(command);
+	}
+
+	/// <inheritdoc/>
+	public string CommandFilter(string command, Action<string> stdOutput) {
+		if (!IsStarted) {
+			Start();
+		}
+		return _shell.CommandFilter(command, stdOutput);
 	}
 }

@@ -12,6 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a27bdf6447fbb94fb2a27ed28768fcf, type: 3}
   m_Name: EchoExample
   m_EditorClassIdentifier: 
+  _details:
+    Description: Create a new directory, run `dir` from inside, then delete the new
+      directory.
   CommandsToDo:
   - Text: mkdir test
     Comment: 0
@@ -23,5 +26,3 @@ MonoBehaviour:
     Comment: 0
   - Text: rmdir test
     Comment: 0
-  _details:
-    Description: Create a new directory, run `dir` from inside, then delete the directory.
