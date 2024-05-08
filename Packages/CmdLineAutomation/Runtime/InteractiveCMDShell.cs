@@ -7,6 +7,8 @@ public interface IReferencesCmdShell {
 	public InteractiveCmdShell Shell { get; }
 }
 
+// TODO keep track of the current working directory
+// TODO why does "Run Commands To Do" work, but not "Start Process"?
 public class InteractiveCmdShell : ICommandProcessor, IReferencesCmdShell {
 	private System.Diagnostics.ProcessStartInfo _startInfo;
 	private System.Diagnostics.Process _process;
@@ -21,6 +23,16 @@ public class InteractiveCmdShell : ICommandProcessor, IReferencesCmdShell {
 		new InteractiveCmdShell("cmd.exe", Path.Combine(Application.dataPath, ".."));
 
 	public InteractiveCmdShell Shell => this;
+
+	public bool IsRunning {
+		get => _running;
+		set {
+			if (_running && !value) {
+				Stop();
+			}
+			_running = value;
+		}
+	}
 
 	public InteractiveCmdShell(string command = "cmd.exe", string workingDirectory = "C:\\Windows\\System32\\") {
 		_startInfo = new System.Diagnostics.ProcessStartInfo(command);

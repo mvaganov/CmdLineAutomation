@@ -15,12 +15,15 @@ MonoBehaviour:
   _details:
     Description: Create a new directory, run `dir` from inside, then delete the new
       directory.
+  _commandListing:
+  - {fileID: 11400000, guid: 3a059507b0e37fa4cbd78a964cfbcc5e, type: 2}
+  - {fileID: 11400000, guid: 43de3a2366b59ee41b0f10dddbabd6da, type: 2}
+  - {fileID: 11400000, guid: 5eea49d4991f5a14c8f4f584f056c913, type: 2}
+  - {fileID: 11400000, guid: 9c0963e961d05aa479012ae5788b283b, type: 2}
   CommandsToDo:
   - Text: cls
-    Comment: 1
-  - Text: mkdir test
     Comment: 0
-  - Text: sleep a
+  - Text: mkdir test
     Comment: 0
   - Text: cd test
     Comment: 0
@@ -30,8 +33,8 @@ MonoBehaviour:
     Comment: 0
   - Text: rmdir test
     Comment: 0
-  _commandFilterListing:
-  - {fileID: 11400000, guid: 3a059507b0e37fa4cbd78a964cfbcc5e, type: 2}
-  - {fileID: 11400000, guid: 43de3a2366b59ee41b0f10dddbabd6da, type: 2}
-  - {fileID: 11400000, guid: 5eea49d4991f5a14c8f4f584f056c913, type: 2}
+  - Text: sleep 1
+    Comment: 0
+  - Text: echo done!
+    Comment: 0
   NativeCmdLineFallback: 1

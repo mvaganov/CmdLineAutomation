@@ -1,12 +1,5 @@
 using System;
 
-public interface INamedCommand : ICommandProcessor {
-	/// <summary>
-	/// Unique command identifier that will prompt the command, not always run as a filter.
-	/// </summary>
-	public string CommandToken { get; }
-}
-
 /// <summary>
 /// Processing logic to respond to a string command input. The main method is a non-blocking
 /// cooperative-multithreaded function.

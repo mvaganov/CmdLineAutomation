@@ -15,8 +15,8 @@ public class CmdLineAutomationScriptableObject : ScriptableObject, ICommandProce
 
 	private InteractiveCmdShell _shell;
 	[SerializeField] protected MetaData _details;
+	[SerializeField] protected UnityEngine.Object[] _commandListing;
 	[SerializeField] protected TextCommand[] CommandsToDo;
-	[SerializeField] protected UnityEngine.Object[] _commandFilterListing;
 	[SerializeField] protected bool NativeCmdLineFallback = true;
 
 	/// <summary>
@@ -34,7 +34,7 @@ public class CmdLineAutomationScriptableObject : ScriptableObject, ICommandProce
 	/// <summary>
 	/// Result of the last finished cooperative function 
 	/// </summary>
-	private string currentCommandResult;
+	private string _currentCommandResult;
 	/// <summary>
 	/// Which filter is being cooperatively processed right now
 	/// </summary>
@@ -60,7 +60,7 @@ public class CmdLineAutomationScriptableObject : ScriptableObject, ICommandProce
 	private void InitializeCommandListing() {
 		_commandDictionary = new Dictionary<string, INamedCommand>();
 		_filters = new List<ICommandProcessor>();
-		foreach (UnityEngine.Object obj in _commandFilterListing) {
+		foreach (UnityEngine.Object obj in _commandListing) {
 			switch (obj) {
 				case INamedCommand iCmd: Add(iCmd); break;
 				case ICommandProcessor iFilter: _filters.Add(iFilter); break;
@@ -98,7 +98,7 @@ public class CmdLineAutomationScriptableObject : ScriptableObject, ICommandProce
 			if (CommandsToDo[i].Comment) { continue; }
 			filterIndex = 0;
 			StartCooperativeFunction(_context, CommandsToDo[i].Text, _stdOutput);
-			while (!IsFunctionFinished() && _running) {
+			while (!IsFunctionFinished() && _running && (Shell == null || Shell.IsRunning)) {
 				System.Threading.Thread.Sleep(1);
 			}
 		}
@@ -122,7 +122,8 @@ public class CmdLineAutomationScriptableObject : ScriptableObject, ICommandProce
 	/// <inheritdoc/>
 	public void StartCooperativeFunction(object context, string command, Action<string> stdOutput) {
 		_context = context;
-		_stdOutput = stdOutput; 
+		_stdOutput = stdOutput;
+		_currentCommandResult = command;
 		if (currentCommand != null && !currentCommand.IsFunctionFinished()) {
 			Debug.Log($"still processing {currentCommand}");
 			return;
@@ -135,6 +136,7 @@ public class CmdLineAutomationScriptableObject : ScriptableObject, ICommandProce
 		}
 		if(NativeCmdLineFallback) {
 			_shell.StartCooperativeFunction(context, command, stdOutput);
+			_currentCommandResult = null;
 		}
 		currentCommand = null;
 		filterIndex = 0;
@@ -166,9 +168,9 @@ public class CmdLineAutomationScriptableObject : ScriptableObject, ICommandProce
 		if (!currentCommand.IsFunctionFinished()) {
 			return true;
 		}
-		currentCommandResult = currentCommand.FunctionResult();
+		_currentCommandResult = currentCommand.FunctionResult();
 		currentCommand = null;
-		if (currentCommandResult == null) {
+		if (_currentCommandResult == null) {
 			return true;
 		}
 		return false;
@@ -176,5 +178,5 @@ public class CmdLineAutomationScriptableObject : ScriptableObject, ICommandProce
 
 	public bool IsFunctionFinished() => currentCommand == null || currentCommand.IsFunctionFinished();
 
-	public string FunctionResult() => currentCommand != null ? currentCommand.FunctionResult() : currentCommandResult;
+	public string FunctionResult() => currentCommand != null ? currentCommand.FunctionResult() : _currentCommandResult;
 }
