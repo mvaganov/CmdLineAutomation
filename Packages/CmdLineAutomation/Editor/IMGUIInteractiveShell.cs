@@ -1,22 +1,26 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using UnityEngine;
 
 /// <summary>
 /// Manages a command line shell for any Unity UI that supports OnGUI
 /// </summary>
-public class ImguiInteractiveShell : ICmd {
+public class ImguiInteractiveShell : IReferencesCmdShell {
 	private InteractiveCmdShell _shell;
 	private string cmd = "";
-	List<string> lineBuffer = new List<string>();
-	//public Action OnLineRead = delegate { };
+	private List<string> lineBuffer = new List<string>();
+	private Func<InteractiveCmdShell> CreateShell;
 
 	public bool IsStarted => _shell != null;
 
+	public ImguiInteractiveShell(Func<InteractiveCmdShell> createShell) {
+		CreateShell = createShell;
+	}
+
 	public void Start() {
-		_shell = new InteractiveCmdShell("cmd.exe", Path.Combine(Application.dataPath, ".."));
-		//_shell.OnLineRead = OnLineRead;
+		if (_shell == null) {
+			_shell = CreateShell();
+		}
 	}
 
 	public void Stop() {
@@ -26,16 +30,9 @@ public class ImguiInteractiveShell : ICmd {
 		_shell = null;
 	}
 
-	public InteractiveCmdShell Shell {
-		get {
-			if (_shell == null) {
-				Start();
-			}
-			return _shell;
-		}
-	}
+	public InteractiveCmdShell Shell => _shell;
 
-	public string Token => throw new NotImplementedException();
+	public string CommandToken => throw new NotImplementedException();
 
 	/// <summary>
 	/// <see cref="OnGUI"/> or <see cref="UnityEngine.Editor.OnInspectorGUI"/>
@@ -69,17 +66,5 @@ public class ImguiInteractiveShell : ICmd {
 			return result;
 		}
 		return null;
-	}
-
-	public void Execute(string command) {
-		Shell.RunCommand(command);
-	}
-
-	/// <inheritdoc/>
-	public string CommandFilter(object context, string command, Action<string> stdOutput) {
-		if (!IsStarted) {
-			Start();
-		}
-		return _shell.CommandFilter(context, command, stdOutput);
 	}
 }

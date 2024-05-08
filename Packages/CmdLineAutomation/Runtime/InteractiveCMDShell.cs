@@ -1,21 +1,28 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.IO;
 
-public class InteractiveCmdShell : ICmd {
+public interface IReferencesCmdShell {
+	public InteractiveCmdShell Shell { get; }
+}
+
+public class InteractiveCmdShell : ICommandProcessor, IReferencesCmdShell {
 	private System.Diagnostics.ProcessStartInfo _startInfo;
 	private System.Diagnostics.Process _process;
 	private System.Threading.Thread _thread;
-	private System.IO.StreamReader _output;
-	private string _lineBuffer = ""; // StringBuilder is faster but less stable
+	private StreamReader _output;
+	private string _lineBuffer = ""; // StringBuilder is faster but less thread safe
 	private List<string> _lines = new List<string>();
 	private bool _running = false;
-	//public Action OnLineRead = delegate { };
 	public Action<string> LineOutput = delegate { };
 
-	public string Token => null;
+	public static InteractiveCmdShell CreateUnityEditorShell() =>
+		new InteractiveCmdShell("cmd.exe", Path.Combine(Application.dataPath, ".."));
 
-	public InteractiveCmdShell(string command = "Cmd.exe", string workingDirectory = "C:\\Windows\\System32\\") {
+	public InteractiveCmdShell Shell => this;
+
+	public InteractiveCmdShell(string command = "cmd.exe", string workingDirectory = "C:\\Windows\\System32\\") {
 		_startInfo = new System.Diagnostics.ProcessStartInfo(command);
 		_startInfo.WorkingDirectory = workingDirectory;
 		_startInfo.UseShellExecute = false;
@@ -67,7 +74,6 @@ public class InteractiveCmdShell : ICmd {
 			return;
 		}
 		PeekRecentLines(aLines);
-		//ClearLines();
 	}
 
 	public void PeekRecentLines(List<string> aLines) {
@@ -87,7 +93,9 @@ public class InteractiveCmdShell : ICmd {
 			Debug.LogWarning($"Aborted {nameof(InteractiveCmdShell)} Thread");
 #endif
 		} catch (Exception e) {
+#if UNITY_EDITOR
 			Debug.LogException(e);
+#endif
 		}
 		_running = false;
 	}
@@ -101,7 +109,6 @@ public class InteractiveCmdShell : ICmd {
 				string line = GetCurrentLine();
 				_lines.Add(line);
 				_lineBuffer = "";//.Clear();
-				//OnLineRead.Invoke();
 				LineOutput.Invoke(line);
 			}
 		} else if (c != '\r') {
@@ -116,9 +123,16 @@ public class InteractiveCmdShell : ICmd {
 		}
 	}
 
-	public string CommandFilter(object context, string command, Action<string> stdOutput) {
+	public void StartCooperativeFunction(object context, string command, Action<string> stdOutput) {
 		LineOutput = stdOutput;
 		RunCommand(command);
-		return null;
+	}
+
+	public bool IsFunctionFinished() => true;
+
+	public string FunctionResult() => null;
+
+	public string[] Split(string command) {
+		return command.Split();
 	}
 }

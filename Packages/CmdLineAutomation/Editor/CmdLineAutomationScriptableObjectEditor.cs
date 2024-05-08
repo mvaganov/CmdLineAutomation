@@ -6,7 +6,7 @@ using System.Collections.Generic;
 // * `folderrefresh` reimports the current folder (so changes show up in the project view)
 [CustomEditor(typeof(CmdLineAutomationScriptableObject))]
 [CanEditMultipleObjects]
-public class CmdLineAutomationScriptableObjectEditor : Editor {
+public class CmdLineAutomationScriptableObjectEditor : Editor, IReferencesCmdShell {
 	private CmdLineAutomationScriptableObject _target;
 	private ImguiInteractiveShell _shellGui;
 	private List<string> _lines = new List<string>();
@@ -16,7 +16,19 @@ public class CmdLineAutomationScriptableObjectEditor : Editor {
 	public CmdLineAutomationScriptableObject Target => _target != null ? _target
 		: _target = target as CmdLineAutomationScriptableObject;
 
-	public ImguiInteractiveShell ShellGui => _shellGui != null ? _shellGui : _shellGui = new ImguiInteractiveShell();
+	public InteractiveCmdShell Shell => Target.Shell;
+
+	public ImguiInteractiveShell ShellGui {
+		get {
+			if (_shellGui != null) {
+				return _shellGui;
+			}
+			_shellGui = new ImguiInteractiveShell(() => {
+				return Target.Shell = InteractiveCmdShell.CreateUnityEditorShell();
+			});
+			return _shellGui;
+		}
+	}
 
 	public void RefreshInspector() {
 		EditorApplication.delayCall += RefreshInspectorInternal;
@@ -34,24 +46,26 @@ public class CmdLineAutomationScriptableObjectEditor : Editor {
 		}
 		DrawDefaultInspector();
 		string command = ShellGui.PromptGUI(_consoleTextStyle);
-		if (command != null) { // && !RunInternalCommand(command)) {
-			//ShellGui.Execute(command);
-			RunInternalCommand(command);
-			RefreshInspector();
+		if (command != null) {
+			if (waitingForCommand) {
+				Debug.Log("waiting for command to finish...");
+			} else {
+				RunInternalCommand(command);
+				RefreshInspector();
+			}
 		}
 		GUILayout.BeginHorizontal();
 		if (GUILayout.Button("Run Commands To Do")) {
 			if (ShellGui.IsStarted) {
 				RunCommands();
 			} else {
-				//ShellGui.OnLineRead = PopulateOutputText;
 				ShellGui.Start();
 				EditorApplication.delayCall += RunCommands;
 			}
 		}
 		ShellGui.ButtonGUI(_consoleTextStyle);
 		if (GUILayout.Button("Clear Output")) {
-			CmdCls.ClearLines(ShellGui.Shell);
+			ShellGui.Shell.ClearLines();
 			PopulateOutputText();
 		}
 		GUILayout.EndHorizontal();
@@ -60,28 +74,12 @@ public class CmdLineAutomationScriptableObjectEditor : Editor {
 		serializedObject.ApplyModifiedProperties();
 	}
 
-	private bool RunInternalCommand(string command) {
-		//string firstToken = FirstToken(command);
-		//switch (firstToken.ToLower()) {
-		//	case "cls":
-		//		ClearLines();
-		//		RefreshInspector();
-		//		return true;
-		//}
-		command = Target.CommandFilter(ShellGui.Shell, command, PopulateOutputText);
+	private bool waitingForCommand = false;
+	private void RunInternalCommand(string command) {
+		Target.StartCooperativeFunction(this, command, PopulateOutputText);
+		waitingForCommand = !Target.IsFunctionFinished();
 		PopulateOutputText();
-		return false;
 	}
-
-	private static string FirstToken(string command) {
-		int endOfFirstToken = command.IndexOf(' ');
-		return endOfFirstToken > 0 ? command.Substring(endOfFirstToken) : command;
-	}
-
-	//private void ClearLines() {
-	//	_lines.Clear();
-	//	_lastRuntime = "";
-	//}
 
 	private void PopulateOutputText(string latestLine) {
 		PopulateOutputText();
@@ -91,12 +89,11 @@ public class CmdLineAutomationScriptableObjectEditor : Editor {
 		_lines.Clear();
 		ShellGui.Shell.GetRecentLines(_lines);
 		_lastRuntime = string.Join("\n", _lines);
-		//Debug.Log("LINES "+_lastRuntime);
 		RefreshInspector();
 	}
 
 	private void RunCommands() {
-		Target.RunCommands(_shellGui.Shell, StdOutput);
+		Target.RunCommands(_shellGui, StdOutput);
 		RefreshInspector();
 	}
 
