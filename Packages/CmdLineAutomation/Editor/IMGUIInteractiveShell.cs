@@ -20,6 +20,7 @@ public class ImguiInteractiveShell : IReferencesCmdShell {
 	public void Start() {
 		if (_shell == null) {
 			_shell = CreateShell();
+			Debug.Log("Creating shell "+_shell);
 		}
 	}
 
@@ -40,8 +41,7 @@ public class ImguiInteractiveShell : IReferencesCmdShell {
 	public void ButtonGUI(GUIStyle style) {
 		if (_shell == null) {
 			if (GUILayout.Button("Start Process")) {
-				if (_shell == null)
-					Start();
+				Start();
 			}
 			return;
 		}

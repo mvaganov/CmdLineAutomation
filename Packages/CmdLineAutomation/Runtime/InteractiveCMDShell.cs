@@ -9,6 +9,7 @@ public interface IReferencesCmdShell {
 
 // TODO keep track of the current working directory
 // TODO why does "Run Commands To Do" work, but not "Start Process"?
+// TODO read formatted output from command line programs and do something with that logic?
 public class InteractiveCmdShell : ICommandProcessor, IReferencesCmdShell {
 	private System.Diagnostics.ProcessStartInfo _startInfo;
 	private System.Diagnostics.Process _process;

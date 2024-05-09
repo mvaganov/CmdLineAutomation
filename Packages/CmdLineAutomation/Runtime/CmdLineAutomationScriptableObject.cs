@@ -30,7 +30,7 @@ public class CmdLineAutomationScriptableObject : ScriptableObject, ICommandProce
 	/// <summary>
 	/// Which cooperative function is being executed right now
 	/// </summary>
-	private ICommandProcessor currentCommand;
+	private ICommandProcessor _currentCommand;
 	/// <summary>
 	/// Result of the last finished cooperative function 
 	/// </summary>
@@ -84,34 +84,80 @@ public class CmdLineAutomationScriptableObject : ScriptableObject, ICommandProce
 		InitializeCommandListing();
 		_context = context;
 		_stdOutput = stdOutput;
-		_thread = new System.Threading.Thread(ThreadStart);
-		_thread.Start();
+		CooperativeFunctionStart();
+		//_thread = new System.Threading.Thread(ThreadStart);
+		//_thread.Start();
 	}
-	System.Threading.Thread _thread;
+	//System.Threading.Thread _thread;
 	private object _context;
 	Action<string> _stdOutput;
 	private bool _running;
+	private int _commandExecuting;
 
-	private void ThreadStart() {
+	//private void ThreadStart() {
+	//	_running = true;
+	//	for (int i = 0; _running && i < CommandsToDo.Length; i++) {
+	//		if (CommandsToDo[i].Comment) { continue; }
+	//		filterIndex = 0;
+	//		StartCooperativeFunction(_context, CommandsToDo[i].Text, _stdOutput);
+	//		while (!IsFunctionFinished() && _running && (Shell == null || Shell.IsRunning)) {
+	//			System.Threading.Thread.Sleep(1);
+	//		}
+	//	}
+	//	_running = false;
+	//}
+
+	private void CooperativeFunctionStart() {
+		_commandExecuting = 0;
 		_running = true;
-		for (int i = 0; _running && i < CommandsToDo.Length; i++) {
-			if (CommandsToDo[i].Comment) { continue; }
-			filterIndex = 0;
-			StartCooperativeFunction(_context, CommandsToDo[i].Text, _stdOutput);
-			while (!IsFunctionFinished() && _running && (Shell == null || Shell.IsRunning)) {
-				System.Threading.Thread.Sleep(1);
+		RunCommand();
+	}
+
+	private void RunCommand() {
+		if (!_running) {
+			Debug.Log("not running?");
+			return;
+		}
+		if (_currentCommand != null) {
+			if (_currentCommand.IsFunctionFinished()) {
+				++_commandExecuting;
+				_currentCommand = null;
+			} else {
+				// TODO only do this in the editor. if in a Unity game context, create an object that will run this in a coroutine
+				UnityEditor.EditorApplication.delayCall += RunCommand;
+				return;
 			}
 		}
-		_running = false;
-	}
-	public void ThreadStop() {
-		_running = false;
-		if (_thread != null) {
-			_thread.Join(200);
-			_thread.Abort();
-			_thread = null;
+		if (_currentCommand == null) {
+			string textToDo = CommandsToDo[_commandExecuting].Text;
+			if (!CommandsToDo[_commandExecuting].Comment) {
+				filterIndex = 0;
+				StartCooperativeFunction(_context, textToDo, _stdOutput);
+			}
+			if (_currentCommand == null) {
+				++_commandExecuting;
+			}
+		} else {
+			ServiceFunctions();
+			if (_currentCommand == null) {
+				++_commandExecuting;
+			}
+		}
+		if (_commandExecuting < CommandsToDo.Length) {
+			UnityEditor.EditorApplication.delayCall += RunCommand;
+		} else {
+			_commandExecuting = 0;
 		}
 	}
+
+	//public void ThreadStop() {
+	//	_running = false;
+	//	if (_thread != null) {
+	//		_thread.Join(200);
+	//		_thread.Abort();
+	//		_thread = null;
+	//	}
+	//}
 
 	private void SetShellContext(object context) {
 		if (context is IReferencesCmdShell shellReference) {
@@ -124,35 +170,40 @@ public class CmdLineAutomationScriptableObject : ScriptableObject, ICommandProce
 		_context = context;
 		_stdOutput = stdOutput;
 		_currentCommandResult = command;
-		if (currentCommand != null && !currentCommand.IsFunctionFinished()) {
-			Debug.Log($"still processing {currentCommand}");
+		filterIndex = 0;
+		ServiceFunctions();
+	}
+
+	private void ServiceFunctions() {
+		if (_currentCommand != null && !_currentCommand.IsFunctionFinished()) {
+			Debug.Log($"still processing {_currentCommand}");
 			return;
 		}
-		if (IsExecutionStoppedByFilterFunction(command)) {
+		if (IsExecutionStoppedByFilterFunction(_currentCommandResult)) {
 			return;
 		}
-		if (IsExecutionStoppedByNamedFunction(command)) {
+		if (IsExecutionStoppedByNamedFunction(_currentCommandResult)) {
 			return;
 		}
-		if(NativeCmdLineFallback) {
-			_shell.StartCooperativeFunction(context, command, stdOutput);
+		if (NativeCmdLineFallback) {
+			_shell.StartCooperativeFunction(_context, _currentCommandResult, _stdOutput);
 			_currentCommandResult = null;
 		}
-		currentCommand = null;
+		_currentCommand = null;
 		filterIndex = 0;
 	}
 
 	private bool IsExecutionStoppedByFilterFunction(string command) {
 		while (filterIndex < _filters.Count) {
-			if (currentCommand == null) {
-				Debug.Log(filterIndex);
-				currentCommand = _filters[filterIndex];
-				currentCommand.StartCooperativeFunction(_context, command, _stdOutput);
+			if (_currentCommand == null) {
+				//Debug.Log(filterIndex);
+				_currentCommand = _filters[filterIndex];
+				_currentCommand.StartCooperativeFunction(_context, command, _stdOutput);
 			}
-			if (!currentCommand.IsFunctionFinished()) {
+			if (!_currentCommand.IsFunctionFinished()) {
 				return true;
 			}
-			currentCommand = null;
+			_currentCommand = null;
 			++filterIndex;
 		}
 		return false;
@@ -160,23 +211,24 @@ public class CmdLineAutomationScriptableObject : ScriptableObject, ICommandProce
 
 	private bool IsExecutionStoppedByNamedFunction(string command) {
 		string token = GetFirstToken(command);
-		currentCommand = GetNamedCommand(token);
-		if (currentCommand == null) {
+		_currentCommand = GetNamedCommand(token);
+		if (_currentCommand == null) {
 			return false;
 		}
-		currentCommand.StartCooperativeFunction(_context, command, _stdOutput);
-		if (!currentCommand.IsFunctionFinished()) {
+		_currentCommand.StartCooperativeFunction(_context, command, _stdOutput);
+		if (!_currentCommand.IsFunctionFinished()) {
+			Debug.Log(_currentCommand + " still running");
 			return true;
 		}
-		_currentCommandResult = currentCommand.FunctionResult();
-		currentCommand = null;
+		_currentCommandResult = _currentCommand.FunctionResult();
+		_currentCommand = null;
 		if (_currentCommandResult == null) {
 			return true;
 		}
 		return false;
 	}
 
-	public bool IsFunctionFinished() => currentCommand == null || currentCommand.IsFunctionFinished();
+	public bool IsFunctionFinished() => _currentCommand == null || _currentCommand.IsFunctionFinished();
 
-	public string FunctionResult() => currentCommand != null ? currentCommand.FunctionResult() : _currentCommandResult;
+	public string FunctionResult() => _currentCommand != null ? _currentCommand.FunctionResult() : _currentCommandResult;
 }
