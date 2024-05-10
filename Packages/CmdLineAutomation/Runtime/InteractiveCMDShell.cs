@@ -11,6 +11,7 @@ public interface IReferencesCmdShell {
 // TODO why does "Run Commands To Do" work, but not "Start Process"?
 // TODO read formatted output from command line programs and do something with that logic?
 public class InteractiveCmdShell : ICommandProcessor, IReferencesCmdShell {
+	private string _name;
 	private System.Diagnostics.ProcessStartInfo _startInfo;
 	private System.Diagnostics.Process _process;
 	private System.Threading.Thread _thread;
@@ -19,14 +20,20 @@ public class InteractiveCmdShell : ICommandProcessor, IReferencesCmdShell {
 	private List<string> _lines = new List<string>();
 	private bool _running = false;
 	public Action<string> LineOutput = delegate { };
+	public Func<bool> KeepAlive;
 
+	public static List<InteractiveCmdShell> RunningShells = new List<InteractiveCmdShell>();
 	public static InteractiveCmdShell CreateUnityEditorShell() =>
 		new InteractiveCmdShell("cmd.exe", Path.Combine(Application.dataPath, ".."));
+
+	public List<string> Lines => _lines;
+
+	public string Name { get => _name; set => _name = value; }
 
 	public InteractiveCmdShell Shell => this;
 
 	public bool IsRunning {
-		get => _running;
+		get => _running && _thread.IsAlive && (KeepAlive == null || KeepAlive.Invoke());
 		set {
 			if (_running && !value) {
 				Stop();
@@ -50,6 +57,7 @@ public class InteractiveCmdShell : ICommandProcessor, IReferencesCmdShell {
 		_output = _process.StandardOutput;
 		_thread = new System.Threading.Thread(Thread);
 		_thread.Start();
+		RunningShells.Add(this);
 	}
 
 	~InteractiveCmdShell() {
@@ -59,7 +67,7 @@ public class InteractiveCmdShell : ICommandProcessor, IReferencesCmdShell {
 	}
 
 	public void RunCommand(string command) {
-		if (_running) {
+		if (IsRunning) {
 			_process.StandardInput.WriteLine(command);
 			_process.StandardInput.Flush();
 		}
@@ -74,16 +82,17 @@ public class InteractiveCmdShell : ICommandProcessor, IReferencesCmdShell {
 			_process = null;
 			_thread = null;
 		}
+		RunningShells.Remove(this);
 	}
 
 	public string GetCurrentLine() {
-		if (!_running)
-			return "";
+		if (!IsRunning)
+			return  null;
 		return _lineBuffer.ToString();
 	}
 
 	public void GetRecentLines(List<string> aLines) {
-		if (!_running || aLines == null) {
+		if (!IsRunning || aLines == null) {
 			return;
 		}
 		PeekRecentLines(aLines);
@@ -100,7 +109,7 @@ public class InteractiveCmdShell : ICommandProcessor, IReferencesCmdShell {
 	void Thread() {
 		_running = true;
 		try {
-			while (_running && Reading()) ;
+			while (IsRunning && Reading()) ;
 		} catch (System.Threading.ThreadAbortException) {
 #if UNITY_EDITOR
 			Debug.LogWarning($"Aborted {nameof(InteractiveCmdShell)} Thread");
@@ -109,6 +118,9 @@ public class InteractiveCmdShell : ICommandProcessor, IReferencesCmdShell {
 #if UNITY_EDITOR
 			Debug.LogException(e);
 #endif
+		}
+		if (_running) {
+			Stop();
 		}
 		_running = false;
 	}

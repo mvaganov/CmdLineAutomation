@@ -18,13 +18,37 @@ public class CmdLineAutomationScriptableObjectEditor : Editor, IReferencesCmdShe
 
 	public InteractiveCmdShell Shell => Target.Shell;
 
+	private void OnEnable() {
+		if (ShellGui.Shell != Shell) {
+			ShellGui.Shell = Shell;
+			PopulateOutputText();
+		}
+	}
+
 	public ImguiInteractiveShell ShellGui {
 		get {
 			if (_shellGui != null) {
 				return _shellGui;
 			}
+			CmdLineAutomationScriptableObject target = Target;
 			_shellGui = new ImguiInteractiveShell(() => {
-				return Target.Shell = InteractiveCmdShell.CreateUnityEditorShell();
+				InteractiveCmdShell thisShell = InteractiveCmdShell.CreateUnityEditorShell();
+				thisShell.Name = $"{Target.name} {System.Environment.TickCount}";
+				target.Shell = thisShell;
+				thisShell.KeepAlive = () => {
+					bool lostScriptableObject = Target != target;
+					if (lostScriptableObject) {
+						Debug.LogWarning($"lost {nameof(CmdLineAutomationScriptableObject)}");
+						return false;
+					}
+					if (Target.Shell != thisShell) {
+						Debug.LogWarning($"lost {nameof(InteractiveCmdShell)}");
+						thisShell.Stop();
+						return false;
+					}
+					return true;
+				};
+				return thisShell;
 			});
 			return _shellGui;
 		}
@@ -65,13 +89,42 @@ public class CmdLineAutomationScriptableObjectEditor : Editor, IReferencesCmdShe
 		}
 		ShellGui.ButtonGUI(_consoleTextStyle);
 		if (GUILayout.Button("Clear Output")) {
-			ShellGui.Shell.ClearLines();
+			if (ShellGui != null && ShellGui.Shell != null) {
+				ShellGui.Shell.ClearLines();
+			}
 			PopulateOutputText();
 		}
 		GUILayout.EndHorizontal();
 		EditorGUILayout.TextArea(_lastRuntime, _consoleTextStyle);
 		serializedObject.Update();
 		serializedObject.ApplyModifiedProperties();
+
+		for (int i = 0; i < InteractiveCmdShell.RunningShells.Count; i++) {
+			InteractiveCmdShell sh = InteractiveCmdShell.RunningShells[i];
+			string label = "";
+			bool endIfSelected = Target.Shell == sh;
+			bool commandeer = Target.Shell == null;
+			if (sh == null) {
+				label = "null";
+			} else {
+				string action = endIfSelected ? "[end]" : commandeer ? "[commandeer]" : "";
+				string runningMark = sh.IsRunning ? "" : "<dead> ";
+				label = $"{action} {runningMark} \"{sh.Name}\" (lines {sh.Lines.Count})";
+			}
+			if (GUILayout.Button(label)) {
+				if (sh != null) {
+					if (endIfSelected) {
+						sh.Stop();
+						Target.Shell = null;
+						ShellGui.Shell = null;
+					} else if (commandeer) {
+						Target.Shell = sh;
+						ShellGui.Shell = sh;
+						RefreshInspectorInternal();
+					}
+				}
+			}
+		}
 	}
 
 	private bool waitingForCommand = false;
@@ -87,7 +140,9 @@ public class CmdLineAutomationScriptableObjectEditor : Editor, IReferencesCmdShe
 
 	private void PopulateOutputText() {
 		_lines.Clear();
-		ShellGui.Shell.GetRecentLines(_lines);
+		if (ShellGui != null && ShellGui.Shell != null) {
+			ShellGui.Shell.GetRecentLines(_lines);
+		}
 		_lastRuntime = string.Join("\n", _lines);
 		RefreshInspector();
 	}

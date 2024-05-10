@@ -39,6 +39,18 @@ public class CmdLineAutomationScriptableObject : ScriptableObject, ICommandProce
 	/// Which filter is being cooperatively processed right now
 	/// </summary>
 	private int filterIndex = 0;
+	/// <summary>
+	/// What object counts as the owner of this command line terminal
+	/// </summary>
+	private object _context;
+	/// <summary>
+	/// Function to pass all lines from standard input to
+	/// </summary>
+	private Action<string> _stdOutput;
+	/// <summary>
+	/// Which command from <see cref="CommandsToDo"/> is being executed right now
+	/// </summary>
+	private int _commandExecuting;
 
 	public InteractiveCmdShell Shell {
 		get => _shell;
@@ -58,6 +70,7 @@ public class CmdLineAutomationScriptableObject : ScriptableObject, ICommandProce
 	}
 
 	private void InitializeCommandListing() {
+		Debug.Log("INITIALIZING");
 		_commandDictionary = new Dictionary<string, INamedCommand>();
 		_filters = new List<ICommandProcessor>();
 		foreach (UnityEngine.Object obj in _commandListing) {
@@ -85,39 +98,14 @@ public class CmdLineAutomationScriptableObject : ScriptableObject, ICommandProce
 		_context = context;
 		_stdOutput = stdOutput;
 		CooperativeFunctionStart();
-		//_thread = new System.Threading.Thread(ThreadStart);
-		//_thread.Start();
 	}
-	//System.Threading.Thread _thread;
-	private object _context;
-	Action<string> _stdOutput;
-	private bool _running;
-	private int _commandExecuting;
-
-	//private void ThreadStart() {
-	//	_running = true;
-	//	for (int i = 0; _running && i < CommandsToDo.Length; i++) {
-	//		if (CommandsToDo[i].Comment) { continue; }
-	//		filterIndex = 0;
-	//		StartCooperativeFunction(_context, CommandsToDo[i].Text, _stdOutput);
-	//		while (!IsFunctionFinished() && _running && (Shell == null || Shell.IsRunning)) {
-	//			System.Threading.Thread.Sleep(1);
-	//		}
-	//	}
-	//	_running = false;
-	//}
 
 	private void CooperativeFunctionStart() {
 		_commandExecuting = 0;
-		_running = true;
 		RunCommand();
 	}
 
 	private void RunCommand() {
-		if (!_running) {
-			Debug.Log("not running?");
-			return;
-		}
 		if (_currentCommand != null) {
 			if (_currentCommand.IsFunctionFinished()) {
 				++_commandExecuting;
@@ -149,15 +137,6 @@ public class CmdLineAutomationScriptableObject : ScriptableObject, ICommandProce
 			_commandExecuting = 0;
 		}
 	}
-
-	//public void ThreadStop() {
-	//	_running = false;
-	//	if (_thread != null) {
-	//		_thread.Join(200);
-	//		_thread.Abort();
-	//		_thread = null;
-	//	}
-	//}
 
 	private void SetShellContext(object context) {
 		if (context is IReferencesCmdShell shellReference) {

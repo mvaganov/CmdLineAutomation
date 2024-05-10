@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
+/// TODO collapse this class into CmdLineAutomationScriptableObjectEditor, and refactor it away.
 /// Manages a command line shell for any Unity UI that supports OnGUI
 /// </summary>
 public class ImguiInteractiveShell : IReferencesCmdShell {
@@ -31,9 +32,10 @@ public class ImguiInteractiveShell : IReferencesCmdShell {
 		_shell = null;
 	}
 
-	public InteractiveCmdShell Shell => _shell;
-
-	public string CommandToken => throw new NotImplementedException();
+	public InteractiveCmdShell Shell {
+		get => _shell;
+		set => _shell = value;
+	}
 
 	/// <summary>
 	/// <see cref="OnGUI"/> or <see cref="UnityEngine.Editor.OnInspectorGUI"/>
