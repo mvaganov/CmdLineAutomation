@@ -3,8 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace RunCmd {
+	/// <summary>
+	/// A list of possible commands, and a list of commands to execute. TODO make that two separate objects?
+	/// TODO create variable listing? auto-populate variables based on input?
+	/// </summary>
 	[CreateAssetMenu(fileName = "NewCmdLineAutomation", menuName = "ScriptableObjects/CmdLineAutomation", order = 1)]
-	public class CmdLineAutomationScriptableObject : ScriptableObject, ICommandProcessor, IReferencesOperatingSystemCommandShell {
+	public class CommandAutomation : ScriptableObject, ICommandProcessor, IReferencesOperatingSystemCommandShell {
 		[Serializable]
 		public class MetaData {
 			[TextArea(1, 1000)] public string Description;
@@ -23,9 +27,21 @@ namespace RunCmd {
 		/// The command line shell
 		/// </summary>
 		private OperatingSystemCommandShell _shell;
+		/// <summary>
+		/// Information about what these commands are for
+		/// </summary>
 		[SerializeField] protected MetaData _details;
+		/// <summary>
+		/// List of the possible custom commands written as C# <see cref="ICommandProcessor"/>s
+		/// </summary>
 		[SerializeField] protected UnityEngine.Object[] _commandListing;
+		/// <summary>
+		/// The specific commands to do TODO replace with new-line-delimited text area?
+		/// </summary>
 		[SerializeField] protected TextCommand[] CommandsToDo;
+		/// <summary>
+		/// If true, will pass commands to the operating system if they aren't processed here
+		/// </summary>
 		[SerializeField] protected bool NativeCmdLineFallback = true;
 
 		/// <summary>
@@ -41,7 +57,7 @@ namespace RunCmd {
 		/// </summary>
 		private ICommandProcessor _currentCommand;
 		/// <summary>
-		/// Result of the last finished cooperative function 
+		/// Result of the last finished cooperative function
 		/// </summary>
 		private string _currentCommandResult;
 		/// <summary>
@@ -55,15 +71,30 @@ namespace RunCmd {
 		/// <summary>
 		/// Function to pass all lines from standard input to
 		/// </summary>
-		private Action<string> _stdOutput;
+		private TextResultCallback _stdOutput;
 		/// <summary>
 		/// Which command from <see cref="CommandsToDo"/> is being executed right now
 		/// </summary>
 		private int _commandExecuting;
 
+		public TextResultCallback StdOutput {
+			get => _stdOutput;
+			set {
+				_stdOutput = value;
+				if (Shell != null) {
+					Shell.LineOutput = value;
+				}
+			}
+		}
+
 		public OperatingSystemCommandShell Shell {
 			get => _shell;
-			set => _shell = value;
+			set {
+				_shell = value;
+				if (_shell != null) {
+					Shell.LineOutput = _stdOutput;
+				}
+			}
 		}
 
 		public static string GetFirstToken(string command) {
@@ -90,13 +121,13 @@ namespace RunCmd {
 				return;
 			}
 			OperatingSystemCommandShell thisShell = OperatingSystemCommandShell.CreateUnityEditorShell();
-			thisShell.Name = $"{name} {System.Environment.TickCount}";
+			thisShell.Name = $"{name} {Environment.TickCount}";
 			Shell = thisShell;
-			CmdLineAutomationScriptableObject cmdLine = this;
+			CommandAutomation cmdLine = this;
 			thisShell.KeepAlive = () => {
 				bool lostScriptableObject = cmdLine == null;
 				if (lostScriptableObject) {
-					Debug.LogWarning($"lost {nameof(CmdLineAutomationScriptableObject)}");
+					Debug.LogWarning($"lost {nameof(CommandAutomation)}");
 					return false;
 				}
 				if (Shell != thisShell) {
@@ -130,7 +161,7 @@ namespace RunCmd {
 			_commandDictionary[token] = iCmd;
 		}
 
-		public void RunCommands(object context, Action<string> stdOutput) {
+		public void RunCommands(object context, TextResultCallback stdOutput) {
 			SetShellContext(context);
 			Initialize();
 			_context = context;
@@ -149,8 +180,7 @@ namespace RunCmd {
 					++_commandExecuting;
 					_currentCommand = null;
 				} else {
-					// TODO only do this in the editor. if in a Unity game context, create an object that will run this in a coroutine
-					UnityEditor.EditorApplication.delayCall += RunCommand;
+					DelayCall(RunCommand);
 					return;
 				}
 			}
@@ -183,7 +213,7 @@ namespace RunCmd {
 		}
 
 		/// <inheritdoc/>
-		public void StartCooperativeFunction(object context, string command, Action<string> stdOutput) {
+		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
 			_context = context;
 			_stdOutput = stdOutput;
 			_currentCommandResult = command;
@@ -203,8 +233,8 @@ namespace RunCmd {
 				return;
 			}
 			if (NativeCmdLineFallback) {
-				_shell.StartCooperativeFunction(_context, _currentCommandResult, _stdOutput);
-				_currentCommandResult = null;
+				_shell.Run(_currentCommandResult, _stdOutput);
+				_currentCommandResult = null; // consumes command
 			}
 			_currentCommand = null;
 			filterIndex = 0;
@@ -213,7 +243,6 @@ namespace RunCmd {
 		private bool IsExecutionStoppedByFilterFunction(string command) {
 			while (filterIndex < _filters.Count) {
 				if (_currentCommand == null) {
-					//Debug.Log(filterIndex);
 					_currentCommand = _filters[filterIndex];
 					_currentCommand.StartCooperativeFunction(_context, command, _stdOutput);
 				}
@@ -248,5 +277,30 @@ namespace RunCmd {
 		public bool IsFunctionFinished() => _currentCommand == null || _currentCommand.IsFunctionFinished();
 
 		public string FunctionResult() => _currentCommand != null ? _currentCommand.FunctionResult() : _currentCommandResult;
+
+#if UNITY_EDITOR
+		public static void DelayCall(UnityEditor.EditorApplication.CallbackFunction call) {
+			UnityEditor.EditorApplication.delayCall += call;
+		}
+#else
+		public static void DelayCall(Action call) {
+			CoroutineRunner.Instance.StartCoroutine(DelayCall());
+			System.Collections.IEnumerator DelayCall() {
+				yield return null;
+				call.Invoke();
+			}
+		}
+		private class CoroutineRunner : MonoBehaviour {
+			private static CoroutineRunner _instance;
+			public static CoroutineRunner Instance {
+				get {
+					if (_instance != null) { return _instance; }
+					GameObject go = new GameObject("<CoroutineRunner>");
+					DontDestroyOnLoad(go);
+					return _instance = go.AddComponent<CoroutineRunner>();
+				}
+			}
+		}
+#endif
 	}
 }

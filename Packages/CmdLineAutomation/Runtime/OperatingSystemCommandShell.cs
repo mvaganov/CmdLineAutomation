@@ -19,14 +19,14 @@ namespace RunCmd {
 		private string _lineBuffer = ""; // TODO semaphores to make StringBuilder threadsafe
 		private List<string> _lines = new List<string>();
 		private bool _running = false;
-		public Action<string> LineOutput = delegate { };
+		public TextResultCallback LineOutput = delegate { };
 		public Func<bool> KeepAlive;
 
 		public static List<OperatingSystemCommandShell> RunningShells = new List<OperatingSystemCommandShell>();
 		public static OperatingSystemCommandShell CreateUnityEditorShell() =>
 			new OperatingSystemCommandShell("cmd.exe", Path.Combine(Application.dataPath, ".."));
 
-		public List<string> Lines => _lines;
+		public int LineCount => _lines.Count;
 
 		public string Name { get => _name; set => _name = value; }
 
@@ -64,6 +64,25 @@ namespace RunCmd {
 			try {
 				Stop();
 			} catch { }
+		}
+
+		void Thread() {
+			_running = true;
+			try {
+				while (IsRunning && Reading()) ;
+			} catch (System.Threading.ThreadAbortException) {
+#if UNITY_EDITOR
+				Debug.LogWarning($"Aborted {nameof(OperatingSystemCommandShell)}: {Name}");
+#endif
+			} catch (Exception e) {
+#if UNITY_EDITOR
+				Debug.LogException(e);
+#endif
+			}
+			if (_running) {
+				Stop();
+			}
+			_running = false;
 		}
 
 		public void RunCommand(string command) {
@@ -106,25 +125,6 @@ namespace RunCmd {
 			}
 		}
 
-		void Thread() {
-			_running = true;
-			try {
-				while (IsRunning && Reading()) ;
-			} catch (System.Threading.ThreadAbortException) {
-#if UNITY_EDITOR
-				Debug.LogWarning($"Aborted {nameof(OperatingSystemCommandShell)} Thread");
-#endif
-			} catch (Exception e) {
-#if UNITY_EDITOR
-				Debug.LogException(e);
-#endif
-			}
-			if (_running) {
-				Stop();
-			}
-			_running = false;
-		}
-
 		private bool Reading() {
 			int c = _output.Read();
 			if (c <= 0) {
@@ -134,7 +134,7 @@ namespace RunCmd {
 					string line = GetCurrentLine();
 					_lines.Add(line);
 					_lineBuffer = "";//.Clear();
-					LineOutput.Invoke(line);
+					LineOutput?.Invoke(line);
 				}
 			} else if (c != '\r') {
 				_lineBuffer += ((char)c);
@@ -148,7 +148,7 @@ namespace RunCmd {
 			}
 		}
 
-		public void StartCooperativeFunction(object context, string command, Action<string> stdOutput) {
+		public void Run(string command, TextResultCallback stdOutput) {
 			LineOutput = stdOutput;
 			RunCommand(command);
 		}

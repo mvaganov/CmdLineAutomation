@@ -10,7 +10,7 @@ namespace RunCmd {
 	public class FilterDebugLog : ScriptableObject, ICommandProcessor {
 		public LogType logType = LogType.Log;
 		private string result;
-		public void StartCooperativeFunction(object context, string command, Action<string> stdOutput) {
+		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
 			switch (logType) {
 				case LogType.Error:
 					Debug.LogError(command);

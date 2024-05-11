@@ -7,7 +7,7 @@ namespace RunCmd {
 		public string CommandToken => this.name;
 		private int _delayUntil;
 
-		public void StartCooperativeFunction(object context, string command, Action<string> stdOutput) {
+		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
 			_delayUntil = Environment.TickCount;
 			string[] args = Parse.Split(command);
 			if (args.Length > 1) {

@@ -1,4 +1,3 @@
-using System;
 using UnityEditor;
 using UnityEngine;
 
@@ -8,7 +7,7 @@ namespace RunCmd {
 		public string CommandToken => this.name;
 		private string _path;
 		private bool _reimported;
-		public void StartCooperativeFunction(object context, string command, Action<string> stdOutput) {
+		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
 			string[] args = Parse.Split(command);
 			if (args.Length > 1) {
 				_path = args[1];
