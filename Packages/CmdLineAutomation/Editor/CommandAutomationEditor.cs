@@ -45,8 +45,10 @@ namespace RunCmd {
 		public bool IsStarted => Shell != null;
 
 		private void OnEnable() {
-			StartShell();
-			EditorApplication.delayCall += RefreshInspector;
+			//StartShell();
+			if (Shell != null) {
+				EditorApplication.delayCall += RefreshInspector;
+			}
 		}
 
 		public void RefreshInspector() {
@@ -182,7 +184,7 @@ namespace RunCmd {
 		}
 
 		private void StdOutput(string line) {
-			Debug.Log(line);
+			//Debug.Log(line);
 			PopulateOutputText();
 			RefreshInspector();
 		}

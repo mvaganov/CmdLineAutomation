@@ -4,8 +4,12 @@ using UnityEngine;
 
 namespace RunCmd {
 	/// <summary>
-	/// A list of possible commands, and a list of commands to execute. TODO make that two separate objects?
-	/// TODO create variable listing? auto-populate variables based on input?
+	/// * Metadata about why this object exists
+	/// * A list of possible commands
+	/// * A list of commands to execute (TODO derived from a single string)
+	/// * Logic to process commands as a cooperative process (track state of which command is executing now, TODO progress bar)
+	/// * TODO an object to manage output from commands
+	/// * TODO create variable listing? auto-populate variables based on input?
 	/// </summary>
 	[CreateAssetMenu(fileName = "NewCmdLineAutomation", menuName = "ScriptableObjects/CmdLineAutomation", order = 1)]
 	public class CommandAutomation : ScriptableObject, ICommandProcessor, IReferencesOperatingSystemCommandShell {
@@ -21,6 +25,12 @@ namespace RunCmd {
 		public class TextCommand {
 			public string Text;
 			public bool Comment;
+		}
+
+		public enum WhatToDoWithUnknownCommands {
+			Nothing,
+			Warning,
+			CommandLine
 		}
 
 		/// <summary>
@@ -40,9 +50,10 @@ namespace RunCmd {
 		/// </summary>
 		[SerializeField] protected TextCommand[] CommandsToDo;
 		/// <summary>
-		/// If true, will pass commands to the operating system if they aren't processed here
+		/// What to do with commands that are not listed in <see cref="_commandListing"/>
 		/// </summary>
-		[SerializeField] protected bool NativeCmdLineFallback = true;
+		[SerializeField] protected WhatToDoWithUnknownCommands whatToDoWithUnknownCommands
+			= WhatToDoWithUnknownCommands.CommandLine;
 
 		/// <summary>
 		/// List if filtering functions for input, which may or may not consume a command
@@ -109,7 +120,8 @@ namespace RunCmd {
 			return _commandDictionary.TryGetValue(token, out INamedCommand found) ? found : null;
 		}
 
-		private bool NeedsInitialization() => _commandDictionary == null || Shell == null;
+		private bool NeedsInitialization() => _commandDictionary == null ||
+			(whatToDoWithUnknownCommands == WhatToDoWithUnknownCommands.CommandLine && Shell == null);
 
 		public void Initialize() {
 			InitializeShell();
@@ -117,12 +129,15 @@ namespace RunCmd {
 		}
 
 		private void InitializeShell() {
-			if (Shell != null) {
+			if (whatToDoWithUnknownCommands != WhatToDoWithUnknownCommands.CommandLine || Shell != null) {
 				return;
 			}
+			Shell = CreateShell(name);
+		}
+
+		private OperatingSystemCommandShell CreateShell(string name) {
 			OperatingSystemCommandShell thisShell = OperatingSystemCommandShell.CreateUnityEditorShell();
 			thisShell.Name = $"{name} {Environment.TickCount}";
-			Shell = thisShell;
 			CommandAutomation cmdLine = this;
 			thisShell.KeepAlive = () => {
 				bool lostScriptableObject = cmdLine == null;
@@ -137,6 +152,7 @@ namespace RunCmd {
 				}
 				return true;
 			};
+			return thisShell;
 		}
 
 		private void InitializeCommands() {
@@ -162,10 +178,9 @@ namespace RunCmd {
 		}
 
 		public void RunCommands(object context, TextResultCallback stdOutput) {
+			_stdOutput = stdOutput;
 			SetShellContext(context);
 			Initialize();
-			_context = context;
-			_stdOutput = stdOutput;
 			CooperativeFunctionStart();
 		}
 
@@ -200,14 +215,15 @@ namespace RunCmd {
 				}
 			}
 			if (_commandExecuting < CommandsToDo.Length) {
-				UnityEditor.EditorApplication.delayCall += RunCommand;
+				DelayCall(RunCommand);
 			} else {
 				_commandExecuting = 0;
 			}
 		}
 
 		private void SetShellContext(object context) {
-			if (context is IReferencesOperatingSystemCommandShell shellReference) {
+			_context = context;
+			if (_context is IReferencesOperatingSystemCommandShell shellReference) {
 				_shell = shellReference.Shell;
 			}
 		}
@@ -232,9 +248,14 @@ namespace RunCmd {
 			if (IsExecutionStoppedByNamedFunction(_currentCommandResult)) {
 				return;
 			}
-			if (NativeCmdLineFallback) {
-				_shell.Run(_currentCommandResult, _stdOutput);
-				_currentCommandResult = null; // consumes command
+			switch (whatToDoWithUnknownCommands) {
+				case WhatToDoWithUnknownCommands.CommandLine:
+					_shell.Run(_currentCommandResult, _stdOutput);
+					_currentCommandResult = null; // consumes command
+					break;
+				case WhatToDoWithUnknownCommands.Warning:
+					Debug.LogWarning($"unprocessed {_currentCommand}");
+					break;
 			}
 			_currentCommand = null;
 			filterIndex = 0;

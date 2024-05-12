@@ -12,7 +12,7 @@ namespace RunCmd {
 			if (args.Length > 1) {
 				_path = args[1];
 				_reimported = false;
-				EditorApplication.delayCall += ReimportCurrentPathFolder;
+				CommandAutomation.DelayCall(ReimportCurrentPathFolder);
 			} else {
 				_path = null;
 				Debug.LogWarning($"missing time parameter");

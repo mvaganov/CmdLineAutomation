@@ -7,7 +7,9 @@ namespace RunCmd {
 		public string CommandToken => this.name;
 		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
 			if (context is IReferencesOperatingSystemCommandShell cmdShell) {
-				cmdShell.Shell.ClearLines();
+				if (cmdShell.Shell != null) {
+					cmdShell.Shell.ClearLines();
+				}
 			}
 		}
 
