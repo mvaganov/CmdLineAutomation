@@ -12,7 +12,7 @@ namespace RunCmd {
 	/// * TODO create variable listing? auto-populate variables based on input?
 	/// </summary>
 	[CreateAssetMenu(fileName = "NewCmdLineAutomation", menuName = "ScriptableObjects/CmdLineAutomation", order = 1)]
-	public class CommandAutomation : ScriptableObject, ICommandProcessor, IReferencesOperatingSystemCommandShell {
+	public class CommandAutomation : ScriptableObject, ICommandProcessor {
 		[Serializable]
 		public class MetaData {
 			[TextArea(1, 1000)] public string Description;
@@ -27,16 +27,6 @@ namespace RunCmd {
 			public bool Comment;
 		}
 
-		public enum WhatToDoWithUnknownCommands {
-			Nothing,
-			Warning,
-			CommandLine
-		}
-
-		/// <summary>
-		/// The command line shell
-		/// </summary>
-		private OperatingSystemCommandShell _shell;
 		/// <summary>
 		/// Information about what these commands are for
 		/// </summary>
@@ -44,258 +34,198 @@ namespace RunCmd {
 		/// <summary>
 		/// List of the possible custom commands written as C# <see cref="ICommandProcessor"/>s
 		/// </summary>
-		[SerializeField] protected UnityEngine.Object[] _commandListing;
+		[SerializeField] protected UnityEngine.Object[] _commandFilters;
 		/// <summary>
 		/// The specific commands to do TODO replace with new-line-delimited text area?
 		/// </summary>
 		[SerializeField] protected TextCommand[] CommandsToDo;
-		/// <summary>
-		/// What to do with commands that are not listed in <see cref="_commandListing"/>
-		/// </summary>
-		[SerializeField] protected WhatToDoWithUnknownCommands whatToDoWithUnknownCommands
-			= WhatToDoWithUnknownCommands.CommandLine;
 
+		/// <summary>
+		/// Which command from <see cref="CommandsToDo"/> is being executed right now
+		/// </summary>
+		private int _commandExecutingIndex;
 		/// <summary>
 		/// List if filtering functions for input, which may or may not consume a command
 		/// </summary>
-		private List<ICommandProcessor> _filters;
+		private List<ICommandFilter> _filters;
 		/// <summary>
-		/// Named functions which may or may not consume a command
+		/// Text of the current command
 		/// </summary>
-		private Dictionary<string, INamedCommand> _commandDictionary;
+		private string _currentCommandText;
 		/// <summary>
 		/// Which cooperative function is being executed right now
 		/// </summary>
-		private ICommandProcessor _currentCommand;
+		private ICommandFilter _currentCommand;
 		/// <summary>
 		/// Result of the last finished cooperative function
 		/// </summary>
 		private string _currentCommandResult;
 		/// <summary>
-		/// Which filter is being cooperatively processed right now
+		/// Which <see cref="_commandFilters"/> is being cooperatively processed right now
 		/// </summary>
-		private int filterIndex = 0;
+		private int _filterIndex = 0;
 		/// <summary>
-		/// What object counts as the owner of this command line terminal
+		/// What object counts as the owner of this command
 		/// </summary>
 		private object _context;
 		/// <summary>
-		/// Function to pass all lines from standard input to
+		/// Function to pass all lines from standard output to
 		/// </summary>
 		private TextResultCallback _stdOutput;
-		/// <summary>
-		/// Which command from <see cref="CommandsToDo"/> is being executed right now
-		/// </summary>
-		private int _commandExecuting;
 
-		public TextResultCallback StdOutput {
-			get => _stdOutput;
-			set {
-				_stdOutput = value;
-				if (Shell != null) {
-					Shell.LineOutput = value;
-				}
-			}
-		}
+		private bool NeedsInitialization() => _filters == null;
 
-		public OperatingSystemCommandShell Shell {
-			get => _shell;
-			set {
-				_shell = value;
-				if (_shell != null) {
-					Shell.LineOutput = _stdOutput;
-				}
-			}
-		}
-
-		public static string GetFirstToken(string command) {
-			int index = command.IndexOf(' ');
-			return index < 0 ? command : command.Substring(0, index);
-		}
-
-		public INamedCommand GetNamedCommand(string token) {
-			if (NeedsInitialization()) {
-				Initialize();
-			}
-			return _commandDictionary.TryGetValue(token, out INamedCommand found) ? found : null;
-		}
-
-		private bool NeedsInitialization() => _commandDictionary == null ||
-			(whatToDoWithUnknownCommands == WhatToDoWithUnknownCommands.CommandLine && Shell == null);
+		private bool HaveCommandToDo() => _currentCommand != null;
 
 		public void Initialize() {
-			InitializeShell();
-			InitializeCommands();
-		}
-
-		private void InitializeShell() {
-			if (whatToDoWithUnknownCommands != WhatToDoWithUnknownCommands.CommandLine || Shell != null) {
-				return;
-			}
-			Shell = CreateShell(name);
-		}
-
-		private OperatingSystemCommandShell CreateShell(string name) {
-			OperatingSystemCommandShell thisShell = OperatingSystemCommandShell.CreateUnityEditorShell();
-			thisShell.Name = $"{name} {Environment.TickCount}";
-			CommandAutomation cmdLine = this;
-			thisShell.KeepAlive = () => {
-				bool lostScriptableObject = cmdLine == null;
-				if (lostScriptableObject) {
-					Debug.LogWarning($"lost {nameof(CommandAutomation)}");
-					return false;
-				}
-				if (Shell != thisShell) {
-					Debug.LogWarning($"lost {nameof(OperatingSystemCommandShell)}");
-					thisShell.Stop();
-					return false;
-				}
-				return true;
-			};
-			return thisShell;
-		}
-
-		private void InitializeCommands() {
-			_commandDictionary = new Dictionary<string, INamedCommand>();
-			_filters = new List<ICommandProcessor>();
-			foreach (UnityEngine.Object obj in _commandListing) {
+			_filters = new List<ICommandFilter>();
+			foreach (UnityEngine.Object obj in _commandFilters) {
 				switch (obj) {
-					case INamedCommand iCmd: Add(iCmd); break;
-					case ICommandProcessor iFilter: _filters.Add(iFilter); break;
+					case ICommandFilter iFilter: _filters.Add(iFilter); break;
+					default:
+						Debug.LogError($"unexpected filter type {obj.GetType().Name}, " +
+							$"{name} expects only {nameof(ICommandFilter)} entries");
+						break;
 				}
 			}
-		}
-
-		private void Add(INamedCommand iCmd) {
-			string token = iCmd.CommandToken;
-			bool alreadyHaveIt = _commandDictionary.TryGetValue(token, out INamedCommand existingCmd);
-			if (alreadyHaveIt) {
-				Debug.LogWarning($"Replacing {token} {existingCmd.GetType()} with {iCmd.GetType()}");
-			}
-			if ((token = iCmd.CommandToken) != null) {
-			}
-			_commandDictionary[token] = iCmd;
 		}
 
 		public void RunCommands(object context, TextResultCallback stdOutput) {
 			_stdOutput = stdOutput;
-			SetShellContext(context);
+			_context = context;
 			Initialize();
 			CooperativeFunctionStart();
 		}
 
 		private void CooperativeFunctionStart() {
-			_commandExecuting = 0;
+			_commandExecutingIndex = 0;
 			RunCommand();
 		}
 
 		private void RunCommand() {
-			if (_currentCommand != null) {
-				if (_currentCommand.IsFunctionFinished()) {
-					++_commandExecuting;
+			if (HaveCommandToDo()) {
+				if (_currentCommand.IsExecutionFinished()) {
+					++_commandExecutingIndex;
 					_currentCommand = null;
 				} else {
 					DelayCall(RunCommand);
 					return;
 				}
 			}
-			if (_currentCommand == null) {
-				string textToDo = CommandsToDo[_commandExecuting].Text;
-				if (!CommandsToDo[_commandExecuting].Comment) {
-					filterIndex = 0;
+			if (!HaveCommandToDo()) {
+				string textToDo = CommandsToDo[_commandExecutingIndex].Text;
+				if (!CommandsToDo[_commandExecutingIndex].Comment) {
+					_filterIndex = 0;
+					//Debug.Log("execute " + _commandExecutingIndex+" "+ textToDo);
 					StartCooperativeFunction(_context, textToDo, _stdOutput);
+					if (HaveCommandToDo() && !_currentCommand.IsExecutionFinished()) { Debug.Log("       still doing it!"); }
 				}
-				if (_currentCommand == null) {
-					++_commandExecuting;
+				if (!HaveCommandToDo() || _currentCommand.IsExecutionFinished()) {
+					++_commandExecutingIndex;
 				}
 			} else {
-				ServiceFunctions();
+				DoCurrentCommand();
 				if (_currentCommand == null) {
-					++_commandExecuting;
+					++_commandExecutingIndex;
 				}
 			}
-			if (_commandExecuting < CommandsToDo.Length) {
+			if (_commandExecutingIndex < CommandsToDo.Length) {
 				DelayCall(RunCommand);
 			} else {
-				_commandExecuting = 0;
+				_commandExecutingIndex = 0;
 			}
 		}
 
-		private void SetShellContext(object context) {
-			_context = context;
-			if (_context is IReferencesOperatingSystemCommandShell shellReference) {
-				_shell = shellReference.Shell;
-			}
-		}
+		//private void SetShellContext(object context) {
+		//	_context = context;
+		//	if (_context is IReferencesOperatingSystemCommandShell shellReference) {
+		//		_shell = shellReference.Shell;
+		//	}
+		//}
 
 		/// <inheritdoc/>
 		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
 			_context = context;
+			if (_context == null) {
+				Debug.LogError("NULL!!!!!");
+			}
 			_stdOutput = stdOutput;
+			_currentCommandText = command;
 			_currentCommandResult = command;
-			filterIndex = 0;
-			ServiceFunctions();
+			_filterIndex = 0;
+			DoCurrentCommand();
 		}
 
-		private void ServiceFunctions() {
-			if (_currentCommand != null && !_currentCommand.IsFunctionFinished()) {
+		private void DoCurrentCommand() {
+			if (_currentCommand != null && !_currentCommand.IsExecutionFinished()) {
 				Debug.Log($"still processing {_currentCommand}");
 				return;
 			}
-			if (IsExecutionStoppedByFilterFunction(_currentCommandResult)) {
+			//Debug.Log("processing " + _currentCommandText);
+			if (IsExecutionStoppedByFilterFunction(_currentCommandText)) {
 				return;
 			}
-			if (IsExecutionStoppedByNamedFunction(_currentCommandResult)) {
-				return;
-			}
-			switch (whatToDoWithUnknownCommands) {
-				case WhatToDoWithUnknownCommands.CommandLine:
-					_shell.Run(_currentCommandResult, _stdOutput);
-					_currentCommandResult = null; // consumes command
-					break;
-				case WhatToDoWithUnknownCommands.Warning:
-					Debug.LogWarning($"unprocessed {_currentCommand}");
-					break;
-			}
+			//if (IsExecutionStoppedByNamedFunction(_currentCommandResult)) {
+			//	return;
+			//}
+			//switch (unknownCommands) {
+			//	case WhatToDoWithUnknownCommands.OperatingSystemCommandLine:
+			//		_shell.Run(_currentCommandResult, _stdOutput);
+			//		_currentCommandResult = null; // consumes command
+			//		break;
+			//	case WhatToDoWithUnknownCommands.Warning:
+			//		Debug.LogWarning($"unprocessed \"{_currentCommandText}\"");
+			//		break;
+			//}
 			_currentCommand = null;
-			filterIndex = 0;
+			_filterIndex = 0;
 		}
 
 		private bool IsExecutionStoppedByFilterFunction(string command) {
-			while (filterIndex < _filters.Count) {
+			while (_filterIndex < _filters.Count) {
 				if (_currentCommand == null) {
-					_currentCommand = _filters[filterIndex];
-					_currentCommand.StartCooperativeFunction(_context, command, _stdOutput);
+					_currentCommand = _filters[_filterIndex];
+					if (_context == null) {
+						Debug.LogError("context must not be null!");
+					}
+					//Debug.Log($"~~~~~~~~{name} start {command} co-op f[{_filterIndex}] {_currentCommand}\n\n{_currentCommandText}");
+					_currentCommand.StartCooperativeFunction(_context, _currentCommandText, _stdOutput);
 				}
-				if (!_currentCommand.IsFunctionFinished()) {
+				if (!_currentCommand.IsExecutionFinished()) {
 					return true;
 				}
+				command = _currentCommand.FunctionResult();
 				_currentCommand = null;
-				++filterIndex;
+				if (command == null) {
+					Debug.Log($"{_currentCommandText} consumed by {_filters[_filterIndex]}");
+					return false;
+				}
+				++_filterIndex;
 			}
+			Debug.Log($"{_currentCommandText} NOT consumed");
 			return false;
 		}
 
-		private bool IsExecutionStoppedByNamedFunction(string command) {
-			string token = GetFirstToken(command);
-			_currentCommand = GetNamedCommand(token);
-			if (_currentCommand == null) {
-				return false;
-			}
-			_currentCommand.StartCooperativeFunction(_context, command, _stdOutput);
-			if (!_currentCommand.IsFunctionFinished()) {
-				Debug.Log(_currentCommand + " still running");
-				return true;
-			}
-			_currentCommandResult = _currentCommand.FunctionResult();
-			_currentCommand = null;
-			if (_currentCommandResult == null) {
-				return true;
-			}
-			return false;
-		}
+		//private bool IsExecutionStoppedByNamedFunction(string command) {
+		//	string token = GetFirstToken(command);
+		//	_currentCommand = GetNamedCommand(token);
+		//	if (_currentCommand == null) {
+		//		return false;
+		//	}
+		//	_currentCommand.StartCooperativeFunction(_context, command, _stdOutput);
+		//	if (!_currentCommand.IsFunctionFinished()) {
+		//		Debug.Log(_currentCommand + " still running");
+		//		return true;
+		//	}
+		//	_currentCommandResult = _currentCommand.FunctionResult();
+		//	_currentCommand = null;
+		//	if (_currentCommandResult == null) {
+		//		return true;
+		//	}
+		//	return false;
+		//}
 
-		public bool IsFunctionFinished() => _currentCommand == null || _currentCommand.IsFunctionFinished();
+		public bool IsExecutionFinished() => _currentCommand == null || _currentCommand.IsExecutionFinished();
 
 		public string FunctionResult() => _currentCommand != null ? _currentCommand.FunctionResult() : _currentCommandResult;
 

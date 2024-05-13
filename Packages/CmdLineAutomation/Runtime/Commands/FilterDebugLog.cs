@@ -7,24 +7,36 @@ namespace RunCmd {
 	/// <see cref="ICommandProcessor"/>
 	/// </summary>
 	[CreateAssetMenu(fileName = "DebugLog", menuName = "ScriptableObjects/Filters/FilterDebugLog")]
-	public class FilterDebugLog : ScriptableObject, ICommandProcessor {
-		public LogType logType = LogType.Log;
+	public class FilterDebugLog : ScriptableObject, ICommandFilter {
+		public enum LogType { None, StdOutput, DebugLog_Error, DebugLog_Assert, DebugLog_Warning, DebugLog_Log, DebugLog_Exception }
+		[SerializeField] protected bool enabled = true;
+		[SerializeField] protected LogType logType = LogType.DebugLog_Log;
+		[SerializeField] protected string linePrefix = "", lineSuffix = "";
 		private string result;
 		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
+			if (!enabled) {
+				return;
+			}
+			if (!string.IsNullOrEmpty(linePrefix) || string.IsNullOrEmpty(lineSuffix)) {
+				command = linePrefix + command + lineSuffix;
+			}
 			switch (logType) {
-				case LogType.Error:
+				case LogType.StdOutput:
+					stdOutput.Invoke(command);
+					break;
+				case LogType.DebugLog_Error:
 					Debug.LogError(command);
 					break;
-				case LogType.Assert:
+				case LogType.DebugLog_Assert:
 					Debug.LogAssertion(command);
 					break;
-				case LogType.Warning:
+				case LogType.DebugLog_Warning:
 					Debug.LogWarning(command);
 					break;
-				case LogType.Log:
+				case LogType.DebugLog_Log:
 					Debug.Log(command);
 					break;
-				case LogType.Exception:
+				case LogType.DebugLog_Exception:
 					Debug.LogException(new System.Exception(command), context as UnityEngine.Object);
 					break;
 			}
@@ -33,6 +45,6 @@ namespace RunCmd {
 
 		public string FunctionResult() => result;
 
-		public bool IsFunctionFinished() => true;
+		public bool IsExecutionFinished() => true;
 	}
 }

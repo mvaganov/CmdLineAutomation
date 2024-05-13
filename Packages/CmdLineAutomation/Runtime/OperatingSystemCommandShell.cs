@@ -4,13 +4,16 @@ using System;
 using System.IO;
 
 namespace RunCmd {
-	public interface IReferencesOperatingSystemCommandShell {
-		public OperatingSystemCommandShell Shell { get; }
-	}
-
 	// TODO keep track of the current working directory
 	// TODO read formatted output from command line programs and do something with that logic?
-	public class OperatingSystemCommandShell : IReferencesOperatingSystemCommandShell {
+	public class OperatingSystemCommandShell {
+		/// <summary>
+		/// What object owns this shell, which might be used to get scope-specific data
+		/// </summary>
+		private object _context;
+		/// <summary>
+		/// What to name this object
+		/// </summary>
 		private string _name;
 		private System.Diagnostics.ProcessStartInfo _startInfo;
 		private System.Diagnostics.Process _process;
@@ -22,10 +25,12 @@ namespace RunCmd {
 		public TextResultCallback LineOutput = delegate { };
 		public Func<bool> KeepAlive;
 
-		public static List<OperatingSystemCommandShell> RunningShells = new List<OperatingSystemCommandShell>();
-		public static OperatingSystemCommandShell CreateUnityEditorShell() =>
-			new OperatingSystemCommandShell("cmd.exe", Path.Combine(Application.dataPath, ".."));
+		public static Dictionary<object, OperatingSystemCommandShell> RunningShells
+			= new Dictionary<object, OperatingSystemCommandShell>();
 
+		public static OperatingSystemCommandShell CreateUnityEditorShell(object context) =>
+			new OperatingSystemCommandShell(context, "cmd.exe", Path.Combine(Application.dataPath, ".."));
+		
 		public int LineCount => _lines.Count;
 
 		public string Name { get => _name; set => _name = value; }
@@ -42,7 +47,12 @@ namespace RunCmd {
 			}
 		}
 
-		public OperatingSystemCommandShell(string command = "cmd.exe", string workingDirectory = "C:\\Windows\\System32\\") {
+		public OperatingSystemCommandShell(object context,
+		string command = "cmd.exe", string workingDirectory = "C:\\Windows\\System32\\") {
+			_context = context;
+			if (_context is UnityEngine.Object obj) {
+				_name = obj.name;
+			}
 			_startInfo = new System.Diagnostics.ProcessStartInfo(command);
 			_startInfo.WorkingDirectory = workingDirectory;
 			_startInfo.UseShellExecute = false;
@@ -57,10 +67,15 @@ namespace RunCmd {
 			_output = _process.StandardOutput;
 			_thread = new System.Threading.Thread(Thread);
 			_thread.Start();
-			RunningShells.Add(this);
+			if (RunningShells.TryGetValue(context, out var shell)) {
+				Debug.LogWarning($"replacing shell for {context}");
+			}
+			//Debug.Log($"!!!!!!!!!!!!!!!!!!!!!!! Creating shell \"{Name}\" for '{_context}'");
+			RunningShells[_context] = this;
 		}
 
 		~OperatingSystemCommandShell() {
+			RunningShells.Remove(_context);
 			try {
 				Stop();
 			} catch { }
@@ -86,6 +101,7 @@ namespace RunCmd {
 		}
 
 		public void RunCommand(string command) {
+			Debug.Log($"running \"{command}\"");
 			if (IsRunning) {
 				_process.StandardInput.WriteLine(command);
 				_process.StandardInput.Flush();

@@ -8,7 +8,7 @@ namespace RunCmd {
 	/// </summary>
 	[CustomEditor(typeof(CommandAutomation))]
 	[CanEditMultipleObjects]
-	public class CommandAutomationEditor : Editor, IReferencesOperatingSystemCommandShell {
+	public class CommandAutomationEditor : Editor {
 		/// <summary>
 		/// The Automation being edited
 		/// </summary>
@@ -33,13 +33,22 @@ namespace RunCmd {
 		/// Semaphore prevents new command from running
 		/// </summary>
 		private bool waitingForCommand = false;
+		/// <summary>
+		/// References an optional shell that exists for this command automation
+		/// </summary>
+		private OperatingSystemCommandShell _shell;
 
 		public CommandAutomation Target => _target != null ? _target
 			: _target = target as CommandAutomation;
 
 		public OperatingSystemCommandShell Shell {
-			get => Target.Shell;
-			set => Target.Shell = value;
+			get {
+				if (_shell == null || !_shell.IsRunning) {
+					OperatingSystemCommandShell.RunningShells.TryGetValue(this, out _shell);
+				}
+				return _shell;
+			}
+			set => _shell = value;
 		}
 
 		public bool IsStarted => Shell != null;
@@ -52,6 +61,7 @@ namespace RunCmd {
 		}
 
 		public void RefreshInspector() {
+			PopulateOutputText();
 			EditorApplication.delayCall += RefreshInspectorInternal;
 		}
 
@@ -66,7 +76,7 @@ namespace RunCmd {
 			InputPromptGUI();
 			GUILayout.BeginHorizontal();
 			RunCommandsButtonGUI();
-			StartStopButtonGUI();
+			//StartStopButtonGUI();
 			ClearOutputButtonGUI();
 			GUILayout.EndHorizontal();
 			EditorGUILayout.TextArea(_inspectorCommandOutput, _consoleTextStyle);
@@ -98,13 +108,22 @@ namespace RunCmd {
 		}
 
 		private void RunInternalCommand(string command) {
-			Target.StartCooperativeFunction(this, command, PopulateOutputText);
-			waitingForCommand = !Target.IsFunctionFinished();
+			Target.StartCooperativeFunction(Target, command, PopulateOutputText);
+			waitingForCommand = !Target.IsExecutionFinished();
 			PopulateOutputText();
 		}
 
 		private void PopulateOutputText(string latestLine) {
 			PopulateOutputText();
+		}
+
+		private void PopulateOutputText() {
+			_osLines.Clear();
+			_inspectorCommandOutput = "";
+			if (Shell != null) {
+				Shell.GetRecentLines(_osLines);
+			}
+			_inspectorCommandOutput = string.Join("\n", _osLines);
 		}
 
 		private void RunCommandsButtonGUI() {
@@ -129,13 +148,15 @@ namespace RunCmd {
 			PopulateOutputText();
 		}
 
-		private enum EffectOfShellButton { None, End, Comandeer }
+		private enum EffectOfShellButton { None, EndProcess, Comandeer }
 		private void ShowAllCommandAutomationsListingGUI() {
-			for (int i = 0; i < OperatingSystemCommandShell.RunningShells.Count; i++) {
-				OperatingSystemCommandShell sh = OperatingSystemCommandShell.RunningShells[i];
+			foreach(var kvp in OperatingSystemCommandShell.RunningShells) {
+				//for (int i = 0; i < OperatingSystemCommandShell.RunningShells.Count; i++) {
+				//	OperatingSystemCommandShell sh = OperatingSystemCommandShell.RunningShells[i];
+				OperatingSystemCommandShell sh = kvp.Value;
 				string label;
-				EffectOfShellButton effect = Target.Shell == sh
-					? EffectOfShellButton.End : Target.Shell == null
+				EffectOfShellButton effect = Shell == sh
+					? EffectOfShellButton.EndProcess : Shell == null
 					? EffectOfShellButton.Comandeer
 					: EffectOfShellButton.None;
 				if (sh == null) {
@@ -156,25 +177,15 @@ namespace RunCmd {
 				return;
 			}
 			switch (effect) {
-				case EffectOfShellButton.End:
+				case EffectOfShellButton.EndProcess:
 					sh.Stop();
-					Target.Shell = null;
+					Shell = null;
 					break;
 				case EffectOfShellButton.Comandeer:
-					Target.Shell = sh;
+					Shell = sh;
 					RefreshInspector();
 					break;
 			}
-		}
-
-		private void PopulateOutputText() {
-			_osLines.Clear();
-			_inspectorCommandOutput = "";
-			if (Shell != null) {
-				Shell.GetRecentLines(_osLines);
-			}
-			_inspectorCommandOutput = string.Join("\n", _osLines);
-			RefreshInspector();
 		}
 
 		private void RunCommands() {
@@ -185,16 +196,14 @@ namespace RunCmd {
 
 		private void StdOutput(string line) {
 			//Debug.Log(line);
-			PopulateOutputText();
 			RefreshInspector();
 		}
 
 		public void StartShell() {
-			if (Target.Shell == null) {
-				Target.StdOutput = StdOutput;
-				Target.Initialize();
-			}
-			PopulateOutputText();
+			//if (Shell == null) {
+			//	//Target.StdOutput = StdOutput;
+			//	Target.Initialize();
+			//}
 			RefreshInspector();
 		}
 
@@ -205,23 +214,23 @@ namespace RunCmd {
 			Shell = null;
 		}
 
-		/// <summary>
-		/// <see cref="OnGUI"/> or <see cref="UnityEngine.Editor.OnInspectorGUI"/>
-		/// </summary>
-		public void StartStopButtonGUI() {
-			if (Shell == null) {
-				if (GUILayout.Button("Start Process")) {
-					StartShell();
-				}
-				return;
-			}
-			if (GUILayout.Button("Stop Process")) {
-				Stop();
-			}
-		}
+		//public void StartStopButtonGUI() {
+		//	if (Shell == null) {
+		//		if (GUILayout.Button("Start Process")) {
+		//			StartShell();
+		//		}
+		//		return;
+		//	}
+		//	if (GUILayout.Button("Stop Process")) {
+		//		Stop();
+		//	}
+		//}
 
 		public string PromptGUI(GUIStyle style) {
 			if (!IsStarted) {
+				GUILayout.BeginHorizontal();
+				GUILayout.Label("<no shell>");
+				GUILayout.EndHorizontal();
 				return null;
 			}
 			GUILayout.BeginHorizontal();

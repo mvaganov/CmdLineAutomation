@@ -25,7 +25,7 @@ namespace RunCmd {
 			_reimported = true;
 		}
 
-		public bool IsFunctionFinished() => _path == null || _reimported;
+		public bool IsExecutionFinished() => _path == null || _reimported;
 
 		public string FunctionResult() => null;
 	}

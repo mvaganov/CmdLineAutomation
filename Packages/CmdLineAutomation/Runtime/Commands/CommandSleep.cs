@@ -23,6 +23,6 @@ namespace RunCmd {
 
 		public string FunctionResult() => null;
 
-		public bool IsFunctionFinished() => Environment.TickCount >= _delayUntil;
+		public bool IsExecutionFinished() => Environment.TickCount >= _delayUntil;
 	}
 }
