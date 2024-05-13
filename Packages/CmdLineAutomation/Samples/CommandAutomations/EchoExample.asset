@@ -23,7 +23,7 @@ MonoBehaviour:
   - Text: echo start!
     Comment: 0
   - Text: cls
-    Comment: 0
+    Comment: 1
   - Text: mkdir test
     Comment: 0
   - Text: cd test

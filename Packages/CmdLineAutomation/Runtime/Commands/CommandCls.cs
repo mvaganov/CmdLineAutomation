@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 namespace RunCmd {
@@ -13,7 +12,7 @@ namespace RunCmd {
 			shell.ClearLines();
 		}
 
-		public bool IsExecutionFinished() => true;
+		public bool IsExecutionFinished(object context) => true;
 
 		public string FunctionResult() => null;
 	}

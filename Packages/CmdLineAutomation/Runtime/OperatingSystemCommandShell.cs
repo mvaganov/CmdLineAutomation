@@ -101,7 +101,7 @@ namespace RunCmd {
 		}
 
 		public void RunCommand(string command) {
-			Debug.Log($"running \"{command}\"");
+			//Debug.Log($"running \"{command}\"");
 			if (IsRunning) {
 				_process.StandardInput.WriteLine(command);
 				_process.StandardInput.Flush();

@@ -41,41 +41,147 @@ namespace RunCmd {
 		[SerializeField] protected TextCommand[] CommandsToDo;
 
 		/// <summary>
-		/// Which command from <see cref="CommandsToDo"/> is being executed right now
-		/// </summary>
-		private int _commandExecutingIndex;
-		/// <summary>
 		/// List if filtering functions for input, which may or may not consume a command
 		/// </summary>
 		private List<ICommandFilter> _filters;
-		/// <summary>
-		/// Text of the current command
-		/// </summary>
-		private string _currentCommandText;
-		/// <summary>
-		/// Which cooperative function is being executed right now
-		/// </summary>
-		private ICommandFilter _currentCommand;
-		/// <summary>
-		/// Result of the last finished cooperative function
-		/// </summary>
-		private string _currentCommandResult;
-		/// <summary>
-		/// Which <see cref="_commandFilters"/> is being cooperatively processed right now
-		/// </summary>
-		private int _filterIndex = 0;
-		/// <summary>
-		/// What object counts as the owner of this command
-		/// </summary>
-		private object _context;
-		/// <summary>
-		/// Function to pass all lines from standard output to
-		/// </summary>
-		private TextResultCallback _stdOutput;
+
+		private class CommandExecution {
+			/// <summary>
+			/// What object counts as the owner of this command
+			/// </summary>
+			public object context;
+			/// <summary>
+			/// Which command from <see cref="CommandsToDo"/> is being executed right now
+			/// </summary>
+			public int commandExecutingIndex;
+			/// <summary>
+			/// Text of the current command
+			/// </summary>
+			public string currentCommandText;
+			/// <summary>
+			/// Which cooperative function is being executed right now
+			/// </summary>
+			public ICommandFilter currentCommand;
+			/// <summary>
+			/// Result of the last finished cooperative function
+			/// </summary>
+			public string currentCommandResult;
+			/// <summary>
+			/// Which <see cref="_commandFilters"/> is being cooperatively processed right now
+			/// </summary>
+			public int filterIndex = 0;
+			/// <summary>
+			/// Function to pass all lines from standard output to
+			/// </summary>
+			public TextResultCallback stdOutput;
+			private CommandAutomation source;
+
+			public bool HaveCommandToDo() => currentCommand != null;
+
+			public void RunCommand() {
+				if (HaveCommandToDo()) {
+					if (currentCommand.IsExecutionFinished(context)) {
+						++commandExecutingIndex;
+						currentCommand = null;
+					} else {
+						DelayCall(RunCommand);
+						return;
+					}
+				}
+				if (!HaveCommandToDo()) {
+					string textToDo = source.CommandsToDo[commandExecutingIndex].Text;
+					if (!source.CommandsToDo[commandExecutingIndex].Comment) {
+						filterIndex = 0;
+						//Debug.Log("execute " + _commandExecutingIndex+" "+ textToDo);
+						StartCooperativeFunction(textToDo, stdOutput);
+						//if (HaveCommandToDo() && !_currentCommand.IsExecutionFinished()) { Debug.Log("       still doing it!"); }
+					}
+					if (!HaveCommandToDo() || currentCommand.IsExecutionFinished(context)) {
+						++commandExecutingIndex;
+					}
+				} else {
+					DoCurrentCommand();
+					if (currentCommand == null) {
+						++commandExecutingIndex;
+					}
+				}
+				if (commandExecutingIndex < source.CommandsToDo.Length) {
+					DelayCall(RunCommand);
+				} else {
+					commandExecutingIndex = 0;
+				}
+			}
+
+			/// <inheritdoc/>
+			public void StartCooperativeFunction(string command, TextResultCallback stdOutput) {
+				if (context == null) {
+					Debug.LogError("NULL!!!!!");
+				}
+				this.stdOutput = stdOutput;
+				currentCommandText = command;
+				currentCommandResult = command;
+				filterIndex = 0;
+				DoCurrentCommand();
+			}
+
+			private void DoCurrentCommand() {
+				if (currentCommand != null && !currentCommand.IsExecutionFinished(context)) {
+					Debug.Log($"still processing {currentCommand}");
+					return;
+				}
+				//Debug.Log("processing " + _currentCommandText);
+				if (IsExecutionStoppedByFilterFunction(currentCommandText)) {
+					return;
+				}
+				currentCommand = null;
+				filterIndex = 0;
+			}
+
+			private bool IsExecutionStoppedByFilterFunction(string command) {
+				while (filterIndex < source._filters.Count) {
+					if (currentCommand == null) {
+						currentCommand = source._filters[filterIndex];
+						if (context == null) {
+							Debug.LogError("context must not be null!");
+						}
+						//Debug.Log($"~~~~~~~~{name} start {command} co-op f[{_filterIndex}] {_currentCommand}\n\n{_currentCommandText}");
+						currentCommand.StartCooperativeFunction(context, currentCommandText, stdOutput);
+					}
+					if (!currentCommand.IsExecutionFinished(context)) {
+						return true;
+					}
+					command = currentCommand.FunctionResult(context);
+					currentCommand = null;
+					if (command == null) {
+						//Debug.Log($"{_currentCommandText} consumed by {_filters[_filterIndex]}");
+						return false;
+					}
+					++filterIndex;
+				}
+				Debug.Log($"{currentCommandText} NOT consumed");
+				return false;
+			}
+
+			public bool IsExecutionFinished() => currentCommand == null || currentCommand.IsExecutionFinished(context);
+
+			public string FunctionResult() => currentCommand != null ? currentCommand.FunctionResult(context) : currentCommandResult;
+
+			public CommandExecution(object context, CommandAutomation commandAutomation) {
+				source = commandAutomation;
+				this.context = context;
+				commandExecutingIndex = 0;
+			}
+		}
+
+		private Dictionary<object, CommandExecution> _executions = new Dictionary<object, CommandExecution>();
+		private CommandExecution Get(object context) {
+			if (!_executions.TryGetValue(context, out CommandExecution commandExecution)) {
+				_executions[context] = commandExecution = new CommandExecution(context, this);
+			}
+			return commandExecution;
+		}
 
 		private bool NeedsInitialization() => _filters == null;
-
-		private bool HaveCommandToDo() => _currentCommand != null;
 
 		public void Initialize() {
 			_filters = new List<ICommandFilter>();
@@ -91,143 +197,19 @@ namespace RunCmd {
 		}
 
 		public void RunCommands(object context, TextResultCallback stdOutput) {
-			_stdOutput = stdOutput;
-			_context = context;
+			CommandExecution e = Get(context);
+			e.stdOutput = stdOutput;
 			Initialize();
-			CooperativeFunctionStart();
+			e.RunCommand();
 		}
 
-		private void CooperativeFunctionStart() {
-			_commandExecutingIndex = 0;
-			RunCommand();
-		}
-
-		private void RunCommand() {
-			if (HaveCommandToDo()) {
-				if (_currentCommand.IsExecutionFinished()) {
-					++_commandExecutingIndex;
-					_currentCommand = null;
-				} else {
-					DelayCall(RunCommand);
-					return;
-				}
-			}
-			if (!HaveCommandToDo()) {
-				string textToDo = CommandsToDo[_commandExecutingIndex].Text;
-				if (!CommandsToDo[_commandExecutingIndex].Comment) {
-					_filterIndex = 0;
-					//Debug.Log("execute " + _commandExecutingIndex+" "+ textToDo);
-					StartCooperativeFunction(_context, textToDo, _stdOutput);
-					if (HaveCommandToDo() && !_currentCommand.IsExecutionFinished()) { Debug.Log("       still doing it!"); }
-				}
-				if (!HaveCommandToDo() || _currentCommand.IsExecutionFinished()) {
-					++_commandExecutingIndex;
-				}
-			} else {
-				DoCurrentCommand();
-				if (_currentCommand == null) {
-					++_commandExecutingIndex;
-				}
-			}
-			if (_commandExecutingIndex < CommandsToDo.Length) {
-				DelayCall(RunCommand);
-			} else {
-				_commandExecutingIndex = 0;
-			}
-		}
-
-		//private void SetShellContext(object context) {
-		//	_context = context;
-		//	if (_context is IReferencesOperatingSystemCommandShell shellReference) {
-		//		_shell = shellReference.Shell;
-		//	}
-		//}
-
-		/// <inheritdoc/>
 		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
-			_context = context;
-			if (_context == null) {
-				Debug.LogError("NULL!!!!!");
-			}
-			_stdOutput = stdOutput;
-			_currentCommandText = command;
-			_currentCommandResult = command;
-			_filterIndex = 0;
-			DoCurrentCommand();
+			Get(context).StartCooperativeFunction(command, stdOutput);
 		}
 
-		private void DoCurrentCommand() {
-			if (_currentCommand != null && !_currentCommand.IsExecutionFinished()) {
-				Debug.Log($"still processing {_currentCommand}");
-				return;
-			}
-			//Debug.Log("processing " + _currentCommandText);
-			if (IsExecutionStoppedByFilterFunction(_currentCommandText)) {
-				return;
-			}
-			//if (IsExecutionStoppedByNamedFunction(_currentCommandResult)) {
-			//	return;
-			//}
-			//switch (unknownCommands) {
-			//	case WhatToDoWithUnknownCommands.OperatingSystemCommandLine:
-			//		_shell.Run(_currentCommandResult, _stdOutput);
-			//		_currentCommandResult = null; // consumes command
-			//		break;
-			//	case WhatToDoWithUnknownCommands.Warning:
-			//		Debug.LogWarning($"unprocessed \"{_currentCommandText}\"");
-			//		break;
-			//}
-			_currentCommand = null;
-			_filterIndex = 0;
-		}
+		public bool IsExecutionFinished(object context) => Get(context).IsExecutionFinished();
 
-		private bool IsExecutionStoppedByFilterFunction(string command) {
-			while (_filterIndex < _filters.Count) {
-				if (_currentCommand == null) {
-					_currentCommand = _filters[_filterIndex];
-					if (_context == null) {
-						Debug.LogError("context must not be null!");
-					}
-					//Debug.Log($"~~~~~~~~{name} start {command} co-op f[{_filterIndex}] {_currentCommand}\n\n{_currentCommandText}");
-					_currentCommand.StartCooperativeFunction(_context, _currentCommandText, _stdOutput);
-				}
-				if (!_currentCommand.IsExecutionFinished()) {
-					return true;
-				}
-				command = _currentCommand.FunctionResult();
-				_currentCommand = null;
-				if (command == null) {
-					Debug.Log($"{_currentCommandText} consumed by {_filters[_filterIndex]}");
-					return false;
-				}
-				++_filterIndex;
-			}
-			Debug.Log($"{_currentCommandText} NOT consumed");
-			return false;
-		}
-
-		//private bool IsExecutionStoppedByNamedFunction(string command) {
-		//	string token = GetFirstToken(command);
-		//	_currentCommand = GetNamedCommand(token);
-		//	if (_currentCommand == null) {
-		//		return false;
-		//	}
-		//	_currentCommand.StartCooperativeFunction(_context, command, _stdOutput);
-		//	if (!_currentCommand.IsFunctionFinished()) {
-		//		Debug.Log(_currentCommand + " still running");
-		//		return true;
-		//	}
-		//	_currentCommandResult = _currentCommand.FunctionResult();
-		//	_currentCommand = null;
-		//	if (_currentCommandResult == null) {
-		//		return true;
-		//	}
-		//	return false;
-		//}
-
-		public bool IsExecutionFinished() => _currentCommand == null || _currentCommand.IsExecutionFinished();
-
-		public string FunctionResult() => _currentCommand != null ? _currentCommand.FunctionResult() : _currentCommandResult;
+		public string FunctionResult(object context) => Get(context).FunctionResult();
 
 #if UNITY_EDITOR
 		public static void DelayCall(UnityEditor.EditorApplication.CallbackFunction call) {

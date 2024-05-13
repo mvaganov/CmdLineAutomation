@@ -1,10 +1,10 @@
-using UnityEditor;
 using UnityEngine;
 
 namespace RunCmd {
 	[CreateAssetMenu(fileName = "reimportfolder", menuName = "ScriptableObjects/Commands/ReimportFolder")]
 	public class CommandReimportFolder : ScriptableObject, INamedCommand {
 		public string CommandToken => this.name;
+		// TODO like CommandAutomation, with Get
 		private string _path;
 		private bool _reimported;
 		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
@@ -20,13 +20,19 @@ namespace RunCmd {
 		}
 
 		private void ReimportCurrentPathFolder() {
-			AssetDatabase.ImportAsset(_path, ImportAssetOptions.ImportRecursive | ImportAssetOptions.DontDownloadFromCacheServer);
+#if UNITY_EDITOR
+			UnityEditor.AssetDatabase.ImportAsset(_path, 
+				UnityEditor.ImportAssetOptions.ImportRecursive |
+				UnityEditor.ImportAssetOptions.DontDownloadFromCacheServer);
+#else
+			Debug.LogWarning("Unable to import Asset folder at runtime");
+#endif
 			_path = null;
 			_reimported = true;
 		}
 
-		public bool IsExecutionFinished() => _path == null || _reimported;
+		public bool IsExecutionFinished(object context) => _path == null || _reimported;
 
-		public string FunctionResult() => null;
+		public string FunctionResult(object context) => null;
 	}
 }

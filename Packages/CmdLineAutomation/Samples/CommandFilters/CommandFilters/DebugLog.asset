@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: DebugLog
   m_EditorClassIdentifier: 
   enabled: 0
+  consumeCommand: 0
   logType: 5
   linePrefix: 
   lineSuffix: 

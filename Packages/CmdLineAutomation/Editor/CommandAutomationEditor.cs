@@ -109,7 +109,7 @@ namespace RunCmd {
 
 		private void RunInternalCommand(string command) {
 			Target.StartCooperativeFunction(Target, command, PopulateOutputText);
-			waitingForCommand = !Target.IsExecutionFinished();
+			waitingForCommand = !Target.IsExecutionFinished(Target);
 			PopulateOutputText();
 		}
 

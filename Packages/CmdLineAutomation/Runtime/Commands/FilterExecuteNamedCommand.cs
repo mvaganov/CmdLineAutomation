@@ -16,6 +16,8 @@ namespace RunCmd {
 		/// Named functions which may or may not consume a command
 		/// </summary>
 		private Dictionary<string, INamedCommand> _commandDictionary;
+
+		// TODO make this in a variables class, with a Get method, like in CommandAutomation
 		private object _context;
 		private TextResultCallback _stdOutput;
 		private string _currentCommandText;
@@ -24,9 +26,9 @@ namespace RunCmd {
 
 		private bool NeedsInitialization() => _commandDictionary == null || _commandDictionary.Count != _commandListing.Length;
 
-		public bool IsExecutionFinished() => _currentCommand == null || _currentCommand.IsExecutionFinished();
+		public bool IsExecutionFinished(object context) => _currentCommand == null || _currentCommand.IsExecutionFinished(context);
 
-		public string FunctionResult() => _currentCommandFilterResult;
+		public string FunctionResult(object context) => _currentCommandFilterResult;
 
 		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
 			_context = context;
@@ -34,11 +36,7 @@ namespace RunCmd {
 			_currentCommandText = command;
 			_currentCommandFilterResult = command;
 			//Debug.Log("....... " + command);
-			ServiceFunctions();
-		}
-
-		private void ServiceFunctions() {
-			if (_currentCommand != null && !_currentCommand.IsExecutionFinished()) {
+			if (_currentCommand != null && !_currentCommand.IsExecutionFinished(context)) {
 				Debug.Log($"still processing {_currentCommand}");
 				return;
 			}
@@ -56,7 +54,7 @@ namespace RunCmd {
 				return false;
 			}
 			_currentCommand.StartCooperativeFunction(_context, command, _stdOutput);
-			if (!_currentCommand.IsExecutionFinished()) {
+			if (!_currentCommand.IsExecutionFinished(_context)) {
 				//Debug.Log("~~~~~~~~~~~~~~~~~~~~~"+_currentCommand + " still running");
 				return true;
 			}

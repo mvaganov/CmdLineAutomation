@@ -8,6 +8,7 @@ namespace RunCmd {
 	/// </summary>
 	[CreateAssetMenu(fileName = "OperatingSystemCommandShell", menuName = "ScriptableObjects/Filters/OperatingSystemCommandShell")]
 	public class FilterOperatingSystemCommandShell : ScriptableObject, ICommandFilter {
+		[SerializeField] protected bool _operatingSystemConsumesCommand;
 		/// <summary>
 		/// The command line shell
 		/// </summary>
@@ -16,6 +17,8 @@ namespace RunCmd {
 		/// Function to pass all lines from standard input to
 		/// </summary>
 		private TextResultCallback _stdOutput;
+
+		// TODO like CommandAutomation, with Get
 		private string _lastCalledCommand;
 
 		public OperatingSystemCommandShell Shell {
@@ -38,9 +41,9 @@ namespace RunCmd {
 			}
 		}
 
-		public string FunctionResult() => null;
+		public string FunctionResult(object context) => _operatingSystemConsumesCommand ? null : _lastCalledCommand;
 
-		public bool IsExecutionFinished() => true;
+		public bool IsExecutionFinished(object context) => true;
 
 		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
 			_stdOutput = stdOutput;

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace RunCmd {
@@ -10,10 +11,12 @@ namespace RunCmd {
 	public class FilterDebugLog : ScriptableObject, ICommandFilter {
 		public enum LogType { None, StdOutput, DebugLog_Error, DebugLog_Assert, DebugLog_Warning, DebugLog_Log, DebugLog_Exception }
 		[SerializeField] protected bool enabled = true;
+		[SerializeField] protected bool consumeCommand = false;
 		[SerializeField] protected LogType logType = LogType.DebugLog_Log;
 		[SerializeField] protected string linePrefix = "", lineSuffix = "";
-		private string result;
+		private Dictionary<object, string> result = new Dictionary<object, string>();
 		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
+			result[context] = consumeCommand ? null : command;
 			if (!enabled) {
 				return;
 			}
@@ -21,30 +24,17 @@ namespace RunCmd {
 				command = linePrefix + command + lineSuffix;
 			}
 			switch (logType) {
-				case LogType.StdOutput:
-					stdOutput.Invoke(command);
-					break;
-				case LogType.DebugLog_Error:
-					Debug.LogError(command);
-					break;
-				case LogType.DebugLog_Assert:
-					Debug.LogAssertion(command);
-					break;
-				case LogType.DebugLog_Warning:
-					Debug.LogWarning(command);
-					break;
-				case LogType.DebugLog_Log:
-					Debug.Log(command);
-					break;
-				case LogType.DebugLog_Exception:
-					Debug.LogException(new System.Exception(command), context as UnityEngine.Object);
-					break;
+				case LogType.StdOutput: stdOutput.Invoke(command); break;
+				case LogType.DebugLog_Error: Debug.LogError(command); break;
+				case LogType.DebugLog_Assert: Debug.LogAssertion(command); break;
+				case LogType.DebugLog_Warning: Debug.LogWarning(command); break;
+				case LogType.DebugLog_Log:      Debug.Log(command); break;
+				case LogType.DebugLog_Exception: Debug.LogException(new System.Exception(command), context as UnityEngine.Object); break;
 			}
-			result = command;
 		}
 
-		public string FunctionResult() => result;
+		public string FunctionResult(object context) => result[context];
 
-		public bool IsExecutionFinished() => true;
+		public bool IsExecutionFinished(object context) => true;
 	}
 }
