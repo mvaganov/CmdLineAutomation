@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -17,51 +16,74 @@ namespace RunCmd {
 		/// </summary>
 		private Dictionary<string, INamedCommand> _commandDictionary;
 
-		// TODO make this in a variables class, with a Get method, like in CommandAutomation
-		private object _context;
-		private TextResultCallback _stdOutput;
-		private string _currentCommandText;
-		private string _currentCommandFilterResult;
-		private ICommandProcessor _currentCommand;
+		private class CommandExecution {
+			private object context;
+			private TextResultCallback stdOutput;
+			private string currentCommandText;
+			private string currentCommandFilterResult;
+			private ICommandProcessor currentCommand;
+			private FilterExecuteNamedCommand source;
+
+			public CommandExecution(object context, FilterExecuteNamedCommand source) {
+				this.context = context;
+				this.source = source;
+			}
+
+			public bool IsExecutionFinished() => currentCommand == null || currentCommand.IsExecutionFinished(context);
+
+			public string FunctionResult() => currentCommandFilterResult;
+
+			public void StartCooperativeFunction(string command, TextResultCallback stdOutput) {
+				this.stdOutput = stdOutput;
+				currentCommandText = command;
+				currentCommandFilterResult = command;
+				//Debug.Log("....... " + command);
+				if (currentCommand != null && !currentCommand.IsExecutionFinished(context)) {
+					Debug.Log($"still processing {currentCommand}");
+					return;
+				}
+				if (IsExecutionStoppedByNamedFunction(currentCommandText)) {
+					return;
+				}
+				currentCommand = null;
+			}
+
+			private bool IsExecutionStoppedByNamedFunction(string command) {
+				string token = Parse.GetFirstToken(command);
+				//Debug.Log("=============" + command);
+				currentCommand = source.GetNamedCommand(token);
+				if (currentCommand == null) {
+					return false;
+				}
+				currentCommand.StartCooperativeFunction(context, command, stdOutput);
+				if (!currentCommand.IsExecutionFinished(context)) {
+					//Debug.Log("~~~~~~~~~~~~~~~~~~~~~"+_currentCommand + " still running");
+					return true;
+				}
+				//_currentCommandFilterResult = _currentCommand.FunctionResult();
+				//Debug.Log($"{_currentCommandText} result : [{_currentCommandFilterResult}]");
+				currentCommand = null;
+				return false;
+			}
+		}
+
+		private Dictionary<object, CommandExecution> _executions = new Dictionary<object, CommandExecution>();
+
+		private CommandExecution Get(object context) {
+			if (!_executions.TryGetValue(context, out CommandExecution commandExecution)) {
+				_executions[context] = commandExecution = new CommandExecution(context, this);
+			}
+			return commandExecution;
+		}
 
 		private bool NeedsInitialization() => _commandDictionary == null || _commandDictionary.Count != _commandListing.Length;
 
-		public bool IsExecutionFinished(object context) => _currentCommand == null || _currentCommand.IsExecutionFinished(context);
+		public bool IsExecutionFinished(object context) => Get(context).IsExecutionFinished();//_currentCommand == null || _currentCommand.IsExecutionFinished(context);
 
-		public string FunctionResult(object context) => _currentCommandFilterResult;
+		public string FunctionResult(object context) => Get(context).FunctionResult();//_currentCommandFilterResult;
 
 		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
-			_context = context;
-			_stdOutput = stdOutput;
-			_currentCommandText = command;
-			_currentCommandFilterResult = command;
-			//Debug.Log("....... " + command);
-			if (_currentCommand != null && !_currentCommand.IsExecutionFinished(context)) {
-				Debug.Log($"still processing {_currentCommand}");
-				return;
-			}
-			if (IsExecutionStoppedByNamedFunction(_currentCommandText)) {
-				return;
-			}
-			_currentCommand = null;
-		}
-
-		private bool IsExecutionStoppedByNamedFunction(string command) {
-			string token = Parse.GetFirstToken(command);
-			//Debug.Log("=============" + command);
-			_currentCommand = GetNamedCommand(token);
-			if (_currentCommand == null) {
-				return false;
-			}
-			_currentCommand.StartCooperativeFunction(_context, command, _stdOutput);
-			if (!_currentCommand.IsExecutionFinished(_context)) {
-				//Debug.Log("~~~~~~~~~~~~~~~~~~~~~"+_currentCommand + " still running");
-				return true;
-			}
-			//_currentCommandFilterResult = _currentCommand.FunctionResult();
-			//Debug.Log($"{_currentCommandText} result : [{_currentCommandFilterResult}]");
-			_currentCommand = null;
-			return false;
+			Get(context).StartCooperativeFunction(command, stdOutput);
 		}
 
 		public INamedCommand GetNamedCommand(string token) {

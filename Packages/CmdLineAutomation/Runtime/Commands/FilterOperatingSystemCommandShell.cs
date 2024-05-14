@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -17,9 +16,10 @@ namespace RunCmd {
 		/// Function to pass all lines from standard input to
 		/// </summary>
 		private TextResultCallback _stdOutput;
-
-		// TODO like CommandAutomation, with Get
-		private string _lastCalledCommand;
+		/// <summary>
+		/// The last command called by each context
+		/// </summary>
+		private Dictionary<object, string> _lastCalledCommand = new Dictionary<object, string>();
 
 		public OperatingSystemCommandShell Shell {
 			get => _shell;
@@ -41,13 +41,13 @@ namespace RunCmd {
 			}
 		}
 
-		public string FunctionResult(object context) => _operatingSystemConsumesCommand ? null : _lastCalledCommand;
+		public string FunctionResult(object context) => _operatingSystemConsumesCommand ? null : _lastCalledCommand[context];
 
 		public bool IsExecutionFinished(object context) => true;
 
 		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
 			_stdOutput = stdOutput;
-			_lastCalledCommand = command;
+			_lastCalledCommand[context] = command;
 			if (Shell == null) {
 				string name = this.name;
 				if (context is UnityEngine.Object obj) {
@@ -55,7 +55,7 @@ namespace RunCmd {
 				}
 				Shell = CreateShell(name, context);
 			}
-			_shell.Run(_lastCalledCommand, _stdOutput);
+			_shell.Run(command, _stdOutput);
 		}
 
 		private OperatingSystemCommandShell CreateShell(string name, object context) {
@@ -65,12 +65,12 @@ namespace RunCmd {
 				if (Shell != thisShell) {
 					Debug.LogWarning($"lost {nameof(OperatingSystemCommandShell)}");
 					thisShell.Stop();
+					_lastCalledCommand.Remove(context);
 					return false;
 				}
 				return true;
 			};
 			return thisShell;
 		}
-
 	}
 }

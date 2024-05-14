@@ -5,7 +5,7 @@ using UnityEngine;
 namespace RunCmd {
 	/// <summary>
 	/// * Metadata about why this object exists
-	/// * A list of possible commands
+	/// * A list of command filters (including the specific named command listing in a sub-asset)
 	/// * A list of commands to execute (TODO derived from a single string)
 	/// * Logic to process commands as a cooperative process (track state of which command is executing now, TODO progress bar)
 	/// * TODO an object to manage output from commands
