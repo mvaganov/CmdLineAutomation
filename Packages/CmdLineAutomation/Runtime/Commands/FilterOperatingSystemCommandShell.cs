@@ -7,7 +7,10 @@ namespace RunCmd {
 	/// </summary>
 	[CreateAssetMenu(fileName = "OperatingSystemCommandShell", menuName = "ScriptableObjects/Filters/OperatingSystemCommandShell")]
 	public class FilterOperatingSystemCommandShell : ScriptableObject, ICommandFilter {
-		[SerializeField] protected bool _operatingSystemConsumesCommand;
+		/// <summary>
+		/// If true, does not pass command to others in the filter chain
+		/// </summary>
+		[SerializeField] protected bool _consumeCommand = true;
 		/// <summary>
 		/// The command line shell
 		/// </summary>
@@ -41,7 +44,7 @@ namespace RunCmd {
 			}
 		}
 
-		public string FunctionResult(object context) => _operatingSystemConsumesCommand ? null : _lastCalledCommand[context];
+		public string FunctionResult(object context) => _consumeCommand ? null : _lastCalledCommand[context];
 
 		public bool IsExecutionFinished(object context) => true;
 

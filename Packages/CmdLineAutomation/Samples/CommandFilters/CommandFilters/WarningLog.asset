@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 54eaebaa715910a489bc9e774869f480, type: 3}
   m_Name: WarningLog
   m_EditorClassIdentifier: 
-  logType: 4
-  linePrefix: '<color=#ff0>WARNING</color> unprocessed: '
-  lineSuffix: 
+  _enabled: 1
+  _consumeCommand: 1
+  _logType: 4
+  _linePrefix: '<color=#ff0>WARNING</color> <color=#880>unprocessed</color>: '
+  _lineSuffix: 

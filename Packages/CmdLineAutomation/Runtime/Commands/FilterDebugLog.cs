@@ -10,20 +10,20 @@ namespace RunCmd {
 	[CreateAssetMenu(fileName = "DebugLog", menuName = "ScriptableObjects/Filters/FilterDebugLog")]
 	public class FilterDebugLog : ScriptableObject, ICommandFilter {
 		public enum LogType { None, StdOutput, DebugLog_Error, DebugLog_Assert, DebugLog_Warning, DebugLog_Log, DebugLog_Exception }
-		[SerializeField] protected bool enabled = true;
-		[SerializeField] protected bool consumeCommand = false;
-		[SerializeField] protected LogType logType = LogType.DebugLog_Log;
-		[SerializeField] protected string linePrefix = "", lineSuffix = "";
-		private Dictionary<object, string> result = new Dictionary<object, string>();
+		[SerializeField] protected bool _enabled = true;
+		[SerializeField] protected bool _consumeCommand = false;
+		[SerializeField] protected LogType _logType = LogType.DebugLog_Log;
+		[SerializeField] protected string _linePrefix = "", _lineSuffix = "";
+		private Dictionary<object, string> _lastCommand = new Dictionary<object, string>();
 		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
-			result[context] = consumeCommand ? null : command;
-			if (!enabled) {
+			_lastCommand[context] = _consumeCommand ? null : command;
+			if (!_enabled) {
 				return;
 			}
-			if (!string.IsNullOrEmpty(linePrefix) || string.IsNullOrEmpty(lineSuffix)) {
-				command = linePrefix + command + lineSuffix;
+			if (!string.IsNullOrEmpty(_linePrefix) || string.IsNullOrEmpty(_lineSuffix)) {
+				command = _linePrefix + command + _lineSuffix;
 			}
-			switch (logType) {
+			switch (_logType) {
 				case LogType.StdOutput: stdOutput.Invoke(command); break;
 				case LogType.DebugLog_Error: Debug.LogError(command); break;
 				case LogType.DebugLog_Assert: Debug.LogAssertion(command); break;
@@ -33,7 +33,7 @@ namespace RunCmd {
 			}
 		}
 
-		public string FunctionResult(object context) => result[context];
+		public string FunctionResult(object context) => _lastCommand[context];
 
 		public bool IsExecutionFinished(object context) => true;
 	}

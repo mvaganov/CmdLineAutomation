@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 54eaebaa715910a489bc9e774869f480, type: 3}
   m_Name: DebugLog
   m_EditorClassIdentifier: 
-  enabled: 0
-  consumeCommand: 0
-  logType: 5
-  linePrefix: 
-  lineSuffix: 
+  _enabled: 1
+  _consumeCommand: 0
+  _logType: 5
+  _linePrefix: 
+  _lineSuffix: 
