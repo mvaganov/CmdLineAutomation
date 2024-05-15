@@ -12,7 +12,7 @@ namespace RunCmd {
 	/// * TODO create variable listing? auto-populate variables based on input?
 	/// </summary>
 	[CreateAssetMenu(fileName = "NewCmdLineAutomation", menuName = "ScriptableObjects/CmdLineAutomation", order = 1)]
-	public class CommandAutomation : ScriptableObject, ICommandProcessor {
+	public class CommandAutomation : CommandRunner<CommandAutomation.CommandExecution>, ICommandProcessor {
 		[Serializable]
 		public class MetaData {
 			[TextArea(1, 1000)] public string Description;
@@ -45,7 +45,7 @@ namespace RunCmd {
 		/// </summary>
 		private List<ICommandFilter> _filters;
 
-		private class CommandExecution {
+		public class CommandExecution {
 			/// <summary>
 			/// What object counts as the owner of this command
 			/// </summary>
@@ -173,13 +173,16 @@ namespace RunCmd {
 			}
 		}
 
-		private Dictionary<object, CommandExecution> _executions = new Dictionary<object, CommandExecution>();
-		private CommandExecution Get(object context) {
-			if (!_executions.TryGetValue(context, out CommandExecution commandExecution)) {
-				_executions[context] = commandExecution = new CommandExecution(context, this);
-			}
-			return commandExecution;
-		}
+		//private Dictionary<object, CommandExecution> _executions = new Dictionary<object, CommandExecution>();
+		//private CommandExecution Get(object context) {
+		//	if (!_executions.TryGetValue(context, out CommandExecution commandExecution)) {
+		//		_executions[context] = commandExecution = new CommandExecution(context, this);
+		//	}
+		//	return commandExecution;
+		//}
+
+		protected override CommandExecution CreateEmptyContextEntry(object context)
+			=> new CommandExecution(context, this);
 
 		private bool NeedsInitialization() => _filters == null;
 
@@ -197,19 +200,19 @@ namespace RunCmd {
 		}
 
 		public void RunCommands(object context, TextResultCallback stdOutput) {
-			CommandExecution e = Get(context);
+			CommandExecution e = GetExecutionData(context);
 			e.stdOutput = stdOutput;
 			Initialize();
 			e.RunCommand();
 		}
 
-		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
-			Get(context).StartCooperativeFunction(command, stdOutput);
+		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
+			GetExecutionData(context).StartCooperativeFunction(command, stdOutput);
 		}
 
-		public bool IsExecutionFinished(object context) => Get(context).IsExecutionFinished();
+		public override bool IsExecutionFinished(object context) => GetExecutionData(context).IsExecutionFinished();
 
-		public string FunctionResult(object context) => Get(context).FunctionResult();
+		public string FunctionResult(object context) => GetExecutionData(context).FunctionResult();
 
 #if UNITY_EDITOR
 		public static void DelayCall(UnityEditor.EditorApplication.CallbackFunction call) {

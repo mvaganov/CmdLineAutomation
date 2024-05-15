@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace RunCmd {
@@ -8,15 +6,14 @@ namespace RunCmd {
 	/// <see cref="ICommandProcessor"/>
 	/// </summary>
 	[CreateAssetMenu(fileName = "DebugLog", menuName = "ScriptableObjects/Filters/FilterDebugLog")]
-	public class FilterDebugLog : ScriptableObject, ICommandFilter {
+	public class FilterDebugLog : CommandRunner<string>, ICommandFilter {
 		public enum LogType { None, StdOutput, DebugLog_Error, DebugLog_Assert, DebugLog_Warning, DebugLog_Log, DebugLog_Exception }
 		[SerializeField] protected bool _enabled = true;
 		[SerializeField] protected bool _consumeCommand = false;
 		[SerializeField] protected LogType _logType = LogType.DebugLog_Log;
 		[SerializeField] protected string _linePrefix = "", _lineSuffix = "";
-		private Dictionary<object, string> _lastCommand = new Dictionary<object, string>();
-		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
-			_lastCommand[context] = _consumeCommand ? null : command;
+		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
+			SetExecutionData(context, _consumeCommand ? null : command);
 			if (!_enabled) {
 				return;
 			}
@@ -33,8 +30,10 @@ namespace RunCmd {
 			}
 		}
 
-		public string FunctionResult(object context) => _lastCommand[context];
+		public string FunctionResult(object context) => GetExecutionData(context);
 
-		public bool IsExecutionFinished(object context) => true;
+		public override bool IsExecutionFinished(object context) => true;
+
+		protected override string CreateEmptyContextEntry(object context) => null;
 	}
 }

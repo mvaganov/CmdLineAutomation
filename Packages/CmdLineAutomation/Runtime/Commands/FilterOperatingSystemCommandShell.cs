@@ -6,7 +6,7 @@ namespace RunCmd {
 	/// Passes commands to a seperate thread running the local command terminal shell
 	/// </summary>
 	[CreateAssetMenu(fileName = "OperatingSystemCommandShell", menuName = "ScriptableObjects/Filters/OperatingSystemCommandShell")]
-	public class FilterOperatingSystemCommandShell : ScriptableObject, ICommandFilter {
+	public class FilterOperatingSystemCommandShell : CommandRunner<string>, ICommandFilter {
 		/// <summary>
 		/// If true, does not pass command to others in the filter chain
 		/// </summary>
@@ -19,10 +19,10 @@ namespace RunCmd {
 		/// Function to pass all lines from standard input to
 		/// </summary>
 		private TextResultCallback _stdOutput;
-		/// <summary>
-		/// The last command called by each context
-		/// </summary>
-		private Dictionary<object, string> _lastCalledCommand = new Dictionary<object, string>();
+		///// <summary>
+		///// The last command called by each context
+		///// </summary>
+		//private Dictionary<object, string> _lastCalledCommand = new Dictionary<object, string>();
 
 		public OperatingSystemCommandShell Shell {
 			get => _shell;
@@ -44,13 +44,14 @@ namespace RunCmd {
 			}
 		}
 
-		public string FunctionResult(object context) => _consumeCommand ? null : _lastCalledCommand[context];
+		public string FunctionResult(object context) => _consumeCommand ? null : GetExecutionData(context);//_lastCalledCommand[context];
 
-		public bool IsExecutionFinished(object context) => true;
+		public override bool IsExecutionFinished(object context) => true;
 
-		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
+		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
 			_stdOutput = stdOutput;
-			_lastCalledCommand[context] = command;
+			SetExecutionData(context, command);
+			//_lastCalledCommand[context] = command;
 			if (Shell == null) {
 				string name = this.name;
 				if (context is UnityEngine.Object obj) {
@@ -61,6 +62,8 @@ namespace RunCmd {
 			_shell.Run(command, _stdOutput);
 		}
 
+		protected override string CreateEmptyContextEntry(object context) => null;
+
 		private OperatingSystemCommandShell CreateShell(string name, object context) {
 			OperatingSystemCommandShell thisShell = OperatingSystemCommandShell.CreateUnityEditorShell(context);
 			thisShell.Name = $"{name} {System.Environment.TickCount}";
@@ -68,7 +71,8 @@ namespace RunCmd {
 				if (Shell != thisShell) {
 					Debug.LogWarning($"lost {nameof(OperatingSystemCommandShell)}");
 					thisShell.Stop();
-					_lastCalledCommand.Remove(context);
+					//_lastCalledCommand.Remove(context);
+					RemoveExecutionData(context);
 					return false;
 				}
 				return true;

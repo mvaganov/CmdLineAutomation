@@ -6,7 +6,7 @@ namespace RunCmd {
 	/// Command filter used to call named commands
 	/// </summary>
 	[CreateAssetMenu(fileName = "ExecuteNamedCommand", menuName = "ScriptableObjects/Filters/ExecuteNamedCommand")]
-	public class FilterExecuteNamedCommand : ScriptableObject, ICommandFilter {
+	public class FilterExecuteNamedCommand : CommandRunner<FilterExecuteNamedCommand.CommandExecution>, ICommandFilter {
 		/// <summary>
 		/// List of the possible custom commands written as C# <see cref="ICommandProcessor"/>s
 		/// </summary>
@@ -16,7 +16,7 @@ namespace RunCmd {
 		/// </summary>
 		private Dictionary<string, INamedCommand> _commandDictionary;
 
-		private class CommandExecution {
+		public class CommandExecution {
 			private object context;
 			private TextResultCallback stdOutput;
 			private string currentCommandText;
@@ -67,23 +67,14 @@ namespace RunCmd {
 			}
 		}
 
-		private Dictionary<object, CommandExecution> _executions = new Dictionary<object, CommandExecution>();
-
-		private CommandExecution Get(object context) {
-			if (!_executions.TryGetValue(context, out CommandExecution commandExecution)) {
-				_executions[context] = commandExecution = new CommandExecution(context, this);
-			}
-			return commandExecution;
-		}
-
 		private bool NeedsInitialization() => _commandDictionary == null || _commandDictionary.Count != _commandListing.Length;
 
-		public bool IsExecutionFinished(object context) => Get(context).IsExecutionFinished();//_currentCommand == null || _currentCommand.IsExecutionFinished(context);
+		public override bool IsExecutionFinished(object context) => GetExecutionData(context).IsExecutionFinished();//_currentCommand == null || _currentCommand.IsExecutionFinished(context);
 
-		public string FunctionResult(object context) => Get(context).FunctionResult();//_currentCommandFilterResult;
+		public string FunctionResult(object context) => GetExecutionData(context).FunctionResult();//_currentCommandFilterResult;
 
-		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
-			Get(context).StartCooperativeFunction(command, stdOutput);
+		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
+			GetExecutionData(context).StartCooperativeFunction(command, stdOutput);
 		}
 
 		public INamedCommand GetNamedCommand(string token) {
@@ -114,5 +105,8 @@ namespace RunCmd {
 			}
 			_commandDictionary[token] = iCmd;
 		}
+
+		protected override CommandExecution CreateEmptyContextEntry(object context)
+			=> new CommandExecution(context, this);
 	}
 }
