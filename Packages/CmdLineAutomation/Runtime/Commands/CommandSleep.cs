@@ -20,8 +20,6 @@ namespace RunCmd {
 			}
 		}
 
-		public string FunctionResult() => null;
-
 		public override bool IsExecutionFinished(object context) => Environment.TickCount >= GetExecutionData(context);
 
 		protected override int CreateEmptyContextEntry(object context) => 0;

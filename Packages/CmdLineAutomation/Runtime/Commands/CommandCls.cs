@@ -13,7 +13,5 @@ namespace RunCmd {
 		}
 
 		public bool IsExecutionFinished(object context) => true;
-
-		public string FunctionResult() => null;
 	}
 }

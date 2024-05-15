@@ -75,16 +75,22 @@ namespace RunCmd {
 			/// </summary>
 			public TextResultCallback stdOutput;
 			private CommandAutomation source;
+			/// <summary>
+			/// Keeps track of a shell, if one is generated
+			/// </summary>
+			private OperatingSystemCommandShell _shell;
+
+			public OperatingSystemCommandShell Shell { get => _shell; }
 
 			public bool HaveCommandToDo() => currentCommand != null;
 
-			public void RunCommand() {
+			public void RunEachCommandInSequence() {
 				if (HaveCommandToDo()) {
 					if (currentCommand.IsExecutionFinished(context)) {
 						++commandExecutingIndex;
 						currentCommand = null;
 					} else {
-						DelayCall(RunCommand);
+						DelayCall(RunEachCommandInSequence);
 						return;
 					}
 				}
@@ -106,7 +112,7 @@ namespace RunCmd {
 					}
 				}
 				if (commandExecutingIndex < source.CommandsToDo.Length) {
-					DelayCall(RunCommand);
+					DelayCall(RunEachCommandInSequence);
 				} else {
 					commandExecutingIndex = 0;
 				}
@@ -146,6 +152,9 @@ namespace RunCmd {
 						}
 						//Debug.Log($"~~~~~~~~{name} start {command} co-op f[{_filterIndex}] {_currentCommand}\n\n{_currentCommandText}");
 						currentCommand.StartCooperativeFunction(context, currentCommandText, stdOutput);
+						if (_shell == null && currentCommand is FilterOperatingSystemCommandShell osShell) {
+							_shell = osShell.Shell;
+						}
 					}
 					if (!currentCommand.IsExecutionFinished(context)) {
 						return true;
@@ -173,16 +182,10 @@ namespace RunCmd {
 			}
 		}
 
-		//private Dictionary<object, CommandExecution> _executions = new Dictionary<object, CommandExecution>();
-		//private CommandExecution Get(object context) {
-		//	if (!_executions.TryGetValue(context, out CommandExecution commandExecution)) {
-		//		_executions[context] = commandExecution = new CommandExecution(context, this);
-		//	}
-		//	return commandExecution;
-		//}
-
 		protected override CommandExecution CreateEmptyContextEntry(object context)
 			=> new CommandExecution(context, this);
+
+		public OperatingSystemCommandShell GetShell(object context) => GetExecutionData(context).Shell;
 
 		private bool NeedsInitialization() => _filters == null;
 
@@ -203,7 +206,7 @@ namespace RunCmd {
 			CommandExecution e = GetExecutionData(context);
 			e.stdOutput = stdOutput;
 			Initialize();
-			e.RunCommand();
+			e.RunEachCommandInSequence();
 		}
 
 		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {

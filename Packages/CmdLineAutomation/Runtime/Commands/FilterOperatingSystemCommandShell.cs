@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace RunCmd {
@@ -19,10 +18,6 @@ namespace RunCmd {
 		/// Function to pass all lines from standard input to
 		/// </summary>
 		private TextResultCallback _stdOutput;
-		///// <summary>
-		///// The last command called by each context
-		///// </summary>
-		//private Dictionary<object, string> _lastCalledCommand = new Dictionary<object, string>();
 
 		public OperatingSystemCommandShell Shell {
 			get => _shell;
@@ -34,24 +29,13 @@ namespace RunCmd {
 			}
 		}
 
-		public TextResultCallback StdOutput {
-			get => _stdOutput;
-			set {
-				_stdOutput = value;
-				if (Shell != null) {
-					Shell.LineOutput = value;
-				}
-			}
-		}
-
-		public string FunctionResult(object context) => _consumeCommand ? null : GetExecutionData(context);//_lastCalledCommand[context];
+		public string FunctionResult(object context) => _consumeCommand ? null : GetExecutionData(context);
 
 		public override bool IsExecutionFinished(object context) => true;
 
 		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
 			_stdOutput = stdOutput;
 			SetExecutionData(context, command);
-			//_lastCalledCommand[context] = command;
 			if (Shell == null) {
 				string name = this.name;
 				if (context is UnityEngine.Object obj) {
@@ -71,7 +55,6 @@ namespace RunCmd {
 				if (Shell != thisShell) {
 					Debug.LogWarning($"lost {nameof(OperatingSystemCommandShell)}");
 					thisShell.Stop();
-					//_lastCalledCommand.Remove(context);
 					RemoveExecutionData(context);
 					return false;
 				}

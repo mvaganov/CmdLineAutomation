@@ -1,5 +1,3 @@
-using System;
-
 namespace RunCmd {
 	/// <summary>
 	/// Processing logic to respond to a string command input. The main method is a non-blocking

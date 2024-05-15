@@ -5,6 +5,7 @@ namespace RunCmd {
 	public class CommandReimportFolder : CommandRunner<string>, INamedCommand {
 		public string CommandToken => this.name;
 		protected override string CreateEmptyContextEntry(object context) => null;
+
 		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
 			string[] args = Parse.Split(command);
 			if (args.Length > 1) {
@@ -28,7 +29,5 @@ namespace RunCmd {
 		}
 
 		public override bool IsExecutionFinished(object context) => GetExecutionData(context) == null;
-
-		public string FunctionResult(object context) => null;
 	}
 }

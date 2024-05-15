@@ -15,6 +15,7 @@ namespace RunCmd {
 		private CommandAutomation _target;
 		/// <summary>
 		/// Results of the commandline running in the operating system
+		/// TODO keep all stdoutput from commands, not just lines from the OperatingSystemCommandShell
 		/// </summary>
 		private List<string> _osLines = new List<string>();
 		/// <summary>
@@ -118,9 +119,9 @@ namespace RunCmd {
 		}
 
 		private void PopulateOutputText() {
-			_osLines.Clear();
-			_inspectorCommandOutput = "";
 			if (Shell != null) {
+				_osLines.Clear();
+				_inspectorCommandOutput = "";
 				Shell.GetRecentLines(_osLines);
 			}
 			_inspectorCommandOutput = string.Join("\n", _osLines);
@@ -130,12 +131,7 @@ namespace RunCmd {
 			if (!GUILayout.Button("Run Commands To Do")) {
 				return;
 			}
-			if (IsStarted) {
-				RunCommands();
-			} else {
-				StartShell();
-				EditorApplication.delayCall += RunCommands;
-			}
+			RunCommands();
 		}
 
 		private void ClearOutputButtonGUI() {
@@ -148,16 +144,14 @@ namespace RunCmd {
 			PopulateOutputText();
 		}
 
-		private enum EffectOfShellButton { None, EndProcess, Comandeer }
+		private enum EffectOfShellButton { None, EndProcess, ShowProcess }
 		private void ShowAllCommandAutomationsListingGUI() {
 			foreach(var kvp in OperatingSystemCommandShell.RunningShells) {
-				//for (int i = 0; i < OperatingSystemCommandShell.RunningShells.Count; i++) {
-				//	OperatingSystemCommandShell sh = OperatingSystemCommandShell.RunningShells[i];
 				OperatingSystemCommandShell sh = kvp.Value;
 				string label;
 				EffectOfShellButton effect = Shell == sh
 					? EffectOfShellButton.EndProcess : Shell == null
-					? EffectOfShellButton.Comandeer
+					? EffectOfShellButton.ShowProcess
 					: EffectOfShellButton.None;
 				if (sh == null) {
 					label = "null";
@@ -181,30 +175,33 @@ namespace RunCmd {
 					sh.Stop();
 					Shell = null;
 					break;
-				case EffectOfShellButton.Comandeer:
-					Shell = sh;
-					RefreshInspector();
+				case EffectOfShellButton.ShowProcess:
+					PopulateShell(sh);
 					break;
 			}
 		}
 
+		private void PopulateShell(OperatingSystemCommandShell sh) {
+			Shell = sh;
+			RefreshInspector();
+		}
+
 		private void RunCommands() {
-			StartShell();
 			Target.RunCommands(Target, StdOutput);
 			RefreshInspector();
 		}
 
 		private void StdOutput(string line) {
 			//Debug.Log(line);
-			RefreshInspector();
-		}
-
-		public void StartShell() {
-			//if (Shell == null) {
-			//	//Target.StdOutput = StdOutput;
-			//	Target.Initialize();
-			//}
-			RefreshInspector();
+			if (Shell == null) {
+				OperatingSystemCommandShell shell = Target.GetShell(Target);
+				if (shell != null) {
+					PopulateShell(shell);
+				}
+			}
+			if (Shell != null) {
+				RefreshInspector();
+			}
 		}
 
 		public void Stop() {

@@ -69,9 +69,9 @@ namespace RunCmd {
 
 		private bool NeedsInitialization() => _commandDictionary == null || _commandDictionary.Count != _commandListing.Length;
 
-		public override bool IsExecutionFinished(object context) => GetExecutionData(context).IsExecutionFinished();//_currentCommand == null || _currentCommand.IsExecutionFinished(context);
+		public override bool IsExecutionFinished(object context) => GetExecutionData(context).IsExecutionFinished();
 
-		public string FunctionResult(object context) => GetExecutionData(context).FunctionResult();//_currentCommandFilterResult;
+		public string FunctionResult(object context) => GetExecutionData(context).FunctionResult();
 
 		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
 			GetExecutionData(context).StartCooperativeFunction(command, stdOutput);
