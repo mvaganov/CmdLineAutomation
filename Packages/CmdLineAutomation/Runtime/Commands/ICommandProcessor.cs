@@ -6,16 +6,18 @@ namespace RunCmd {
 	public interface ICommandProcessor {
 		/// <summary>
 		/// Event handling function, which starts a command. The command line system uses a cooperative
-		/// threading model, with status retrieved by <see cref="IsExecutionFinished"/> and
-		/// <see cref="FunctionResult"/>
+		/// threading model, with status retrieved by <see cref="IsExecutionFinished"/>.
 		/// </summary>
 		/// <param name="context">What is executing this command</param>
 		/// <param name="command">The command being executed</param>
 		/// <param name="stdOutput">Where the results of this command will go, one line at a time</param>
 		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput);
+
+		/// <summary>
+		/// Poll after <see cref="StartCooperativeFunction(object, string, TextResultCallback)"/> to
+		/// determine if this command is finished processing.
+		/// </summary>
 		/// <returns>true when the command is finished</returns>
-		/// TODO pass context as an argument, because different contexts might have different states of execution...
-		/// TODO read the current ICommandProcessor being executed by a given context
 		public bool IsExecutionFinished(object context);
 	}
 

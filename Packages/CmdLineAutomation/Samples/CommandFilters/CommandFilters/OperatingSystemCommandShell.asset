@@ -12,4 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6f663611665dcfb4d83c6161b306c0f5, type: 3}
   m_Name: OperatingSystemCommandShell
   m_EditorClassIdentifier: 
-  _operatingSystemConsumesCommand: 1
+  _consumeCommand: 1

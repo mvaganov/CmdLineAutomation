@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace RunCmd {
 	/// <summary>
-	/// Command filter used to call named commands
+	/// Command filter used to call named commands from a list
 	/// </summary>
 	[CreateAssetMenu(fileName = "ExecuteNamedCommand", menuName = "ScriptableObjects/Filters/ExecuteNamedCommand")]
 	public class FilterExecuteNamedCommand : CommandRunner<FilterExecuteNamedCommand.CommandExecution>, ICommandFilter {

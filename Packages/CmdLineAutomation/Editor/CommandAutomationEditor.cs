@@ -55,7 +55,6 @@ namespace RunCmd {
 		public bool IsStarted => Shell != null;
 
 		private void OnEnable() {
-			//StartShell();
 			if (Shell != null) {
 				EditorApplication.delayCall += RefreshInspector;
 			}
@@ -77,7 +76,6 @@ namespace RunCmd {
 			InputPromptGUI();
 			GUILayout.BeginHorizontal();
 			RunCommandsButtonGUI();
-			//StartStopButtonGUI();
 			ClearOutputButtonGUI();
 			GUILayout.EndHorizontal();
 			EditorGUILayout.TextArea(_inspectorCommandOutput, _consoleTextStyle);
@@ -210,18 +208,6 @@ namespace RunCmd {
 			}
 			Shell = null;
 		}
-
-		//public void StartStopButtonGUI() {
-		//	if (Shell == null) {
-		//		if (GUILayout.Button("Start Process")) {
-		//			StartShell();
-		//		}
-		//		return;
-		//	}
-		//	if (GUILayout.Button("Stop Process")) {
-		//		Stop();
-		//	}
-		//}
 
 		public string PromptGUI(GUIStyle style) {
 			if (!IsStarted) {
