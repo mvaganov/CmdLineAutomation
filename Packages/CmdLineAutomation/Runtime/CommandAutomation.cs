@@ -152,7 +152,7 @@ namespace RunCmd {
 						}
 						//Debug.Log($"~~~~~~~~{name} start {command} co-op f[{_filterIndex}] {_currentCommand}\n\n{_currentCommandText}");
 						currentCommand.StartCooperativeFunction(context, currentCommandText, stdOutput);
-						if (_shell == null && currentCommand is FilterOperatingSystemCommandShell osShell) {
+						if ((_shell == null || !_shell.IsRunning) && currentCommand is FilterOperatingSystemCommandShell osShell) {
 							_shell = osShell.Shell;
 						}
 					}

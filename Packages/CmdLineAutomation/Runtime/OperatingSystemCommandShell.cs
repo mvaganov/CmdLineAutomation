@@ -117,7 +117,7 @@ namespace RunCmd {
 				_process = null;
 				_thread = null;
 			}
-			RunningShells.Remove(this);
+			RunningShells.Remove(_context);
 		}
 
 		public string GetCurrentLine() {

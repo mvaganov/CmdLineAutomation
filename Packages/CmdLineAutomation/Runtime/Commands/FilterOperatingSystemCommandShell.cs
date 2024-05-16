@@ -36,7 +36,9 @@ namespace RunCmd {
 		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
 			_stdOutput = stdOutput;
 			SetExecutionData(context, command);
-			if (Shell == null) {
+			bool missingShell = Shell == null;
+			bool deadShell = !missingShell && !Shell.IsRunning;
+			if (missingShell || deadShell) {
 				string name = this.name;
 				if (context is UnityEngine.Object obj) {
 					name = obj.name;

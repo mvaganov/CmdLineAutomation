@@ -138,6 +138,8 @@ namespace RunCmd {
 			}
 			if (Shell != null) {
 				Shell.ClearLines();
+			} else {
+				_osLines.Clear();
 			}
 			PopulateOutputText();
 		}
@@ -159,7 +161,9 @@ namespace RunCmd {
 					label = $"{action} {runningMark} \"{sh.Name}\" (lines {sh.LineCount})";
 				}
 				if (GUILayout.Button(label)) {
-					ShellButton(sh, effect);
+					CommandAutomation.DelayCall(() => {
+						ShellButton(sh, effect);
+					});
 				}
 			}
 		}
