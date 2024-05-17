@@ -7,6 +7,13 @@ namespace RunCmd {
 	// TODO keep track of the current working directory
 	// TODO read formatted output from command line programs and do something with that logic?
 	public class OperatingSystemCommandShell {
+		[Serializable]
+		public struct Line {
+			public int timestamp;
+			public string text;
+			public Line(int timestamp, string text) { this.timestamp = timestamp; this.text = text; }
+			public static implicit operator Line(string text) { return new Line(Environment.TickCount, text); }
+		}
 		/// <summary>
 		/// What object owns this shell, which might be used to get scope-specific data
 		/// </summary>
@@ -20,7 +27,7 @@ namespace RunCmd {
 		private System.Threading.Thread _thread;
 		private StreamReader _output;
 		private string _lineBuffer = ""; // TODO semaphores to make StringBuilder threadsafe
-		private List<string> _lines = new List<string>();
+		private List<Line> _lines = new List<Line>();
 		private bool _running = false;
 		public TextResultCallback LineOutput = delegate { };
 		public Func<bool> KeepAlive;
@@ -127,33 +134,49 @@ namespace RunCmd {
 		}
 
 		public void GetRecentLines(List<string> aLines) {
-			if (!IsRunning || aLines == null) {
-				return;
-			}
-			PeekRecentLines(aLines);
+			if (!IsRunning || aLines == null) { return; }
+			CopyRecentLines(aLines);
 		}
 
-		public void PeekRecentLines(List<string> aLines) {
+		private void CopyRecentLines(List<string> aLines) {
+			if (_lines.Count == 0) { return; }
 			lock (_lines) {
-				if (_lines.Count > 0) {
-					aLines.AddRange(_lines);
+				for(int i = 0; i < _lines.Count; ++i) {
+					aLines.Add(_lines[i].text);
 				}
 			}
+		}
+
+		public void GetRecentLines(List<Line> aLines) {
+			if (!IsRunning || aLines == null) { return; }
+			CopyRecentLines(aLines);
+		}
+
+		private void CopyRecentLines(List<Line> aLines) {
+			if (_lines.Count == 0) { return; }
+			lock (_lines) { aLines.AddRange(_lines); }
 		}
 
 		private bool Reading() {
 			int c = _output.Read();
+			List<Line> newLines = new List<Line>();
 			if (c <= 0) {
 				return false;
 			} else if (c == '\n') {
 				lock (_lines) {
-					string line = GetCurrentLine();
+					Line line = GetCurrentLine();
 					_lines.Add(line);
 					_lineBuffer = "";//.Clear();
-					LineOutput?.Invoke(line);
+					newLines.Add(line);
 				}
 			} else if (c != '\r') {
 				_lineBuffer += ((char)c);
+			}
+			if (LineOutput != null) {
+				// invoke callbacks outside of the lock
+				for(int i = 0; i < newLines.Count; ++i) {
+					LineOutput?.Invoke(newLines[i].text);
+				}
 			}
 			return true;
 		}

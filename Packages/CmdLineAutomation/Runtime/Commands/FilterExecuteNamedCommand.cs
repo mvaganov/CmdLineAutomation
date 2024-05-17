@@ -67,6 +67,25 @@ namespace RunCmd {
 			}
 		}
 
+#if UNITY_EDITOR
+		// TODO automatically reference each named command
+		private void Reset() {
+			_commandListing = GetAllScriptableObjectAssets<INamedCommand>();
+		}
+		private static Object[] GetAllScriptableObjectAssets<TYPE>(string[] searchInFolders = null) {
+			List<Object> found = new List<Object>();
+			string[] guids = UnityEditor.AssetDatabase.FindAssets($"t:{nameof(ScriptableObject)}", searchInFolders);
+			foreach (string guid in guids) {
+				string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
+				ScriptableObject so = UnityEditor.AssetDatabase.LoadAssetAtPath<ScriptableObject>(path);
+				if (so is INamedCommand) {
+					found.Add(so);
+				}
+			}
+			return found.ToArray();
+		}
+#endif
+
 		private bool NeedsInitialization() => _commandDictionary == null || _commandDictionary.Count != _commandListing.Length;
 
 		public override bool IsExecutionFinished(object context) => GetExecutionData(context).IsExecutionFinished();
