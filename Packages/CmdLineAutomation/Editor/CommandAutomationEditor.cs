@@ -222,7 +222,9 @@ namespace RunCmd {
 			}
 			GUILayout.BeginHorizontal();
 			GUILayout.Label(Shell.GetCurrentLine(), style, GUILayout.ExpandWidth(false));
-			_inspectorCommandInput = GUILayout.TextField(_inspectorCommandInput, style, GUILayout.ExpandWidth(true));
+			try {
+				_inspectorCommandInput = GUILayout.TextField(_inspectorCommandInput, style, GUILayout.ExpandWidth(true));
+			} catch { }
 			GUILayout.EndHorizontal();
 			Event e = Event.current;
 			if (_inspectorCommandInput != "" && e.type == EventType.KeyUp && e.keyCode == KeyCode.Return) {
