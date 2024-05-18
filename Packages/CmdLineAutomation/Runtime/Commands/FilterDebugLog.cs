@@ -35,5 +35,7 @@ namespace RunCmd {
 		public override bool IsExecutionFinished(object context) => true;
 
 		protected override string CreateEmptyContextEntry(object context) => null;
+
+		public override float Progress(object context) => 0;
 	}
 }

@@ -19,6 +19,11 @@ namespace RunCmd {
 		/// </summary>
 		/// <returns>true when the command is finished</returns>
 		public bool IsExecutionFinished(object context);
+
+		/// <summary>
+		/// Estimate of progress. Return less-than-or-equal-to zero for fallback behavior
+		/// </summary>
+		public float Progress(object context);
 	}
 
 	/// <summary>

@@ -29,5 +29,7 @@ namespace RunCmd {
 		}
 
 		public override bool IsExecutionFinished(object context) => GetExecutionData(context) == null;
+
+		public override float Progress(object context) => 0;
 	}
 }

@@ -13,6 +13,8 @@ namespace RunCmd {
 		Dictionary<object, ExecutionData> _executionData = new Dictionary<object, ExecutionData>();
 		abstract protected ExecutionData CreateEmptyContextEntry(object context);
 
+		abstract public float Progress(object context);
+
 		protected ExecutionData GetExecutionData(object context) {
 			if (!_executionData.TryGetValue(context, out ExecutionData commandExecution)) {
 				_executionData[context] = commandExecution = CreateEmptyContextEntry(context);

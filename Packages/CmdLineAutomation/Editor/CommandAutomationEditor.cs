@@ -39,6 +39,8 @@ namespace RunCmd {
 		/// </summary>
 		private OperatingSystemCommandShell _shell;
 
+		private object _context;
+
 		public CommandAutomation Target => _target != null ? _target
 			: _target = target as CommandAutomation;
 
@@ -58,6 +60,7 @@ namespace RunCmd {
 			if (Shell != null) {
 				EditorApplication.delayCall += RefreshInspector;
 			}
+			_context = Target;
 		}
 
 		public void RefreshInspector() {
@@ -107,8 +110,8 @@ namespace RunCmd {
 		}
 
 		private void RunInternalCommand(string command) {
-			Target.StartCooperativeFunction(Target, command, PopulateOutputText);
-			waitingForCommand = !Target.IsExecutionFinished(Target);
+			Target.StartCooperativeFunction(_context, command, PopulateOutputText);
+			waitingForCommand = !Target.IsExecutionFinished(_context);
 			PopulateOutputText();
 		}
 
@@ -126,10 +129,24 @@ namespace RunCmd {
 		}
 
 		private void RunCommandsButtonGUI() {
-			if (!GUILayout.Button("Run Commands To Do")) {
-				return;
+			float commandProgress = Target.Progress(_context);
+			if (commandProgress <= 0) {
+				EditorUtility.ClearProgressBar();
+				if (GUILayout.Button("Run Commands To Do"))
+				{
+					RunCommands();
+				}
+			} else {
+				string title = Target.name;
+				string info = Target.CurrentCommandText(_context);
+				bool stop = EditorUtility.DisplayCancelableProgressBar(title, info, commandProgress);
+				if (GUILayout.Button("Abort Commands") || stop)
+				{
+					Target.CancelProcess(_context);
+					EditorUtility.ClearProgressBar();
+				}
+				RefreshInspectorInternal();
 			}
-			RunCommands();
 		}
 
 		private void ClearOutputButtonGUI() {
@@ -173,30 +190,33 @@ namespace RunCmd {
 				return;
 			}
 			switch (effect) {
-				case EffectOfShellButton.EndProcess:
-					sh.Stop();
-					Shell = null;
-					break;
-				case EffectOfShellButton.ShowProcess:
-					PopulateShell(sh);
-					break;
+				case EffectOfShellButton.EndProcess: StopShell(sh); break;
+				case EffectOfShellButton.ShowProcess: PopulateShell(sh); break;
 			}
 		}
 
+		private void StopShell(OperatingSystemCommandShell sh)
+		{
+			sh.Stop();
+			Shell = null;
+			RefreshInspectorInternal();
+		}
+		
 		private void PopulateShell(OperatingSystemCommandShell sh) {
 			Shell = sh;
 			RefreshInspector();
 		}
 
 		private void RunCommands() {
-			Target.RunCommands(Target, StdOutput);
+			Target.RunCommands(_context, StdOutput);
 			RefreshInspector();
+			
 		}
 
 		private void StdOutput(string line) {
 			//Debug.Log(line);
 			if (Shell == null) {
-				OperatingSystemCommandShell shell = Target.GetShell(Target);
+				OperatingSystemCommandShell shell = Target.GetShell(_context);
 				if (shell != null) {
 					PopulateShell(shell);
 				}

@@ -64,5 +64,7 @@ namespace RunCmd {
 			};
 			return thisShell;
 		}
+
+		public override float Progress(object context) => 0;
 	}
 }

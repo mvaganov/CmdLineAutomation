@@ -65,6 +65,8 @@ namespace RunCmd {
 				currentCommand = null;
 				return false;
 			}
+
+			public float Progress => currentCommand.Progress(context);
 		}
 
 #if UNITY_EDITOR
@@ -127,5 +129,7 @@ namespace RunCmd {
 
 		protected override CommandExecution CreateEmptyContextEntry(object context)
 			=> new CommandExecution(context, this);
+
+		public override float Progress(object context) => GetExecutionData(context).Progress;
 	}
 }

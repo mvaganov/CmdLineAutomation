@@ -12,29 +12,47 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a27bdf6447fbb94fb2a27ed28768fcf, type: 3}
   m_Name: EchoExample
   m_EditorClassIdentifier: 
-  _details:
-    Description: Create a new directory, run `dir` from inside, then delete the new
-      directory.
+  _command:
+    Description: "Create a new directory, run `dir` from inside, then delete the
+      new\r directory."
+    Text: 'echo start!
+
+      cls
+
+      mkdir test
+
+      cd test
+
+      dir
+
+      cd
+      ..
+
+      rmdir test
+
+      sleep 3
+
+      echo done!'
+    ParsedCommands:
+    - Text: echo start!
+      Comment: 0
+    - Text: cls
+      Comment: 0
+    - Text: mkdir test
+      Comment: 0
+    - Text: cd test
+      Comment: 0
+    - Text: cd ..
+      Comment: 0
+    - Text: rmdir test
+      Comment: 0
+    - Text: dir
+      Comment: 0
+    - Text: sleep 3
+      Comment: 0
+    - Text: echo done!
+      Comment: 0
   _commandFilters:
   - {fileID: 11400000, guid: 3a059507b0e37fa4cbd78a964cfbcc5e, type: 2}
   - {fileID: 11400000, guid: f0b3e3b72a2389f47a7b91a73bd4cb04, type: 2}
   - {fileID: 11400000, guid: cfcf488bb7e2fdb48814650befb3910b, type: 2}
-  CommandsToDo:
-  - Text: echo start!
-    Comment: 0
-  - Text: cls
-    Comment: 1
-  - Text: mkdir test
-    Comment: 0
-  - Text: cd test
-    Comment: 0
-  - Text: dir
-    Comment: 0
-  - Text: cd ..
-    Comment: 0
-  - Text: rmdir test
-    Comment: 0
-  - Text: sleep 3
-    Comment: 0
-  - Text: echo done!
-    Comment: 0

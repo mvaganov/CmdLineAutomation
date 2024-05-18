@@ -6,39 +6,61 @@ namespace RunCmd {
 	/// <summary>
 	/// * Metadata about why this object exists
 	/// * A list of command filters (including the specific named command listing in a sub-asset)
-	/// * A list of commands to execute (TODO derive from a single string)
-	/// * Logic to process commands as a cooperative process (track state of which command is executing now, TODO progress bar)
+	/// * A list of commands to execute
+	/// * Logic to process commands as a cooperative process
+	///   * does not block the Unity thread
+	///   * tracks state of which command is executing now
+	///   * can be cancelled
 	/// * TODO an object to manage output from commands
-	/// * TODO create variable listing? auto-populate variables based on input?
+	/// * TODO create variable listing? auto-populate variables based on std output?
 	/// </summary>
 	[CreateAssetMenu(fileName = "NewCmdLineAutomation", menuName = "ScriptableObjects/CmdLineAutomation", order = 1)]
 	public class CommandAutomation : CommandRunner<CommandAutomation.CommandExecution>, ICommandProcessor {
-		[Serializable]
-		public class MetaData {
-			[TextArea(1, 1000)] public string Description;
-		}
-
 		/// <summary>
-		/// TODO remove the need for making this public by using a parsed TextArea, with one command per line
+		/// 
 		/// </summary>
 		[Serializable]
-		public class TextCommand {
+		public class TextCommand
+		{
+			[TextArea(1, 1000)] public string Description;
+
+			[TextArea(1,100)] public string Text;
+
+			public ParsedTextCommand[] ParsedCommands;
+
+			public void Parse()
+			{
+				string text = Text.Replace("\r", "");
+				string[] lines = text.Split("\n");
+				ParsedCommands = new ParsedTextCommand[lines.Length];
+				for (int i = 0; i < ParsedCommands.Length; ++i)
+				{
+					ParsedCommands[i] = new ParsedTextCommand(lines[i]);
+				}
+			}
+		}
+
+		[Serializable]
+		public class ParsedTextCommand {
 			public string Text;
 			public bool Comment;
+
+			public ParsedTextCommand(string text)
+			{
+				Text = text;
+			}
 		}
 
-		/// <summary>
-		/// Information about what these commands are for
-		/// </summary>
-		[SerializeField] protected MetaData _details;
 		/// <summary>
 		/// List of the possible custom commands written as C# <see cref="ICommandProcessor"/>s
 		/// </summary>
 		[SerializeField] protected UnityEngine.Object[] _commandFilters;
+
 		/// <summary>
-		/// The specific commands to do TODO replace with new-line-delimited text area?
+		/// Information about what these commands are for
 		/// </summary>
-		[SerializeField] protected TextCommand[] CommandsToDo;
+		[ContextMenuItem(nameof(ParseCommands),nameof(ParseCommands))]
+		[SerializeField] protected TextCommand _command;
 
 		/// <summary>
 		/// List if filtering functions for input, which may or may not consume a command
@@ -80,11 +102,47 @@ namespace RunCmd {
 			/// </summary>
 			private OperatingSystemCommandShell _shell;
 
+			public float Progress
+			{
+				get
+				{
+					ICommandFilter cmd = CurrentCommand();
+					float cmdProgress = cmd != null ? cmd.Progress(context) : 0;
+					if (cmdProgress > 0) { return cmdProgress; }
+					if (commandExecutingIndex < 0 || source == null || source.CommandsToDo == null) return 0;
+					float majorProgress = (float)commandExecutingIndex / source.CommandsToDo.Length;
+					float minorTotal = 1f / source.CommandsToDo.Length;
+					float minorProgress = source._filters != null ? 
+						minorTotal * filterIndex / source._filters.Count : 0;
+					return majorProgress + minorProgress;
+				}
+			}
+
 			public OperatingSystemCommandShell Shell { get => _shell; }
 
 			public bool HaveCommandToDo() => currentCommand != null;
 
-			public void RunEachCommandInSequence() {
+			public bool IsCancelled() => commandExecutingIndex < 0;
+
+			public string CurrentCommandText() => currentCommandText;
+
+			public ICommandFilter CurrentCommand() => currentCommand;
+			
+			public void CancelExecution()
+			{
+				currentCommand = null;
+				commandExecutingIndex = -1;
+				filterIndex = 0;
+				Debug.Log("CANCELLED");
+			}
+
+			public void StartRunningEachCommandInSequence()
+			{
+				commandExecutingIndex = 0;
+				RunEachCommandInSequence();
+			}
+			
+			private void RunEachCommandInSequence() {
 				if (HaveCommandToDo()) {
 					if (currentCommand.IsExecutionFinished(context)) {
 						++commandExecutingIndex;
@@ -95,6 +153,11 @@ namespace RunCmd {
 					}
 				}
 				if (!HaveCommandToDo()) {
+					if (IsCancelled())
+					{
+						Debug.Log("----------CANCELLED");
+						return;
+					}
 					string textToDo = source.CommandsToDo[commandExecutingIndex].Text;
 					if (!source.CommandsToDo[commandExecutingIndex].Comment) {
 						filterIndex = 0;
@@ -182,6 +245,26 @@ namespace RunCmd {
 			}
 		}
 
+		public ParsedTextCommand[] CommandsToDo => _command.ParsedCommands;
+
+		public string Commands
+		{
+			get => _command.Text;
+			set
+			{
+				_command.Text = value;
+				ParseCommands();
+			}
+		}
+
+		public override float Progress(object context) => GetExecutionData(context).Progress;
+
+		public void CancelProcess(object context) => GetExecutionData(context).CancelExecution();
+		
+		public string CurrentCommandText(object context) => GetExecutionData(context).CurrentCommandText();
+		
+		public ICommandProcessor CurrentCommand(object context) => GetExecutionData(context).CurrentCommand();
+		
 		protected override CommandExecution CreateEmptyContextEntry(object context)
 			=> new CommandExecution(context, this);
 
@@ -200,13 +283,19 @@ namespace RunCmd {
 						break;
 				}
 			}
+			ParseCommands();
+		}
+
+		public void ParseCommands()
+		{
+			_command.Parse();
 		}
 
 		public void RunCommands(object context, TextResultCallback stdOutput) {
 			CommandExecution e = GetExecutionData(context);
 			e.stdOutput = stdOutput;
 			Initialize();
-			e.RunEachCommandInSequence();
+			e.StartRunningEachCommandInSequence();
 		}
 
 		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
