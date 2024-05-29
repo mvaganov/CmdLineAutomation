@@ -9,7 +9,9 @@ namespace RunCmd {
 	public class CommandGetChoice : ScriptableObject, INamedCommand {
 		public string CommandToken => this.name;
 		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
-			string[] full_args = Parse.Split(command);
+			Parse.Token[] full_args = Parse.SplitTokens(command, ",:{}[]", " \n\t", "\"\'", "\\");
+			Debug.Log(string.Join("\n", full_args));
+			return;
 			string message;
 			string[] args;
 			Action[] actions;
@@ -32,6 +34,10 @@ namespace RunCmd {
 			}
 			Vector2 size = new Vector2(250, 30 + args.Length * 20);
 			GetChoiceWindow.Dialog(message, args, actions, size, size / -2, true);
+		}
+
+		public string UsageString() {
+			return $"{name} \"message\" {{ [\"optionText0\" : \"command0\"], ... }}";
 		}
 
 		public bool IsExecutionFinished(object context) => true;

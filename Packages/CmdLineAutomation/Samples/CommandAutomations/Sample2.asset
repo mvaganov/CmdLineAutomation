@@ -12,27 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a27bdf6447fbb94fb2a27ed28768fcf, type: 3}
   m_Name: Sample2
   m_EditorClassIdentifier: 
-  _details:
-    Description: Create a new directory, run `dir` from inside, then delete the new
-      directory.
   _commandFilters:
   - {fileID: 11400000, guid: 3a059507b0e37fa4cbd78a964cfbcc5e, type: 2}
   - {fileID: 11400000, guid: f0b3e3b72a2389f47a7b91a73bd4cb04, type: 2}
   - {fileID: 11400000, guid: 17331cc87acddf8459754feb4c070ebd, type: 2}
-  CommandsToDo:
-  - Text: cls
-    Comment: 0
-  - Text: mkdir test
-    Comment: 0
-  - Text: cd test
-    Comment: 0
-  - Text: dir
-    Comment: 0
-  - Text: cd ..
-    Comment: 0
-  - Text: rmdir test
-    Comment: 0
-  - Text: sleep 3
-    Comment: 0
-  - Text: echo done!
-    Comment: 0
+  _command:
+    Description: 
+    Text: 
+    ParsedCommands: []
