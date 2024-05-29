@@ -1,7 +1,7 @@
 using UnityEngine;
 
 namespace RunCmd {
-	[CreateAssetMenu(fileName = "reimportfolder", menuName = "ScriptableObjects/Commands/ReimportFolder")]
+	[CreateAssetMenu(fileName = "reimportfolder", menuName = "ScriptableObjects/Commands/reimportfolder")]
 	public class CommandReimportFolder : CommandRunner<string>, INamedCommand {
 		public string CommandToken => this.name;
 		protected override string CreateEmptyContextEntry(object context) => null;

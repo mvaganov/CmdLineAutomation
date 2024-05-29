@@ -19,7 +19,9 @@ MonoBehaviour:
   _command:
     Description: "Create a new directory, run `dir` from inside, then delete the
       new\r directory."
-    Text: 'echo start!
+    Text: 'getchoice
+
+      echo start!
 
       cls
 
@@ -36,9 +38,7 @@ MonoBehaviour:
 
       sleep 3
 
-      echo done!
-
-      restartproject'
+      echo done!'
     ParsedCommands:
     - Text: echo start!
       Comment: 0

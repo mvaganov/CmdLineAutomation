@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 
 namespace RunCmd {
-	[CreateAssetMenu(fileName = "sleep", menuName = "ScriptableObjects/Commands/CommandSleep")]
+	[CreateAssetMenu(fileName = "sleep", menuName = "ScriptableObjects/Commands/sleep")]
 	public class CommandSleep : CommandRunner<CommandSleep.Data>, INamedCommand {
 		public string CommandToken => this.name;
 
