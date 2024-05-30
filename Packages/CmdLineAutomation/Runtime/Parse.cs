@@ -43,6 +43,7 @@ namespace RunCmd {
 			char c;
 			Dictionary<char, System.Action<ParseState>> perCharacterAction;
 			static Dictionary<char, System.Action<ParseState>> DefaultPerCharacterAction;
+			private string _escapeSequence;
 
 			static ParseState() {
 				DefaultPerCharacterAction = new Dictionary<char, System.Action<ParseState>>();
@@ -111,7 +112,9 @@ namespace RunCmd {
 				} else if (readingLiteralToken == c) {
 					end = i;
 					int len = end - start;
-					tokens.Add(new Token(command.Substring(start, len), Token.Kind.Text, start));
+					// TODO replace all escape sequence characters...
+					string substring = command.Substring(start, len).Replace("\\", "");
+					tokens.Add(new Token(substring, Token.Kind.Text, start));
 					tokens.Add(new Token(c, Token.Kind.TokEnd, i));
 					start = -1;
 					end = -1;

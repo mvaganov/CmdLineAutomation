@@ -17,17 +17,9 @@ namespace RunCmd {
 				return;
 			}
 			IList arguments = parsed as IList;
-			IDictionary args;
-			string message;
-			Action[] actions;
-			if (arguments.Count > 3) {
-				message = (Parse.Token)arguments[1];
-				args = arguments[2] as IDictionary;
-			} else {
-				message = "<missing argument 1>";
-				args = new OrderedDictionary() { [(Parse.Token)"<missing argument 2>"] = (Parse.Token)"<missing argument 2>" };
-				actions = new Action[] { () => Debug.Log("<TODO implement actions>") };
-			}
+			string  message = (arguments.Count > 1) ? (Parse.Token)arguments[1] : (Parse.Token)"<missing argument 1>";
+			IDictionary args = (arguments.Count > 2) ? arguments[2] as IDictionary : 
+				new OrderedDictionary() { [(Parse.Token)"<missing argument 2>"] = (Parse.Token)"<missing argument 2>" };
 			Vector2 size = new Vector2(250, 30 + args.Count * 20);
 			List<string> argsOptions = new List<string>();
 			List<Action> argsActions = new List<Action>();
