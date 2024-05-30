@@ -1,4 +1,7 @@
+using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.Text;
 
 namespace RunCmd {
 	public static class Parse {
@@ -10,12 +13,15 @@ namespace RunCmd {
 			public enum Kind { None, Text, Delim, TokBeg, TokEnd }
 			public string text;
 			public Kind kind;
-			public Token(string text, Kind kind) { this.text = text; this.kind = kind; }
-			public Token(char letter, Kind kind) : this(letter.ToString(), kind) { }
-			public Token(string text) : this(text, Kind.Text) { }
-			public static implicit operator Token(string text) => new Token(text);
+			public int index;
+			public Token(string text, Kind kind, int index) { this.text = text; this.kind = kind; this.index = index; }
+			public Token(char letter, Kind kind, int index) : this(letter.ToString(), kind, index) { }
+			public Token(string text, int index) : this(text, Kind.Text, index) { }
+			public static implicit operator Token(string text) => new Token(text, -1);
 			public static implicit operator string(Token token) => token.text;
-			public override string ToString() => $"({kind}){text}";
+			public override string ToString() => index >= 0 ? $"({kind}){text}@{index}" : text;
+			public override int GetHashCode() => text.GetHashCode();
+			public override bool Equals(object obj) => obj is Token t && t.kind == kind && t.text == text;
 		}
 
 		public static string GetFirstToken(string command) {
@@ -23,9 +29,11 @@ namespace RunCmd {
 			return index < 0 ? command : command.Substring(0, index);
 		}
 
-		public static Token[] SplitTokens(string command, string delimiters, string whitespace, string literalTokens, string escapeSequence) {
+		public static IList<Token> SplitTokens(string command, string delimiters, string whitespace, string literalTokens, string escapeSequence) {
 			return new ParseState(command, delimiters, whitespace, literalTokens, escapeSequence).SplitTokens();
 		}
+
+		public static IList<Token> SplitTokens(string command) => new ParseState(command).SplitTokens();
 
 		private class ParseState {
 			char readingLiteralToken = '\0';
@@ -66,7 +74,7 @@ namespace RunCmd {
 
 			private bool IsReadingLiteral => readingLiteralToken != '\0';
 
-			public Token[] SplitTokens() {
+			public IList<Token> SplitTokens() {
 				for (i = 0; i < command.Length; i++) {
 					c = command[i];
 					if (perCharacterAction.TryGetValue(c, out System.Action<ParseState> action)) {
@@ -79,7 +87,7 @@ namespace RunCmd {
 					readingLiteralToken = '\0';
 					ReadWhitespace();
 				}
-				return tokens.ToArray();
+				return tokens;
 			}
 
 			private void ReadWhitespace() {
@@ -88,7 +96,7 @@ namespace RunCmd {
 					end = i;
 					int len = end - start;
 					if (len > 0) {
-						tokens.Add(new Token(command.Substring(start, len)));
+						tokens.Add(new Token(command.Substring(start, len), start));
 					}
 					start = -1;
 					end = -1;
@@ -98,13 +106,13 @@ namespace RunCmd {
 			private void ReadLiteralToken() {
 				if (!IsReadingLiteral) {
 					readingLiteralToken = c;
-					tokens.Add(new Token(c, Token.Kind.TokBeg));
+					tokens.Add(new Token(c, Token.Kind.TokBeg, i));
 					start = i + 1;
 				} else if (readingLiteralToken == c) {
 					end = i;
 					int len = end - start;
-					tokens.Add(new Token(command.Substring(start, len), Token.Kind.Text));
-					tokens.Add(new Token(c, Token.Kind.TokEnd));
+					tokens.Add(new Token(command.Substring(start, len), Token.Kind.Text, start));
+					tokens.Add(new Token(c, Token.Kind.TokEnd, i));
 					start = -1;
 					end = -1;
 					readingLiteralToken = '\0';
@@ -119,9 +127,9 @@ namespace RunCmd {
 				}
 				int len = end - start;
 				if (len > 0) {
-					tokens.Add(new Token(command.Substring(start, len), Token.Kind.Text));
+					tokens.Add(new Token(command.Substring(start, len), Token.Kind.Text, start));
 				}
-				tokens.Add(new Token(c, Token.Kind.Delim));
+				tokens.Add(new Token(c, Token.Kind.Delim, i));
 				start = -1;
 				end = -1;
 			}
@@ -135,6 +143,214 @@ namespace RunCmd {
 				if (start >= 0) { return; }
 				start = i;
 			}
+		}
+
+		public enum ErrorKind {
+			None, UnexpectedInitialToken, MissingEndToken, UnexpectedDelimiter, MissingDictionaryKey, MissingDictionaryValue, UnexpectedToken
+		}
+
+		public struct Error {
+			public ErrorKind kind;
+			public int index;
+			public Error(ErrorKind kind, int index) { this.kind = kind; this.index = index; }
+			public static Error None = new Error(ErrorKind.None, -1);
+			public override string ToString() => $"{kind}@{index}";
+		}
+
+		public static object ParseText(string text, out Error error) {
+			IList<Token> tokens = new ParseState(text).SplitTokens();
+			int index = 0;
+			return ParseTokens(tokens, ref index, out error);
+		}
+
+		public static object ParseTokens(IList<Token> tokens, ref int index, out Error error) {
+			Token token = tokens[index];
+			error = Error.None;
+			switch (token.kind) {
+				case Token.Kind.Delim:
+					switch (token.text) {
+						case "[": return ParseArray(tokens, ref index, out error);
+						case "{": return ParseDictionary(tokens, ref index, out error);
+						default:
+							error = new Error(ErrorKind.UnexpectedDelimiter, token.index);
+							return null;
+					}
+				case Token.Kind.Text:
+					return token;
+			}
+			error = new Error(ErrorKind.UnexpectedToken, token.index);
+			return null;
+		}
+
+		public static string ParsedTokensToString(object parsedToken, int indent = 0) {
+			StringBuilder sb = new StringBuilder();
+			StringBuilder Indent() {
+				for(int i = 0; i < indent; ++i) { sb.Append("  "); }
+				return sb;
+			}
+			switch (parsedToken) {
+				case Token tok:
+					sb.Append(tok.text);
+					break;
+				case IList<object> list:
+					sb.Append("[");
+					for(int i = 0; i < list.Count; ++i) {
+						if (i > 0) {
+							sb.Append(", ");
+						}
+						sb.Append(ParsedTokensToString(list[i], indent+1));
+					}
+					sb.Append("]");
+					break;
+				case IDictionary<object, object> dict:
+					sb.Append("{");
+					++indent;
+					foreach(var kvp in dict) {
+						sb.Append("\n");
+						Indent();
+						sb.Append(ParsedTokensToString(kvp.Key, indent+1)).Append(" : ").Append(ParsedTokensToString(kvp.Value, indent + 1));
+					}
+					--indent;
+					sb.Append("\n");
+					Indent();
+					sb.Append("}\n");
+					break;
+			}
+			return sb.ToString();
+		}
+
+		public static IList ParseArray(IList<Token> tokens, ref int index, out Error error) {
+			Token token = tokens[index];
+			if (token.kind != Token.Kind.Delim || token.text != "[") {
+				error = new Error(ErrorKind.UnexpectedInitialToken, token.index);
+				return null;
+			}
+			++index;
+			error = Error.None;
+			List<object> arrayValue = new List<object>();
+			int loopguard = 0;
+			while (index < tokens.Count) {
+				token = tokens[index];
+				if (loopguard++ > 10000) {
+					throw new System.Exception($"broke @{token.index}!");
+				}
+				switch (token.kind) {
+					case Token.Kind.None:
+					case Token.Kind.TokBeg:
+					case Token.Kind.TokEnd:
+						++index;
+						continue;
+					case Token.Kind.Delim:
+						switch (token.text) {
+							case "]":
+								++index;
+								return arrayValue;
+							case "[":
+								IList subArray = ParseArray(tokens, ref index, out error);
+								arrayValue.Add(subArray);
+								if (error.kind != ErrorKind.None) {
+									return arrayValue;
+								}
+								continue;
+							case "{":
+								IDictionary subDictionary = ParseDictionary(tokens, ref index, out error);
+								arrayValue.Add(subDictionary);
+								if (error.kind != ErrorKind.None) {
+									return arrayValue;
+								}
+								continue;
+							case "}":
+								error = new Error(ErrorKind.UnexpectedDelimiter, token.index);
+								return arrayValue;
+						}
+						break;
+				}
+				arrayValue.Add(token);
+				++index;
+			}
+			token = tokens[tokens.Count - 1];
+			error = new Error(ErrorKind.MissingEndToken, token.index + token.text.Length);
+			return arrayValue;
+		}
+
+		public static IDictionary ParseDictionary(IList<Token> tokens, ref int index, out Error error) {
+			Token token = tokens[index];
+			if (token.kind != Token.Kind.Delim || token.text != "{") {
+				error = new Error(ErrorKind.UnexpectedInitialToken, token.index);
+				return null;
+			}
+			++index;
+			error = Error.None; 
+			OrderedDictionary dictionaryValue = new OrderedDictionary();
+			bool isReadingKey = true;
+			object key = null, value = null;
+			int loopguard = 0;
+			while (index < tokens.Count) {
+				token = tokens[index];
+				if (loopguard++ > 10000) {
+					throw new System.Exception($"broke @{token.index}!");
+				}
+				switch (token.kind) {
+					case Token.Kind.Delim:
+						switch (token.text) {
+							case ":":
+								if (isReadingKey) {
+									error = new Error(ErrorKind.MissingDictionaryKey, token.index);
+									return dictionaryValue;
+								}
+								++index;
+								continue;
+							case ",":
+								if (!isReadingKey) {
+									error = new Error(ErrorKind.MissingDictionaryValue, token.index);
+									return dictionaryValue;
+								}
+								++index;
+								continue;
+							case "[":
+								IList subArray = ParseArray(tokens, ref index, out error);
+								if (isReadingKey) {
+									key = subArray;
+								} else {
+									value = subArray;
+								}
+								break;
+							case "{":
+								IDictionary subDictionary = ParseDictionary(tokens, ref index, out error);
+								if (isReadingKey) {
+									key = subDictionary;
+								} else {
+									value = subDictionary;
+								}
+								break;
+							case "}":
+								++index;
+								return dictionaryValue;
+							case "]":
+								error = new Error(ErrorKind.UnexpectedDelimiter, token.index);
+								return dictionaryValue;
+							default:
+								++index;
+								break;
+						}
+						break;
+					case Token.Kind.TokBeg:
+					case Token.Kind.TokEnd:
+						++index;
+						continue;
+					default:
+						value = token;
+						++index;
+						break;
+				}
+				if (isReadingKey) {
+					key = token;
+				} else {
+					dictionaryValue[key] = value;
+				}
+				isReadingKey = !isReadingKey;
+			}
+			return dictionaryValue;
 		}
 	}
 }

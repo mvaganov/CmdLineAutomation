@@ -19,10 +19,10 @@ MonoBehaviour:
   _command:
     Description: "Create a new directory, run `dir` from inside, then delete the
       new\r directory."
-    Text: 'getchoice "Question / Message" { "Option Text 0" : "command 0",...}
+    Text: 'getchoice ["Question / Message" { "Option Text 0" : "command 0", "Option1"
+      "val1"}]
 
-      echo
-      start!
+      echo start!
 
       cls
 
@@ -32,32 +32,33 @@ MonoBehaviour:
 
       dir
 
-      cd ..
+      cd
+      ..
 
-      rmdir
-      test
+      rmdir test
 
       sleep 3
 
       echo done!'
     ParsedCommands:
-    - Text: 'getchoice "Question / Message" { "Option Text 0" : "command 0",...}'
+    - Text: '[getchoice "Question / Message" { "Option Text 0" : "command 0", "Option1"
+        "val1"}]'
       Comment: 0
-    - Text: '#echo start!'
+    - Text: echo start!
       Comment: 0
-    - Text: '#cls'
+    - Text: cls
       Comment: 0
-    - Text: '#mkdir test'
+    - Text: mkdir test
       Comment: 0
-    - Text: '#cd test'
+    - Text: cd test
       Comment: 0
-    - Text: '#dir'
+    - Text: dir
       Comment: 0
-    - Text: '#cd ..'
+    - Text: cd ..
       Comment: 0
-    - Text: '#rmdir test'
+    - Text: rmdir test
       Comment: 0
-    - Text: '#sleep 3'
+    - Text: sleep 3
       Comment: 0
-    - Text: '#echo done!'
+    - Text: echo done!
       Comment: 0

@@ -3,41 +3,45 @@ using UnityEditor;
 using System;
 using System.Collections.Generic;
 using UnityEngine.UIElements;
+using System.Collections;
+using System.Collections.Specialized;
 
 namespace RunCmd {
 	[CreateAssetMenu(fileName = "getchoice", menuName = "ScriptableObjects/Commands/getchoice")]
 	public class CommandGetChoice : ScriptableObject, INamedCommand {
 		public string CommandToken => this.name;
 		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
-			Parse.Token[] full_args = Parse.SplitTokens(command, ",:{}[]", " \n\t", "\"\'", "\\");
-			Debug.Log(string.Join("\n", full_args));
-			return;
+			object parsed = Parse.ParseText($"[{command}]", out Parse.Error err);
+			if (err.kind != Parse.ErrorKind.None) {
+				stdOutput.Invoke($"line {err.index}: {err.kind}");
+				return;
+			}
+			IList arguments = parsed as IList;
+			IDictionary args;
 			string message;
-			string[] args;
 			Action[] actions;
-			if (full_args.Length > 2) {
-				// TODO allow block by default, or allow non-blocking (skills all choices until choice is made), or conditional blocking?
-				message = full_args[1];
-				args = new string[full_args.Length - 2];
-				actions = new Action[args.Length];
-				Array.Copy(full_args, 2, args, 0, args.Length);
-				// TODO optionally parse dictionary of choice responses mapped to commands
-				for (int i = 0; i < args.Length; i++) {
-					// TODO make this code correct... when not so sleepy
-					string text = args[i];
-					actions[i] = () => Debug.Log(text);
-				}
+			if (arguments.Count > 3) {
+				message = (Parse.Token)arguments[1];
+				args = arguments[2] as IDictionary;
 			} else {
 				message = "<missing argument 1>";
-				args = new string[] { "<missing argument 2>" };
+				args = new OrderedDictionary() { [(Parse.Token)"<missing argument 2>"] = (Parse.Token)"<missing argument 2>" };
 				actions = new Action[] { () => Debug.Log("<TODO implement actions>") };
 			}
-			Vector2 size = new Vector2(250, 30 + args.Length * 20);
-			GetChoiceWindow.Dialog(message, args, actions, size, size / -2, true);
+			Vector2 size = new Vector2(250, 30 + args.Count * 20);
+			List<string> argsOptions = new List<string>();
+			List<Action> argsActions = new List<Action>();
+			foreach (DictionaryEntry entry in args) {
+				Parse.Token token = (Parse.Token)entry.Key;
+				Parse.Token value = (Parse.Token)entry.Value;
+				argsOptions.Add(token.text);
+				argsActions.Add(() => Debug.Log(context+" should do "+value.text));
+			}
+			GetChoiceWindow.Dialog(message, argsOptions, argsActions, size, size / -2, true);
 		}
 
 		public string UsageString() {
-			return $"{name} \"message\" {{ [\"optionText0\" : \"command0\"], ... }}";
+			return $"{name} \"message\" {{ \"optionText0\" : \"command0\", ... \"optionTextN\" : \"commandN\" }}";
 		}
 
 		public bool IsExecutionFinished(object context) => true;
@@ -67,8 +71,8 @@ namespace RunCmd {
 		public class GetChoiceWindow : EditorWindow {
 			private static List<GetChoiceWindow> _dialogs = new List<GetChoiceWindow>();
 			private string _message;
-			private string[] _options;
-			private Action[] _actions;
+			private IList<string> _options;
+			private IList<Action> _actions;
 			private ChoiceBlocker _choiceBlocker;
 
 			public static void ReopenProjectDialog() {
@@ -78,7 +82,7 @@ namespace RunCmd {
 					new Vector2(300, 100), new Vector2(-150, -50), true);
 			}
 
-			public static void Dialog(string message, string[] options, Action[] actions, Vector2 size,
+			public static void Dialog(string message, IList<string> options, IList<Action> actions, Vector2 size,
 				Vector2 mouseOffset, bool useUiBlocker) {
 				int foundIndex = _dialogs.FindIndex(d => d._message == message);
 				if (foundIndex >= 0) {
@@ -106,7 +110,7 @@ namespace RunCmd {
 			void CreateGUI() {
 				Label label = new Label(_message);
 				rootVisualElement.Add(label);
-				for (int i = 0; i < _options.Length; ++i) {
+				for (int i = 0; i < _options.Count; ++i) {
 					Button button = new Button();
 					button.text = _options[i];
 					{
