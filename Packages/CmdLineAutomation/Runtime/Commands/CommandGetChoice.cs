@@ -9,8 +9,26 @@ using System.Collections.Specialized;
 namespace RunCmd {
 	[CreateAssetMenu(fileName = "getchoice", menuName = "ScriptableObjects/Commands/getchoice")]
 	public class CommandGetChoice : ScriptableObject, INamedCommand {
+		public static Vector2 MousePosition;
+		public static void UpdateMousePosition() {
+			if (Event.current == null) {
+				return;
+			}
+			switch (Event.current.type) {
+				case EventType.MouseDown:
+				case EventType.MouseUp:
+				case EventType.MouseMove:
+				case EventType.MouseDrag:
+#if UNITY_EDITOR
+					MousePosition = Event.current.mousePosition;
+					Debug.Log(MousePosition);
+#endif
+					break;
+			}
+		}
 		public string CommandToken => this.name;
 		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
+			UpdateMousePosition();
 			object parsed = Parse.ParseText($"[{command}]", out Parse.Error err);
 			if (err.kind != Parse.ErrorKind.None) {
 				stdOutput.Invoke($"line {err.index}: {err.kind}");
@@ -44,9 +62,8 @@ namespace RunCmd {
 		/// </summary>
 		public class ChoiceBlocker : EditorWindow {
 			public Action blockedClick;
-
 			public void Resize() {
-				Vector2 mousePos = GUIUtility.GUIToScreenPoint(Event.current.mousePosition);
+				Vector2 mousePos = GUIUtility.GUIToScreenPoint(MousePosition);
 				position = new Rect(mousePos.x - 3000, mousePos.y - 3000, 6000, 6000);
 				//rootVisualElement.style.backgroundColor = new Color(0, 0, 0, .5f);
 				rootVisualElement.style.backgroundImage = MakeBackgroundTexture(1, 1, new Color(0,0,0,.5f));
@@ -62,6 +79,7 @@ namespace RunCmd {
 			}
 
 			private void OnGUI() {
+				UpdateMousePosition();
 				if (Event.current.type == EventType.MouseDown) {
 					Close();
 					blockedClick.Invoke();
@@ -102,10 +120,14 @@ namespace RunCmd {
 				newDialog._message = message;
 				newDialog._options = options;
 				newDialog._actions = actions;
-				Vector2 mousePos = GUIUtility.GUIToScreenPoint(Event.current.mousePosition) + mouseOffset;
+				Vector2 mousePos = GUIUtility.GUIToScreenPoint(MousePosition) + mouseOffset;
 				newDialog.position = new Rect(mousePos.x, mousePos.y, size.x, size.y);
 				newDialog.ShowPopup();
 				_dialogs.Add(newDialog);
+			}
+
+			private void OnInspectorUpdate() {
+				UpdateMousePosition();
 			}
 
 			void CreateGUI() {

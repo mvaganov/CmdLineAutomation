@@ -133,7 +133,7 @@ namespace RunCmd {
 				currentCommand = null;
 				commandExecutingIndex = -1;
 				filterIndex = 0;
-				Debug.Log("CANCELLED");
+				//Debug.Log("CANCELLED");
 			}
 
 			public void StartRunningEachCommandInSequence()
@@ -155,7 +155,7 @@ namespace RunCmd {
 				if (!HaveCommandToDo()) {
 					if (IsCancelled())
 					{
-						Debug.Log("----------CANCELLED");
+						//Debug.Log("----------CANCELLED");
 						return;
 					}
 					string textToDo = source.CommandsToDo[commandExecutingIndex].Text;
@@ -199,14 +199,14 @@ namespace RunCmd {
 					return;
 				}
 				//Debug.Log("processing " + _currentCommandText);
-				if (IsExecutionStoppedByFilterFunction(currentCommandText)) {
+				if (IsExecutionStoppedByFilterFunction()) {
 					return;
 				}
 				currentCommand = null;
 				filterIndex = 0;
 			}
 
-			private bool IsExecutionStoppedByFilterFunction(string command) {
+			private bool IsExecutionStoppedByFilterFunction() {
 				while (filterIndex < source._filters.Count) {
 					if (currentCommand == null) {
 						currentCommand = source._filters[filterIndex];
@@ -222,15 +222,18 @@ namespace RunCmd {
 					if (!currentCommand.IsExecutionFinished(context)) {
 						return true;
 					}
-					command = currentCommand.FunctionResult(context);
+					currentCommandResult = currentCommand.FunctionResult(context);
 					currentCommand = null;
-					if (command == null) {
-						//Debug.Log($"{_currentCommandText} consumed by {_filters[_filterIndex]}");
+					if (currentCommandResult == null) {
+						//Debug.Log($"@@@@@ {currentCommandText} consumed by {source._filters[filterIndex]}");
 						return false;
+					} else if(currentCommandResult != currentCommandText) {
+						//Debug.Log($"@@@@@ {currentCommandText} changed into {currentCommandResult} by {source._filters[filterIndex]}");
+						currentCommandText = currentCommandResult;
 					}
 					++filterIndex;
 				}
-				Debug.Log($"{currentCommandText} NOT consumed");
+				//Debug.Log($"{currentCommandText} NOT consumed");
 				return false;
 			}
 
