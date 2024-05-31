@@ -5,7 +5,7 @@ namespace RunCmd {
 	/// Prints each command into the Unity console. This is mostly useful as a sample implementation of
 	/// <see cref="ICommandProcessor"/>
 	/// </summary>
-	[CreateAssetMenu(fileName = "DebugLog", menuName = "ScriptableObjects/Filters/FilterDebugLog")]
+	[CreateAssetMenu(fileName = "DebugLog", menuName = "ScriptableObjects/Filters/DebugLog")]
 	public class FilterDebugLog : CommandRunner<string>, ICommandFilter {
 		public enum LogType { None, StdOutput, DebugLog_Error, DebugLog_Assert, DebugLog_Warning, DebugLog_Log, DebugLog_Exception }
 		[SerializeField] protected bool _enabled = true;

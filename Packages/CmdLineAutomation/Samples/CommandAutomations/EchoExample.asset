@@ -13,50 +13,52 @@ MonoBehaviour:
   m_Name: EchoExample
   m_EditorClassIdentifier: 
   _commandFilters:
+  - {fileID: 11400000, guid: 4b478af9d1de97144b640d1ac376a0c7, type: 2}
   - {fileID: 11400000, guid: 3a059507b0e37fa4cbd78a964cfbcc5e, type: 2}
   - {fileID: 11400000, guid: f0b3e3b72a2389f47a7b91a73bd4cb04, type: 2}
   - {fileID: 11400000, guid: cfcf488bb7e2fdb48814650befb3910b, type: 2}
   _command:
     Description: "Create a new directory, run `dir` from inside, then delete the
       new\r directory."
-    Text: 'getchoice ["Question / Message" { "Option Text 0" : "command 0", "Option1"
-      "val1"}]
+    Text: '# getchoice "Question / Message" { "Option \"Text\" 0" : "command 0",
+      "Option1" "val1"}
 
-      echo start!
+      #echo start!
 
-      cls
+      #cls
 
-      mkdir test
+      #mkdir test
 
-      cd test
+      #cd
+      test
 
-      dir
+      #dir
 
-      cd
-      ..
+      #cd ..
 
-      rmdir test
+      #rmdir test
 
-      sleep 3
+      #sleep 3
 
-      echo done!'
+      echo
+      done!'
     ParsedCommands:
-    - Text: '[getchoice "Question / Message" { "Option Text 0" : "command 0", "Option1"
-        "val1"}]'
+    - Text: '# getchoice "Question / Message" { "Option \"Text\" 0" : "command 0",
+        "Option1" "val1"}'
       Comment: 0
-    - Text: echo start!
+    - Text: '#echo start!'
       Comment: 0
-    - Text: cls
+    - Text: '#cls'
       Comment: 0
-    - Text: mkdir test
+    - Text: '#mkdir test'
       Comment: 0
-    - Text: cd test
+    - Text: '#cd test'
       Comment: 0
-    - Text: dir
+    - Text: '#dir'
       Comment: 0
-    - Text: cd ..
+    - Text: '#cd ..'
       Comment: 0
-    - Text: rmdir test
+    - Text: '#rmdir test'
       Comment: 0
     - Text: sleep 3
       Comment: 0

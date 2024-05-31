@@ -46,10 +46,19 @@ namespace RunCmd {
 			public Action blockedClick;
 
 			public void Resize() {
-				//UnityEngine.Screen
 				Vector2 mousePos = GUIUtility.GUIToScreenPoint(Event.current.mousePosition);
-				Rect r = new Rect(mousePos.x - 3000, mousePos.y - 3000, 6000, 6000);
-				position = r;
+				position = new Rect(mousePos.x - 3000, mousePos.y - 3000, 6000, 6000);
+				//rootVisualElement.style.backgroundColor = new Color(0, 0, 0, .5f);
+				rootVisualElement.style.backgroundImage = MakeBackgroundTexture(1, 1, new Color(0,0,0,.5f));
+			}
+
+			private static Texture2D MakeBackgroundTexture(int width, int height, Color color) {
+				Color[] pixels = new Color[width * height];
+				for (int i = 0; i < pixels.Length; i++) { pixels[i] = color; }
+				Texture2D backgroundTexture = new Texture2D(width, height);
+				backgroundTexture.SetPixels(pixels);
+				backgroundTexture.Apply();
+				return backgroundTexture;
 			}
 
 			private void OnGUI() {
