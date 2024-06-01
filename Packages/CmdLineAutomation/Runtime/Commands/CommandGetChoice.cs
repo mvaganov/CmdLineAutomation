@@ -15,6 +15,20 @@ namespace RunCmd {
 		public bool _blockingUnderlay = true;
 		public int _defaultChoice = -1;
 		public float _choiceTimeout = 30;
+		public Color _choiceWindowColor = new Color(0.25f,0.25f,0.25f);
+		public Color _underlayWindowColor = new Color(0.125f, 0.125f, 0.125f);
+		public string _defaultMessage = "Continue execution?";
+		public Choice[] _defaultChoices = new Choice[] {
+			new Choice("yes", ""),
+			new Choice("no", "exit"),
+		};
+
+		[Serializable]
+		public class Choice {
+			public string OptionText;
+			public string OptionCommand;
+			public Choice(string optionText, string optionCommand) { this.OptionText = optionText; this.OptionCommand = optionCommand; }
+		}
 
 		public class Execution {
 			public bool finished;
@@ -48,9 +62,8 @@ namespace RunCmd {
 				return;
 			}
 			IList arguments = parsed as IList;
-			string  message = (arguments.Count > 1) ? (Parse.Token)arguments[1] : (Parse.Token)"<missing argument 1>";
-			IDictionary args = (arguments.Count > 2) ? arguments[2] as IDictionary : 
-				new OrderedDictionary() { [(Parse.Token)"<missing argument 2>"] = (Parse.Token)"<missing argument 2>" };
+			string  message = (arguments.Count > 1) ? (Parse.Token)arguments[1] : (Parse.Token)_defaultMessage;
+			IDictionary args = (arguments.Count > 2) ? arguments[2] as IDictionary : DefaultChoiceDitionary();
 			Vector2 size = new Vector2(250, 30 + args.Count * 20);
 			List<string> argsOptions = new List<string>();
 			List<Action> argsActions = new List<Action>();
@@ -70,16 +83,28 @@ namespace RunCmd {
 				int index = entryIndex;
 				argsActions.Add(() => {
 					onChoiceMade?.Invoke(index);
-					Debug.Log(context + " should do " + value.text);
+					CommandAutomation commandAutomation = context as CommandAutomation;
+					commandAutomation.InsertNextCommandToExecute(context, value.text);
 				});
 				++entryIndex;
 			}
 			exec.choiceWindow = GetChoiceWindow.Dialog(message, argsOptions,
 				argsActions, onChoiceMade, size, size / -2, _blockingUnderlay);
+			exec.choiceWindow.rootVisualElement.style.backgroundColor = _choiceWindowColor;
+			if (_blockingUnderlay) {
+				exec.choiceWindow._choiceBlocker.rootVisualElement.style.backgroundColor = _underlayWindowColor;
+			}
+		}
+
+		public IDictionary DefaultChoiceDitionary() {
+			OrderedDictionary dict = new OrderedDictionary();
+			for (int i = 0; i < _defaultChoices.Length; ++i) {
+				dict[(Parse.Token)_defaultChoices[i].OptionText] = (Parse.Token)_defaultChoices[i].OptionCommand;
+			}
+			return dict;
 		}
 
 		public void ChoiceMade(object context, int choiceIndex) {
-			Debug.Log($"made choice {choiceIndex}");
 			Execution exec = GetExecutionData(context);
 			exec.finished = true;
 			exec.choiceWindow?.CloseChoiceWindow();
@@ -140,8 +165,7 @@ namespace RunCmd {
 			private string _message;
 			private IList<string> _options;
 			private IList<Action> _actions;
-			private Action<int> _onChoiceMade;
-			private ChoiceBlocker _choiceBlocker;
+			public ChoiceBlocker _choiceBlocker;
 
 			public static void ReopenProjectDialog(Action<int> onChoiceMade) {
 				GetChoiceWindow.Dialog("Restart Project?",
@@ -160,7 +184,6 @@ namespace RunCmd {
 				}
 
 				GetChoiceWindow newDialog = CreateInstance<GetChoiceWindow>();
-				newDialog._onChoiceMade = onFinished;
 				if (useUiBlocker) {
 					newDialog._choiceBlocker = CreateInstance<ChoiceBlocker>();
 					newDialog._choiceBlocker.blockedClick = () => {

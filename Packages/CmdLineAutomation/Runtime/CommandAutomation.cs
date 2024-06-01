@@ -20,30 +20,40 @@ namespace RunCmd {
 		/// 
 		/// </summary>
 		[Serializable]
-		public class TextCommand
+		public class TextCommand : ICloneable
 		{
 			[TextArea(1, 1000)] public string Description;
 
 			[TextArea(1,100)] public string Text;
 
-			public ParsedTextCommand[] ParsedCommands;
+			public List<ParsedTextCommand> ParsedCommands;
 
 			public void Parse()
 			{
 				string text = Text.Replace("\r", "");
 				string[] lines = text.Split("\n");
-				ParsedCommands = new ParsedTextCommand[lines.Length];
-				for (int i = 0; i < ParsedCommands.Length; ++i)
+				ParsedCommands = new List<ParsedTextCommand>(lines.Length);
+				for (int i = 0; i < lines.Length; ++i)
 				{
-					ParsedCommands[i] = new ParsedTextCommand(lines[i]);
+					ParsedCommands.Add(new ParsedTextCommand(lines[i]));
 				}
 			}
+
+			public TextCommand CloneSelf() {
+				TextCommand textCommand = new TextCommand();
+				textCommand.Description = Description;
+				textCommand.Text = Text;
+				textCommand.ParsedCommands = new List<ParsedTextCommand>(ParsedCommands);
+				return textCommand;
+			}
+
+			public object Clone() => CloneSelf();
 		}
 
 		[Serializable]
 		public class ParsedTextCommand {
 			public string Text;
-			public bool Comment;
+			public bool Ignore;
 
 			public ParsedTextCommand(string text)
 			{
@@ -96,11 +106,33 @@ namespace RunCmd {
 			/// Function to pass all lines from standard output to
 			/// </summary>
 			public TextResultCallback stdOutput;
+			/// <summary>
+			/// used when getchoice or some other command needs to adjust the commands as they are being executed
+			/// </summary>
+			private TextCommand modifiedTextCommand;
+			/// <summary>
+			/// The list of commands and filters this automation is executing
+			/// </summary>
 			private CommandAutomation source;
 			/// <summary>
 			/// Keeps track of a shell, if one is generated
 			/// </summary>
 			private OperatingSystemCommandShell _shell;
+			/// <summary>
+			/// Explicit process cancel
+			/// </summary>
+			private bool cancelled = false;
+
+			public IList<ParsedTextCommand> CommandsToDo {
+				get {
+					if (modifiedTextCommand == null) {
+						return source.CommandsToDo;
+					}
+					return modifiedTextCommand.ParsedCommands;
+				}
+			}
+
+			public IList<ICommandFilter> Filters => source.Filters;
 
 			public float Progress
 			{
@@ -109,11 +141,11 @@ namespace RunCmd {
 					ICommandFilter cmd = CurrentCommand();
 					float cmdProgress = cmd != null ? cmd.Progress(context) : 0;
 					if (cmdProgress > 0) { return cmdProgress; }
-					if (commandExecutingIndex < 0 || source == null || source.CommandsToDo == null) return 0;
-					float majorProgress = (float)commandExecutingIndex / source.CommandsToDo.Length;
-					float minorTotal = 1f / source.CommandsToDo.Length;
-					float minorProgress = source._filters != null ? 
-						minorTotal * filterIndex / source._filters.Count : 0;
+					if (commandExecutingIndex < 0 || source == null || CommandsToDo == null) return 0;
+					float majorProgress = (float)commandExecutingIndex / CommandsToDo.Count;
+					float minorTotal = 1f / CommandsToDo.Count;
+					float minorProgress = Filters != null ? 
+						minorTotal * filterIndex / Filters.Count : 0;
 					return majorProgress + minorProgress;
 				}
 			}
@@ -122,7 +154,7 @@ namespace RunCmd {
 
 			public bool HaveCommandToDo() => currentCommand != null;
 
-			public bool IsCancelled() => commandExecutingIndex < 0;
+			public bool IsCancelled() => cancelled || commandExecutingIndex < 0;
 
 			public string CurrentCommandText() => currentCommandText;
 
@@ -132,6 +164,7 @@ namespace RunCmd {
 			{
 				EndCurrentCommand();
 				commandExecutingIndex = -1;
+				cancelled = true;
 				//Debug.Log("CANCELLED");
 			}
 
@@ -145,11 +178,23 @@ namespace RunCmd {
 
 			public void StartRunningEachCommandInSequence()
 			{
+				cancelled = false;
+				modifiedTextCommand = null;
 				commandExecutingIndex = 0;
 				RunEachCommandInSequence();
 			}
 			
+			public void InsertNextCommandToExecute(string command) {
+				if (modifiedTextCommand == null) {
+					modifiedTextCommand = source.TextCommandData.CloneSelf();
+				}
+				modifiedTextCommand.ParsedCommands.Insert(commandExecutingIndex+1, new ParsedTextCommand(command));
+			}
+
 			private void RunEachCommandInSequence() {
+				if (cancelled) {
+					return;
+				}
 				if (HaveCommandToDo()) {
 					if (currentCommand.IsExecutionFinished(context)) {
 						EndCurrentCommand();
@@ -166,11 +211,16 @@ namespace RunCmd {
 						EndCurrentCommand();
 						return;
 					}
-					string textToDo = source.CommandsToDo[commandExecutingIndex].Text;
-					if (!source.CommandsToDo[commandExecutingIndex].Comment) {
+					string textToDo = CommandsToDo[commandExecutingIndex].Text;
+					if (!CommandsToDo[commandExecutingIndex].Ignore) {
 						filterIndex = 0;
 						//Debug.Log("execute " + _commandExecutingIndex+" "+ textToDo);
 						StartCooperativeFunction(textToDo, stdOutput);
+						if (IsCancelled()) {
+							//Debug.Log("----------CANCELLED");
+							EndCurrentCommand();
+							return;
+						}
 						//if (HaveCommandToDo() && !_currentCommand.IsExecutionFinished()) { Debug.Log("       still doing it!"); }
 					}
 					if (!HaveCommandToDo() || currentCommand.IsExecutionFinished(context)) {
@@ -182,7 +232,7 @@ namespace RunCmd {
 						++commandExecutingIndex;
 					}
 				}
-				if (commandExecutingIndex < source.CommandsToDo.Length) {
+				if (commandExecutingIndex >= 0 && commandExecutingIndex < CommandsToDo.Count) {
 					DelayCall(RunEachCommandInSequence);
 				} else {
 					commandExecutingIndex = 0;
@@ -215,28 +265,31 @@ namespace RunCmd {
 			}
 
 			private bool IsExecutionStoppedByFilterFunction() {
-				while (filterIndex < source._filters.Count) {
+				while (filterIndex < Filters.Count) {
 					if (currentCommand == null) {
-						currentCommand = source._filters[filterIndex];
+						currentCommand = Filters[filterIndex];
 						if (context == null) {
 							Debug.LogError("context must not be null!");
 						}
 						//Debug.Log($"~~~~~~~~{name} start {command} co-op f[{_filterIndex}] {_currentCommand}\n\n{_currentCommandText}");
 						currentCommand.StartCooperativeFunction(context, currentCommandText, stdOutput);
+						if (filterIndex < 0) {
+							return true;
+						}
 						if ((_shell == null || !_shell.IsRunning) && currentCommand is FilterOperatingSystemCommandShell osShell) {
 							_shell = osShell.Shell;
 						}
 					}
-					if (!currentCommand.IsExecutionFinished(context)) {
+					if (currentCommand == null || !currentCommand.IsExecutionFinished(context)) {
 						return true;
 					}
 					currentCommandResult = currentCommand.FunctionResult(context);
 					currentCommand = null;
 					if (currentCommandResult == null) {
-						//Debug.Log($"@@@@@ {currentCommandText} consumed by {source._filters[filterIndex]}");
+						//Debug.Log($"@@@@@ {currentCommandText} consumed by {Filters[filterIndex]}");
 						return false;
 					} else if(currentCommandResult != currentCommandText) {
-						//Debug.Log($"@@@@@ {currentCommandText} changed into {currentCommandResult} by {source._filters[filterIndex]}");
+						//Debug.Log($"@@@@@ {currentCommandText} changed into {currentCommandResult} by {Filters[filterIndex]}");
 						currentCommandText = currentCommandResult;
 					}
 					++filterIndex;
@@ -256,7 +309,11 @@ namespace RunCmd {
 			}
 		}
 
-		public ParsedTextCommand[] CommandsToDo => _command.ParsedCommands;
+		public IList<ParsedTextCommand> CommandsToDo => _command.ParsedCommands;
+
+		public IList<ICommandFilter> Filters => _filters;
+
+		public TextCommand TextCommandData => _command;
 
 		public string Commands
 		{
@@ -309,6 +366,11 @@ namespace RunCmd {
 			e.StartRunningEachCommandInSequence();
 		}
 
+		public void InsertNextCommandToExecute(object context, string command) {
+			CommandExecution e = GetExecutionData(context);
+			e.InsertNextCommandToExecute(command);
+		}
+
 		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
 			GetExecutionData(context).StartCooperativeFunction(command, stdOutput);
 		}
@@ -321,6 +383,7 @@ namespace RunCmd {
 		public static void DelayCall(UnityEditor.EditorApplication.CallbackFunction call) {
 			UnityEditor.EditorApplication.delayCall += call;
 		}
+
 #else
 		public static void DelayCall(Action call) {
 			CoroutineRunner.Instance.StartCoroutine(DelayCall());

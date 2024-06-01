@@ -139,6 +139,8 @@ namespace RunCmd {
 			} else {
 				if (Target.CurrentCommand(_context) != null) {
 					HandleProgressBar(commandProgress);
+				} else {
+					AbortButton(false);
 				}
 			}
 		}
@@ -147,11 +149,15 @@ namespace RunCmd {
 			string title = Target.name;
 			string info = Target.CurrentCommandText(_context);
 			bool stop = EditorUtility.DisplayCancelableProgressBar(title, info, commandProgress);
-			if (GUILayout.Button("Abort Commands") || stop) {
+			AbortButton(stop);
+			RefreshInspectorInternal();
+		}
+
+		private void AbortButton(bool abort) {
+			if (GUILayout.Button("Abort Commands") || abort) {
 				Target.CancelProcess(_context);
 				EditorUtility.ClearProgressBar();
 			}
-			RefreshInspectorInternal();
 		}
 
 		private void ClearOutputButtonGUI() {
@@ -215,7 +221,6 @@ namespace RunCmd {
 		private void RunCommands() {
 			Target.RunCommands(_context, StdOutput);
 			RefreshInspector();
-			
 		}
 
 		private void StdOutput(string line) {

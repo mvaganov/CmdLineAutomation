@@ -14,6 +14,11 @@ namespace RunCmd {
 			public Line(int timestamp, string text) { this.timestamp = timestamp; this.text = text; }
 			public static implicit operator Line(string text) { return new Line(Environment.TickCount, text); }
 		}
+
+		internal void Exit() {
+			RunCommand("exit");
+		}
+
 		/// <summary>
 		/// What object owns this shell, which might be used to get scope-specific data
 		/// </summary>

@@ -21,52 +21,47 @@ MonoBehaviour:
   _command:
     Description: "Create a new directory, run `dir` from inside, then delete the
       new\r directory."
-    Text: '# the next command creates non-blocking UI.
+    Text: 'getchoice
 
-      getchoice "Question
-      / Message" { "Option \"Text\" 0" : "command 0", "Option1" "val1"}
+      echo /*this is a very basic print function in the command
+      line*/ start!
 
-      echo
-      /*this is a very basic print function in the command line*/ start!
+      getchoice "Question / Message" { "clear screen" : "cls",
+      "don''t clear": "" }
 
-      cls
-
-      mkdir
-      test
+      mkdir test
 
       cd test
 
       dir
 
-      cd ..
+      cd
+      ..
 
       rmdir test
 
-      sleep
-      3
+      sleep 3
 
       echo done!'
     ParsedCommands:
-    - Text: '# the next command creates non-blocking UI.'
-      Comment: 0
-    - Text: 'getchoice "Question / Message" { "Option \"Text\" 0" : "command 0",
-        "Option1" "val1"}'
-      Comment: 0
+    - Text: getchoice
+      Ignore: 0
     - Text: echo /*this is a very basic print function in the command line*/ start!
-      Comment: 0
-    - Text: cls
-      Comment: 0
+      Ignore: 0
+    - Text: 'getchoice "Question / Message" { "clear screen" : "cls", "don''t clear":
+        "" }'
+      Ignore: 0
     - Text: mkdir test
-      Comment: 0
+      Ignore: 0
     - Text: cd test
-      Comment: 0
+      Ignore: 0
     - Text: dir
-      Comment: 0
+      Ignore: 0
     - Text: cd ..
-      Comment: 0
+      Ignore: 0
     - Text: rmdir test
-      Comment: 0
+      Ignore: 0
     - Text: sleep 3
-      Comment: 0
+      Ignore: 0
     - Text: echo done!
-      Comment: 0
+      Ignore: 0
