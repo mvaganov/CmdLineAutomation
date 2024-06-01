@@ -12,3 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec0782f06edd48a42994a6f37c3c452a, type: 3}
   m_Name: getchoice
   m_EditorClassIdentifier: 
+  _blockUntilChoiceIsMade: 1
+  _defaultChoiceOnTimeout: 1
+  _blockingUnderlay: 0
+  _defaultChoice: -1
+  _choiceTimeout: 30

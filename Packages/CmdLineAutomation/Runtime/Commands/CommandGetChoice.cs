@@ -8,8 +8,21 @@ using System.Collections.Specialized;
 
 namespace RunCmd {
 	[CreateAssetMenu(fileName = "getchoice", menuName = "ScriptableObjects/Commands/getchoice")]
-	public class CommandGetChoice : ScriptableObject, INamedCommand {
+	public class CommandGetChoice : CommandRunner<CommandGetChoice.Execution>, INamedCommand {
 		public static Vector2 MousePosition;
+		public bool _blockUntilChoiceIsMade = true;
+		public bool _defaultChoiceOnTimeout = true;
+		public bool _blockingUnderlay = true;
+		public int _defaultChoice = -1;
+		public float _choiceTimeout = 30;
+
+		public class Execution {
+			public bool finished;
+			public int timeoutStart;
+			public int timeoutDuration;
+			public GetChoiceWindow choiceWindow;
+		}
+
 		public static void UpdateMousePosition() {
 			if (Event.current == null) {
 				return;
@@ -27,7 +40,7 @@ namespace RunCmd {
 			}
 		}
 		public string CommandToken => this.name;
-		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
+		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
 			UpdateMousePosition();
 			object parsed = Parse.ParseText($"[{command}]", out Parse.Error err);
 			if (err.kind != Parse.ErrorKind.None) {
@@ -41,21 +54,66 @@ namespace RunCmd {
 			Vector2 size = new Vector2(250, 30 + args.Count * 20);
 			List<string> argsOptions = new List<string>();
 			List<Action> argsActions = new List<Action>();
+			Action<int> onChoiceMade = null;
+			Execution exec = GetExecutionData(context);
+			if (_blockUntilChoiceIsMade) {
+				exec.timeoutStart = Environment.TickCount;
+				exec.timeoutDuration = (int)(_choiceTimeout * 1000);
+				exec.finished = false;
+				onChoiceMade = (choice) => ChoiceMade(context, choice);
+			}
+			int entryIndex = 0;
 			foreach (DictionaryEntry entry in args) {
 				Parse.Token token = (Parse.Token)entry.Key;
 				Parse.Token value = (Parse.Token)entry.Value;
 				argsOptions.Add(token.text);
-				argsActions.Add(() => Debug.Log(context+" should do "+value.text));
+				int index = entryIndex;
+				argsActions.Add(() => {
+					onChoiceMade?.Invoke(index);
+					Debug.Log(context + " should do " + value.text);
+				});
+				++entryIndex;
 			}
-			GetChoiceWindow.Dialog(message, argsOptions, argsActions, size, size / -2, true);
+			exec.choiceWindow = GetChoiceWindow.Dialog(message, argsOptions,
+				argsActions, onChoiceMade, size, size / -2, _blockingUnderlay);
+		}
+
+		public void ChoiceMade(object context, int choiceIndex) {
+			Debug.Log($"made choice {choiceIndex}");
+			Execution exec = GetExecutionData(context);
+			exec.finished = true;
+			exec.choiceWindow?.CloseChoiceWindow();
 		}
 
 		public string UsageString() {
 			return $"{name} \"message\" {{ \"optionText0\" : \"command0\", ... \"optionTextN\" : \"commandN\" }}";
 		}
 
-		public bool IsExecutionFinished(object context) => true;
-		public float Progress(object context) => 0;
+		public override bool IsExecutionFinished(object context) =>
+			_blockUntilChoiceIsMade ? GetExecutionData(context).finished : true;
+
+		public override float Progress(object context) {
+			if (_defaultChoiceOnTimeout) {
+				Execution exec = GetExecutionData(context);
+				int passed = Environment.TickCount - exec.timeoutStart;
+				float progress = (float)passed / exec.timeoutDuration;
+				if (progress >= 1) {
+					exec.finished = true;
+					progress = 1;
+
+				}
+				return progress;
+			}
+			return 0;
+		}
+
+		protected override Execution CreateEmptyContextEntry(object context) => new Execution();
+
+		public override void RemoveExecutionData(object context) {
+			Execution exec = GetExecutionData(context);
+			exec.choiceWindow.CloseChoiceWindow();
+			base.RemoveExecutionData(context);
+		}
 
 		/// <summary>
 		/// Block UI, preventing other clicks. Clicking non-choice is a choice (probably cancel).
@@ -65,17 +123,7 @@ namespace RunCmd {
 			public void Resize() {
 				Vector2 mousePos = GUIUtility.GUIToScreenPoint(MousePosition);
 				position = new Rect(mousePos.x - 3000, mousePos.y - 3000, 6000, 6000);
-				//rootVisualElement.style.backgroundColor = new Color(0, 0, 0, .5f);
-				rootVisualElement.style.backgroundImage = MakeBackgroundTexture(1, 1, new Color(0,0,0,.5f));
-			}
-
-			private static Texture2D MakeBackgroundTexture(int width, int height, Color color) {
-				Color[] pixels = new Color[width * height];
-				for (int i = 0; i < pixels.Length; i++) { pixels[i] = color; }
-				Texture2D backgroundTexture = new Texture2D(width, height);
-				backgroundTexture.SetPixels(pixels);
-				backgroundTexture.Apply();
-				return backgroundTexture;
+				rootVisualElement.style.backgroundColor = new Color(0, 0, 0, .5f);
 			}
 
 			private void OnGUI() {
@@ -92,17 +140,18 @@ namespace RunCmd {
 			private string _message;
 			private IList<string> _options;
 			private IList<Action> _actions;
+			private Action<int> _onChoiceMade;
 			private ChoiceBlocker _choiceBlocker;
 
-			public static void ReopenProjectDialog() {
+			public static void ReopenProjectDialog(Action<int> onChoiceMade) {
 				GetChoiceWindow.Dialog("Restart Project?",
 					new string[] { "Restart", "Cancel" },
 					new Action[] { () => UnityEditor.EditorApplication.OpenProject(System.IO.Directory.GetCurrentDirectory()), null },
-					new Vector2(300, 100), new Vector2(-150, -50), true);
+					onChoiceMade, new Vector2(300, 100), new Vector2(-150, -50), true);
 			}
 
-			public static void Dialog(string message, IList<string> options, IList<Action> actions, Vector2 size,
-				Vector2 mouseOffset, bool useUiBlocker) {
+			public static GetChoiceWindow Dialog(string message, IList<string> options, IList<Action> actions,
+				Action<int> onFinished, Vector2 size, Vector2 mouseOffset, bool useUiBlocker) {
 				int foundIndex = _dialogs.FindIndex(d => d._message == message);
 				if (foundIndex >= 0) {
 					GetChoiceWindow oldDialog = _dialogs[foundIndex];
@@ -111,9 +160,13 @@ namespace RunCmd {
 				}
 
 				GetChoiceWindow newDialog = CreateInstance<GetChoiceWindow>();
+				newDialog._onChoiceMade = onFinished;
 				if (useUiBlocker) {
 					newDialog._choiceBlocker = CreateInstance<ChoiceBlocker>();
-					newDialog._choiceBlocker.blockedClick = newDialog.Close;
+					newDialog._choiceBlocker.blockedClick = () => {
+						onFinished?.Invoke(-1);
+						newDialog.Close();
+					};
 					newDialog._choiceBlocker.ShowPopup();
 					newDialog._choiceBlocker.Resize();
 				}
@@ -124,15 +177,25 @@ namespace RunCmd {
 				newDialog.position = new Rect(mousePos.x, mousePos.y, size.x, size.y);
 				newDialog.ShowPopup();
 				_dialogs.Add(newDialog);
+				return newDialog;
 			}
 
 			private void OnInspectorUpdate() {
 				UpdateMousePosition();
 			}
 
+			public void CloseChoiceWindow() {
+				Close();
+				RemoveNotification();
+			}
+
 			void CreateGUI() {
 				Label label = new Label(_message);
 				rootVisualElement.Add(label);
+				if (_options == null) {
+					CloseChoiceWindow();
+					return;
+				}
 				for (int i = 0; i < _options.Count; ++i) {
 					Button button = new Button();
 					button.text = _options[i];

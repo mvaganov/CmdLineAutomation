@@ -130,10 +130,17 @@ namespace RunCmd {
 			
 			public void CancelExecution()
 			{
-				currentCommand = null;
+				EndCurrentCommand();
 				commandExecutingIndex = -1;
-				filterIndex = 0;
 				//Debug.Log("CANCELLED");
+			}
+
+			private void EndCurrentCommand() {
+				if (currentCommand is CommandRunnerBase runner) {
+					runner.RemoveExecutionData(context);
+				}
+				filterIndex = 0;
+				currentCommand = null;
 			}
 
 			public void StartRunningEachCommandInSequence()
@@ -145,8 +152,8 @@ namespace RunCmd {
 			private void RunEachCommandInSequence() {
 				if (HaveCommandToDo()) {
 					if (currentCommand.IsExecutionFinished(context)) {
+						EndCurrentCommand();
 						++commandExecutingIndex;
-						currentCommand = null;
 					} else {
 						DelayCall(RunEachCommandInSequence);
 						return;
@@ -156,6 +163,7 @@ namespace RunCmd {
 					if (IsCancelled())
 					{
 						//Debug.Log("----------CANCELLED");
+						EndCurrentCommand();
 						return;
 					}
 					string textToDo = source.CommandsToDo[commandExecutingIndex].Text;

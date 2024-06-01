@@ -137,16 +137,21 @@ namespace RunCmd {
 					RunCommands();
 				}
 			} else {
-				string title = Target.name;
-				string info = Target.CurrentCommandText(_context);
-				bool stop = EditorUtility.DisplayCancelableProgressBar(title, info, commandProgress);
-				if (GUILayout.Button("Abort Commands") || stop)
-				{
-					Target.CancelProcess(_context);
-					EditorUtility.ClearProgressBar();
+				if (Target.CurrentCommand(_context) != null) {
+					HandleProgressBar(commandProgress);
 				}
-				RefreshInspectorInternal();
 			}
+		}
+
+		private void HandleProgressBar(float commandProgress) {
+			string title = Target.name;
+			string info = Target.CurrentCommandText(_context);
+			bool stop = EditorUtility.DisplayCancelableProgressBar(title, info, commandProgress);
+			if (GUILayout.Button("Abort Commands") || stop) {
+				Target.CancelProcess(_context);
+				EditorUtility.ClearProgressBar();
+			}
+			RefreshInspectorInternal();
 		}
 
 		private void ClearOutputButtonGUI() {

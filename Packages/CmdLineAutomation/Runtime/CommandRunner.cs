@@ -8,12 +8,10 @@ namespace RunCmd {
 	/// data, organized by context.
 	/// </summary>
 	/// <typeparam name="ExecutionData"></typeparam>
-	public abstract class CommandRunner<ExecutionData> : ScriptableObject, ICommandProcessor {
+	public abstract class CommandRunner<ExecutionData> : CommandRunnerBase {
 
 		Dictionary<object, ExecutionData> _executionData = new Dictionary<object, ExecutionData>();
 		abstract protected ExecutionData CreateEmptyContextEntry(object context);
-
-		abstract public float Progress(object context);
 
 		protected ExecutionData GetExecutionData(object context) {
 			if (!_executionData.TryGetValue(context, out ExecutionData commandExecution)) {
@@ -26,12 +24,15 @@ namespace RunCmd {
 			_executionData[context] = data;
 		}
 
-		protected void RemoveExecutionData(object context) {
+		public override void RemoveExecutionData(object context) {
 			_executionData.Remove(context);
 		}
+	}
 
+	public abstract class CommandRunnerBase : ScriptableObject, ICommandProcessor {
+		abstract public float Progress(object context);
 		abstract public bool IsExecutionFinished(object context);
-
 		abstract public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput);
+		abstract public void RemoveExecutionData(object context);
 	}
 }

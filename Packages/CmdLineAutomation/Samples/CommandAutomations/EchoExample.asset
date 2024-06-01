@@ -47,26 +47,26 @@ MonoBehaviour:
 
       echo done!'
     ParsedCommands:
-    - Text: THIS SHOULD NOT BE IGNORED
+    - Text: '# the next command creates non-blocking UI.'
       Comment: 0
-    - Text: 'hi /* getchoice "Question / Message" { "Option \"Text\" 0" : "command
-        0", "Option1" "val1"}'
+    - Text: 'getchoice "Question / Message" { "Option \"Text\" 0" : "command 0",
+        "Option1" "val1"}'
       Comment: 0
-    - Text: '#echo start!'
+    - Text: echo /*this is a very basic print function in the command line*/ start!
       Comment: 0
-    - Text: cls      */ echo hi
+    - Text: cls
       Comment: 0
-    - Text: '#mkdir test'
+    - Text: mkdir test
       Comment: 0
-    - Text: '#cd test'
+    - Text: cd test
       Comment: 0
-    - Text: '#dir'
+    - Text: dir
       Comment: 0
-    - Text: '#cd ..'
+    - Text: cd ..
       Comment: 0
-    - Text: '#/*rmdir*/ test'
+    - Text: rmdir test
       Comment: 0
-    - Text: '#sleep 3'
+    - Text: sleep 3
       Comment: 0
     - Text: echo done!
       Comment: 0

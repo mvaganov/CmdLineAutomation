@@ -33,6 +33,12 @@ namespace RunCmd {
 
 			public string FunctionResult() => currentCommandFilterResult;
 
+			public void RemoveExecutionData() {
+				if (currentCommand is CommandRunnerBase runner) {
+					runner.RemoveExecutionData(context);
+				}
+			}
+
 			public void StartCooperativeFunction(string command, TextResultCallback stdOutput) {
 				this.stdOutput = stdOutput;
 				currentCommandText = command;
@@ -91,6 +97,11 @@ namespace RunCmd {
 		private bool NeedsInitialization() => _commandDictionary == null || _commandDictionary.Count != _commandListing.Length;
 
 		public override bool IsExecutionFinished(object context) => GetExecutionData(context).IsExecutionFinished();
+
+		public override void RemoveExecutionData(object context) {
+			GetExecutionData(context).RemoveExecutionData();
+			base.RemoveExecutionData(context);
+		}
 
 		public string FunctionResult(object context) => GetExecutionData(context).FunctionResult();
 
