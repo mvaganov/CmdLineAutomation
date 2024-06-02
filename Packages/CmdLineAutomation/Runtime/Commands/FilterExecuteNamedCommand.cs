@@ -76,7 +76,6 @@ namespace RunCmd {
 		}
 
 #if UNITY_EDITOR
-		// TODO automatically reference each named command
 		private void Reset() {
 			_commandListing = GetAllScriptableObjectAssets<INamedCommand>();
 		}

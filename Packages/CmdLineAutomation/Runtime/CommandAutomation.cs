@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -15,52 +14,7 @@ namespace RunCmd {
 	/// * TODO create variable listing? auto-populate variables based on std output?
 	/// </summary>
 	[CreateAssetMenu(fileName = "NewCmdLineAutomation", menuName = "ScriptableObjects/CmdLineAutomation", order = 1)]
-	public class CommandAutomation : CommandRunner<CommandAutomation.CommandExecution>, ICommandProcessor {
-		/// <summary>
-		/// 
-		/// </summary>
-		[Serializable]
-		public class TextCommand : ICloneable
-		{
-			[TextArea(1, 1000)] public string Description;
-
-			[TextArea(1,100)] public string Text;
-
-			public List<ParsedTextCommand> ParsedCommands;
-
-			public void Parse()
-			{
-				string text = Text.Replace("\r", "");
-				string[] lines = text.Split("\n");
-				ParsedCommands = new List<ParsedTextCommand>(lines.Length);
-				for (int i = 0; i < lines.Length; ++i)
-				{
-					ParsedCommands.Add(new ParsedTextCommand(lines[i]));
-				}
-			}
-
-			public TextCommand CloneSelf() {
-				TextCommand textCommand = new TextCommand();
-				textCommand.Description = Description;
-				textCommand.Text = Text;
-				textCommand.ParsedCommands = new List<ParsedTextCommand>(ParsedCommands);
-				return textCommand;
-			}
-
-			public object Clone() => CloneSelf();
-		}
-
-		[Serializable]
-		public class ParsedTextCommand {
-			public string Text;
-			public bool Ignore;
-
-			public ParsedTextCommand(string text)
-			{
-				Text = text;
-			}
-		}
-
+	public partial class CommandAutomation : CommandRunner<CommandAutomation.CommandExecution>, ICommandProcessor {
 		/// <summary>
 		/// List of the possible custom commands written as C# <see cref="ICommandProcessor"/>s
 		/// </summary>
@@ -77,238 +31,7 @@ namespace RunCmd {
 		/// </summary>
 		private List<ICommandFilter> _filters;
 
-		public class CommandExecution {
-			/// <summary>
-			/// What object counts as the owner of this command
-			/// </summary>
-			public object context;
-			/// <summary>
-			/// Which command from <see cref="CommandsToDo"/> is being executed right now
-			/// </summary>
-			public int commandExecutingIndex;
-			/// <summary>
-			/// Text of the current command
-			/// </summary>
-			public string currentCommandText;
-			/// <summary>
-			/// Which cooperative function is being executed right now
-			/// </summary>
-			public ICommandFilter currentCommand;
-			/// <summary>
-			/// Result of the last finished cooperative function
-			/// </summary>
-			public string currentCommandResult;
-			/// <summary>
-			/// Which <see cref="_commandFilters"/> is being cooperatively processed right now
-			/// </summary>
-			public int filterIndex = 0;
-			/// <summary>
-			/// Function to pass all lines from standard output to
-			/// </summary>
-			public TextResultCallback stdOutput;
-			/// <summary>
-			/// used when getchoice or some other command needs to adjust the commands as they are being executed
-			/// </summary>
-			private TextCommand modifiedTextCommand;
-			/// <summary>
-			/// The list of commands and filters this automation is executing
-			/// </summary>
-			private CommandAutomation source;
-			/// <summary>
-			/// Keeps track of a shell, if one is generated
-			/// </summary>
-			private OperatingSystemCommandShell _shell;
-			/// <summary>
-			/// Explicit process cancel
-			/// </summary>
-			private bool cancelled = false;
-
-			public IList<ParsedTextCommand> CommandsToDo {
-				get {
-					if (modifiedTextCommand == null) {
-						return source.CommandsToDo;
-					}
-					return modifiedTextCommand.ParsedCommands;
-				}
-			}
-
-			public IList<ICommandFilter> Filters => source.Filters;
-
-			public float Progress
-			{
-				get
-				{
-					ICommandFilter cmd = CurrentCommand();
-					float cmdProgress = cmd != null ? cmd.Progress(context) : 0;
-					if (cmdProgress > 0) { return cmdProgress; }
-					if (commandExecutingIndex < 0 || source == null || CommandsToDo == null) return 0;
-					float majorProgress = (float)commandExecutingIndex / CommandsToDo.Count;
-					float minorTotal = 1f / CommandsToDo.Count;
-					float minorProgress = Filters != null ? 
-						minorTotal * filterIndex / Filters.Count : 0;
-					return majorProgress + minorProgress;
-				}
-			}
-
-			public OperatingSystemCommandShell Shell { get => _shell; }
-
-			public bool HaveCommandToDo() => currentCommand != null;
-
-			public bool IsCancelled() => cancelled || commandExecutingIndex < 0;
-
-			public string CurrentCommandText() => currentCommandText;
-
-			public ICommandFilter CurrentCommand() => currentCommand;
-			
-			public void CancelExecution()
-			{
-				EndCurrentCommand();
-				commandExecutingIndex = -1;
-				cancelled = true;
-				//Debug.Log("CANCELLED");
-			}
-
-			private void EndCurrentCommand() {
-				if (currentCommand is CommandRunnerBase runner) {
-					runner.RemoveExecutionData(context);
-				}
-				filterIndex = 0;
-				currentCommand = null;
-			}
-
-			public void StartRunningEachCommandInSequence()
-			{
-				cancelled = false;
-				modifiedTextCommand = null;
-				commandExecutingIndex = 0;
-				RunEachCommandInSequence();
-			}
-			
-			public void InsertNextCommandToExecute(string command) {
-				if (modifiedTextCommand == null) {
-					modifiedTextCommand = source.TextCommandData.CloneSelf();
-				}
-				modifiedTextCommand.ParsedCommands.Insert(commandExecutingIndex+1, new ParsedTextCommand(command));
-			}
-
-			private void RunEachCommandInSequence() {
-				if (cancelled) {
-					return;
-				}
-				if (HaveCommandToDo()) {
-					if (currentCommand.IsExecutionFinished(context)) {
-						EndCurrentCommand();
-						++commandExecutingIndex;
-					} else {
-						DelayCall(RunEachCommandInSequence);
-						return;
-					}
-				}
-				if (!HaveCommandToDo()) {
-					if (IsCancelled())
-					{
-						//Debug.Log("----------CANCELLED");
-						EndCurrentCommand();
-						return;
-					}
-					string textToDo = CommandsToDo[commandExecutingIndex].Text;
-					if (!CommandsToDo[commandExecutingIndex].Ignore) {
-						filterIndex = 0;
-						//Debug.Log("execute " + _commandExecutingIndex+" "+ textToDo);
-						StartCooperativeFunction(textToDo, stdOutput);
-						if (IsCancelled()) {
-							//Debug.Log("----------CANCELLED");
-							EndCurrentCommand();
-							return;
-						}
-						//if (HaveCommandToDo() && !_currentCommand.IsExecutionFinished()) { Debug.Log("       still doing it!"); }
-					}
-					if (!HaveCommandToDo() || currentCommand.IsExecutionFinished(context)) {
-						++commandExecutingIndex;
-					}
-				} else {
-					DoCurrentCommand();
-					if (currentCommand == null) {
-						++commandExecutingIndex;
-					}
-				}
-				if (commandExecutingIndex >= 0 && commandExecutingIndex < CommandsToDo.Count) {
-					DelayCall(RunEachCommandInSequence);
-				} else {
-					commandExecutingIndex = 0;
-				}
-			}
-
-			/// <inheritdoc/>
-			public void StartCooperativeFunction(string command, TextResultCallback stdOutput) {
-				if (context == null) {
-					Debug.LogError("NULL!!!!!");
-				}
-				this.stdOutput = stdOutput;
-				currentCommandText = command;
-				currentCommandResult = command;
-				filterIndex = 0;
-				DoCurrentCommand();
-			}
-
-			private void DoCurrentCommand() {
-				if (currentCommand != null && !currentCommand.IsExecutionFinished(context)) {
-					Debug.Log($"still processing {currentCommand}");
-					return;
-				}
-				//Debug.Log("processing " + _currentCommandText);
-				if (IsExecutionStoppedByFilterFunction()) {
-					return;
-				}
-				currentCommand = null;
-				filterIndex = 0;
-			}
-
-			private bool IsExecutionStoppedByFilterFunction() {
-				while (filterIndex < Filters.Count) {
-					if (currentCommand == null) {
-						currentCommand = Filters[filterIndex];
-						if (context == null) {
-							Debug.LogError("context must not be null!");
-						}
-						//Debug.Log($"~~~~~~~~{name} start {command} co-op f[{_filterIndex}] {_currentCommand}\n\n{_currentCommandText}");
-						currentCommand.StartCooperativeFunction(context, currentCommandText, stdOutput);
-						if (filterIndex < 0) {
-							return true;
-						}
-						if ((_shell == null || !_shell.IsRunning) && currentCommand is FilterOperatingSystemCommandShell osShell) {
-							_shell = osShell.Shell;
-						}
-					}
-					if (currentCommand == null || !currentCommand.IsExecutionFinished(context)) {
-						return true;
-					}
-					currentCommandResult = currentCommand.FunctionResult(context);
-					currentCommand = null;
-					if (currentCommandResult == null) {
-						//Debug.Log($"@@@@@ {currentCommandText} consumed by {Filters[filterIndex]}");
-						return false;
-					} else if(currentCommandResult != currentCommandText) {
-						//Debug.Log($"@@@@@ {currentCommandText} changed into {currentCommandResult} by {Filters[filterIndex]}");
-						currentCommandText = currentCommandResult;
-					}
-					++filterIndex;
-				}
-				//Debug.Log($"{currentCommandText} NOT consumed");
-				return false;
-			}
-
-			public bool IsExecutionFinished() => currentCommand == null || currentCommand.IsExecutionFinished(context);
-
-			public string FunctionResult() => currentCommand != null ? currentCommand.FunctionResult(context) : currentCommandResult;
-
-			public CommandExecution(object context, CommandAutomation commandAutomation) {
-				source = commandAutomation;
-				this.context = context;
-				commandExecutingIndex = 0;
-			}
-		}
-
+		// TODO move this into a new file
 		public IList<ParsedTextCommand> CommandsToDo => _command.ParsedCommands;
 
 		public IList<ICommandFilter> Filters => _filters;
@@ -344,7 +67,9 @@ namespace RunCmd {
 			_filters = new List<ICommandFilter>();
 			foreach (UnityEngine.Object obj in _commandFilters) {
 				switch (obj) {
-					case ICommandFilter iFilter: _filters.Add(iFilter); break;
+					case ICommandFilter iFilter:
+						_filters.Add(iFilter);
+						break;
 					default:
 						Debug.LogError($"unexpected filter type {obj.GetType().Name}, " +
 							$"{name} expects only {nameof(ICommandFilter)} entries");
@@ -354,8 +79,7 @@ namespace RunCmd {
 			ParseCommands();
 		}
 
-		public void ParseCommands()
-		{
+		public void ParseCommands() {
 			_command.Parse();
 		}
 

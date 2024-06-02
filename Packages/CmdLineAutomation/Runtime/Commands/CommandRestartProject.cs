@@ -10,7 +10,6 @@ namespace RunCmd {
 			}
 #if UNITY_EDITOR
 			bool restartProject = true;
-			// TODO if there is an argument, set `blockingDialog` to true and `restartProject` to false
 			bool blockingDialog = false;
 			if (blockingDialog && UnityEditor.EditorUtility.DisplayDialog("Restart Unity Project?",
 						"Restart to be sure binary libraries load correctly",
