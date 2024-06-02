@@ -185,43 +185,6 @@ namespace RunCmd {
 			return null;
 		}
 
-		public static string ParsedTokensToString(object parsedToken, int indent = 0) {
-			StringBuilder sb = new StringBuilder();
-			StringBuilder Indent() {
-				for(int i = 0; i < indent; ++i) { sb.Append("  "); }
-				return sb;
-			}
-			switch (parsedToken) {
-				case Token tok:
-					sb.Append(tok.text);
-					break;
-				case IList<object> list:
-					sb.Append("[");
-					for(int i = 0; i < list.Count; ++i) {
-						if (i > 0) {
-							sb.Append(", ");
-						}
-						sb.Append(ParsedTokensToString(list[i], indent+1));
-					}
-					sb.Append("]");
-					break;
-				case IDictionary<object, object> dict:
-					sb.Append("{");
-					++indent;
-					foreach(var kvp in dict) {
-						sb.Append("\n");
-						Indent();
-						sb.Append(ParsedTokensToString(kvp.Key, indent+1)).Append(" : ").Append(ParsedTokensToString(kvp.Value, indent + 1));
-					}
-					--indent;
-					sb.Append("\n");
-					Indent();
-					sb.Append("}\n");
-					break;
-			}
-			return sb.ToString();
-		}
-
 		public static IList ParseArray(IList<Token> tokens, ref int index, out Error error) {
 			Token token = tokens[index];
 			if (token.kind != Token.Kind.Delim || token.text != "[") {
@@ -354,6 +317,51 @@ namespace RunCmd {
 				isReadingKey = !isReadingKey;
 			}
 			return dictionaryValue;
+		}
+
+		public static string ToString(object parsedToken, int indent = 0, bool includeWhitespace = true) {
+			StringBuilder sb = new StringBuilder();
+			StringBuilder Indent() {
+				for (int i = 0; i < indent; ++i) { sb.Append("  "); }
+				return sb;
+			}
+			switch (parsedToken) {
+				case Token tok:
+					sb.Append("\"").Append(tok.text).Append("\"");
+					break;
+				case IList<object> list:
+					sb.Append("[");
+					for (int i = 0; i < list.Count; ++i) {
+						if (i > 0) {
+							sb.Append(includeWhitespace ? ", " : ",");
+						}
+						sb.Append(ToString(list[i], indent + 1, includeWhitespace));
+					}
+					sb.Append("]");
+					break;
+				case IDictionary dict:
+					sb.Append("{");
+					++indent;
+					bool addedOne = false;
+					foreach (DictionaryEntry kvp in dict) {
+						if (addedOne) { sb.Append(","); }
+						if (includeWhitespace) {
+							sb.Append("\n");
+							Indent();
+						}
+						sb.Append(ToString(kvp.Key, indent + 1, includeWhitespace))
+							.Append(includeWhitespace?" : ":":").Append(ToString(kvp.Value, indent + 1));
+						addedOne = true;
+					}
+					--indent;
+					if (includeWhitespace) {
+						sb.Append("\n");
+						Indent();
+					}
+					sb.Append(includeWhitespace?"}\n":"}");
+					break;
+			}
+			return sb.ToString();
 		}
 	}
 }

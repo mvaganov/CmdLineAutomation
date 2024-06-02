@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 namespace RunCmd {
@@ -48,6 +49,15 @@ namespace RunCmd {
 			/// Explicit process cancel
 			/// </summary>
 			private bool cancelled = false;
+			/// <summary>
+			/// records output
+			/// </summary>
+			private StringBuilder outputToScan = new StringBuilder();
+
+			private void OutputAnalysis(string fromProcess) {
+				outputToScan.AppendLine(fromProcess);
+				stdOutput?.Invoke(fromProcess);
+			}
 
 			public IList<ParsedTextCommand> CommandsToDo {
 				get {
@@ -157,6 +167,9 @@ namespace RunCmd {
 					DelayCall(RunEachCommandInSequence);
 				} else {
 					commandExecutingIndex = 0;
+					if (source._recapOutputAtEnd) {
+						Debug.Log(outputToScan);
+					}
 				}
 			}
 
@@ -190,7 +203,7 @@ namespace RunCmd {
 							Debug.LogError("context must not be null!");
 						}
 						//Debug.Log($"~~~~~~~~{name} start {command} co-op f[{_filterIndex}] {_currentCommand}\n\n{_currentCommandText}");
-						currentCommand.StartCooperativeFunction(context, currentCommandText, stdOutput);
+						currentCommand.StartCooperativeFunction(context, currentCommandText, OutputAnalysis);
 						if (filterIndex < 0) {
 							return true;
 						}

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 namespace RunCmd {
@@ -26,12 +27,13 @@ namespace RunCmd {
 		[ContextMenuItem(nameof(ParseCommands),nameof(ParseCommands))]
 		[SerializeField] protected TextCommand _command;
 
+		public bool _recapOutputAtEnd;
+
 		/// <summary>
 		/// List if filtering functions for input, which may or may not consume a command
 		/// </summary>
 		private List<ICommandFilter> _filters;
 
-		// TODO move this into a new file
 		public IList<ParsedTextCommand> CommandsToDo => _command.ParsedCommands;
 
 		public IList<ICommandFilter> Filters => _filters;

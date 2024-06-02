@@ -18,17 +18,10 @@ namespace RunCmd {
 		public Color _choiceWindowColor = new Color(0.25f,0.25f,0.25f);
 		public Color _underlayWindowColor = new Color(0.125f, 0.125f, 0.125f);
 		public string _defaultMessage = "Continue execution?";
-		public Choice[] _defaultChoices = new Choice[] {
-			new Choice("yes", ""),
-			new Choice("no", "exit"),
+		public KeyValuePairStrings[] _defaultChoices = new KeyValuePairStrings[] {
+			new KeyValuePairStrings("yes", ""),
+			new KeyValuePairStrings("no", "exit"),
 		};
-
-		[Serializable]
-		public class Choice {
-			public string OptionText;
-			public string OptionCommand;
-			public Choice(string optionText, string optionCommand) { this.OptionText = optionText; this.OptionCommand = optionCommand; }
-		}
 
 		public class Execution {
 			public bool finished;
@@ -99,7 +92,7 @@ namespace RunCmd {
 		public IDictionary DefaultChoiceDitionary() {
 			OrderedDictionary dict = new OrderedDictionary();
 			for (int i = 0; i < _defaultChoices.Length; ++i) {
-				dict[(Parse.Token)_defaultChoices[i].OptionText] = (Parse.Token)_defaultChoices[i].OptionCommand;
+				dict[(Parse.Token)_defaultChoices[i].Key] = (Parse.Token)_defaultChoices[i].Value;
 			}
 			return dict;
 		}
