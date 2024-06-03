@@ -4,364 +4,363 @@ using System.Collections.Specialized;
 using System.Text;
 
 namespace RunCmd {
+	/// <summary>
+	/// parse lists and dictionaries
+	/// </summary>
 	public static class Parse {
-		public static string[] Split(string command) {
-			return command.Split();
-		}
-
 		public struct Token {
 			public enum Kind { None, Text, Delim, TokBeg, TokEnd }
-			public string text;
+			public string Text;
 			public Kind kind;
-			public int index;
-			public Token(string text, Kind kind, int index) { this.text = text; this.kind = kind; this.index = index; }
-			public Token(char letter, Kind kind, int index) : this(letter.ToString(), kind, index) { }
-			public Token(string text, int index) : this(text, Kind.Text, index) { }
+			public int TextIndex;
+			public int TextEndIndex => TextIndex + Text.Length;
+			public Token(string text, Kind kind, int textIndex) { this.Text = text; this.kind = kind; this.TextIndex = textIndex; }
+			public Token(char letter, Kind kind, int textIndex) : this(letter.ToString(), kind, textIndex) { }
+			public Token(string text, int textIndex) : this(text, Kind.Text, textIndex) { }
 			public static implicit operator Token(string text) => new Token(text, -1);
-			public static implicit operator string(Token token) => token.text;
-			public override string ToString() => index >= 0 ? $"({kind}){text}@{index}" : text;
-			public override int GetHashCode() => text.GetHashCode();
-			public override bool Equals(object obj) => obj is Token t && t.kind == kind && t.text == text;
+			public static implicit operator string(Token token) => token.Text;
+			public override string ToString() => TextIndex >= 0 ? $"({kind}){Text}@{TextIndex}" : Text;
+			public override int GetHashCode() => Text.GetHashCode();
+			public override bool Equals(object obj) => obj is Token t && t.kind == kind && t.Text == Text;
 		}
 
-		public static string GetFirstToken(string command) {
-			int index = command.IndexOf(' ');
-			return index < 0 ? command : command.Substring(0, index);
-		}
+		private class TokenParsing {
+			private char _readingLiteralToken = '\0';
+			private int _index, _start = 0, _end = -1;
+			private readonly List<Token> _tokens = new List<Token>();
+			private readonly string _command;
+			private char _currentChar;
+			private readonly Dictionary<char, System.Action<TokenParsing>> _perCharacterAction;
+			private static readonly Dictionary<char, System.Action<TokenParsing>> DefaultPerCharacterAction;
+			private readonly string _escapeSequence;
 
-		public static IList<Token> SplitTokens(string command, string delimiters, string whitespace, string literalTokens, string escapeSequence) {
-			return new ParseState(command, delimiters, whitespace, literalTokens, escapeSequence).SplitTokens();
-		}
-
-		public static IList<Token> SplitTokens(string command) => new ParseState(command).SplitTokens();
-
-		private class ParseState {
-			char readingLiteralToken = '\0';
-			int i, start = 0, end = -1;
-			List<Token> tokens = new List<Token>();
-			string command;
-			char c;
-			Dictionary<char, System.Action<ParseState>> perCharacterAction;
-			static Dictionary<char, System.Action<ParseState>> DefaultPerCharacterAction;
-			private string _escapeSequence;
-
-			static ParseState() {
-				DefaultPerCharacterAction = new Dictionary<char, System.Action<ParseState>>();
-				System.Array.ForEach(",:{}[]()".ToCharArray(), c => DefaultPerCharacterAction[c] = ReadDelimiter);
-				System.Array.ForEach(" \n\t".ToCharArray(), c => DefaultPerCharacterAction[c] = ReadWhitespace);
-				System.Array.ForEach("\"\'".ToCharArray(), c => DefaultPerCharacterAction[c] = ReadLiteralToken);
-				System.Array.ForEach("\\".ToCharArray(), c => DefaultPerCharacterAction[c] = ReadEscapeSequence);
+			static TokenParsing() {
+				DefaultPerCharacterAction = InitializeDefaultActions();
 			}
 
-			public ParseState(string command, string delimiters, string whitespace, string literalTokens, string escapeSequence) {
-				this.command = command;
-				perCharacterAction = new Dictionary<char, System.Action<ParseState>>();
-				System.Array.ForEach(delimiters.ToCharArray(), c => perCharacterAction[c] = ReadDelimiter);
-				System.Array.ForEach(whitespace.ToCharArray(), c => perCharacterAction[c] = ReadWhitespace);
-				System.Array.ForEach(literalTokens.ToCharArray(), c => perCharacterAction[c] = ReadLiteralToken);
-				System.Array.ForEach(escapeSequence.ToCharArray(), c => perCharacterAction[c] = ReadEscapeSequence);
+			private static Dictionary<char, System.Action<TokenParsing>> InitializeDefaultActions() {
+				var actions = new Dictionary<char, System.Action<TokenParsing>>();
+				foreach (char c in ",:{}[]()") actions[c] = ReadDelimiter;
+				foreach (char c in " \n\t") actions[c] = ReadWhitespace;
+				foreach (char c in "\"\'") actions[c] = ReadLiteralToken;
+				actions['\\'] = ReadEscapeSequence;
+				return actions;
 			}
 
-			public ParseState(string command) {
-				this.command = command;
-				perCharacterAction = DefaultPerCharacterAction;
+			public TokenParsing(string command, string delimiters, string whitespace, string literalTokens, string escapeSequence) {
+				_command = command;
+				_perCharacterAction = new Dictionary<char, System.Action<TokenParsing>>();
+				InitializeActions(delimiters, ReadDelimiter);
+				InitializeActions(whitespace, ReadWhitespace);
+				InitializeActions(literalTokens, ReadLiteralToken);
+				InitializeActions(escapeSequence, ReadEscapeSequence);
 			}
 
-			private static void ReadEscapeSequence(ParseState self) => self.ReadEscapeSequence();
-			private static void ReadDelimiter(ParseState self) => self.ReadDelimiter();
-			private static void ReadLiteralToken(ParseState self) => self.ReadLiteralToken();
-			private static void ReadWhitespace(ParseState self) => self.ReadWhitespace();
-			private static void ReadTokenCharacter(ParseState self) => self.ReadTokenCharacter();
+			private void InitializeActions(string characters, System.Action<TokenParsing> action) {
+				foreach (char c in characters) {
+					_perCharacterAction[c] = action;
+				}
+			}
 
-			private bool IsReadingLiteral => readingLiteralToken != '\0';
+			public TokenParsing(string command) {
+				this._command = command;
+				_perCharacterAction = DefaultPerCharacterAction;
+			}
+
+			private static void ReadEscapeSequence(TokenParsing self) => self.HandleEscapeSequence();
+			private static void ReadDelimiter(TokenParsing self) => self.HandleDelimiter();
+			private static void ReadLiteralToken(TokenParsing self) => self.HandleLiteralToken();
+			private static void ReadWhitespace(TokenParsing self) => self.HandleWhitespace();
+
+			private bool IsReadingLiteral => _readingLiteralToken != '\0';
 
 			public IList<Token> SplitTokens() {
-				for (i = 0; i < command.Length; i++) {
-					c = command[i];
-					if (perCharacterAction.TryGetValue(c, out System.Action<ParseState> action)) {
+				for (_index = 0; _index < _command.Length; _index++) {
+					_currentChar = _command[_index];
+					if (_perCharacterAction.TryGetValue(_currentChar, out var action)) {
 						action.Invoke(this);
 					} else {
-						ReadTokenCharacter();
+						HandleTokenCharacter();
 					}
 				}
-				if (start >= 0 && end < 0) {
-					readingLiteralToken = '\0';
-					ReadWhitespace();
+				if (_start >= 0 && _end < 0) {
+					_readingLiteralToken = '\0';
+					HandleWhitespace();
 				}
-				return tokens;
+				return _tokens;
 			}
 
-			private void ReadWhitespace() {
+			private void HandleWhitespace() {
 				if (IsReadingLiteral) { return; }
-				if (end < 0 && start >= 0) {
-					end = i;
-					int len = end - start;
-					if (len > 0) {
-						tokens.Add(new Token(command.Substring(start, len), start));
-					}
-					start = -1;
-					end = -1;
+				if (_end < 0 && _start >= 0) {
+					_end = _index;
+					AddTokenIfNotEmpty(_start, _end);
+					ResetIndices();
 				}
 			}
 
-			private void ReadLiteralToken() {
-				if (!IsReadingLiteral) {
-					readingLiteralToken = c;
-					tokens.Add(new Token(c, Token.Kind.TokBeg, i));
-					start = i + 1;
-				} else if (readingLiteralToken == c) {
-					end = i;
-					int len = end - start;
-					// TODO replace all escape sequence characters...
-					string substring = command.Substring(start, len).Replace("\\", "");
-					tokens.Add(new Token(substring, Token.Kind.Text, start));
-					tokens.Add(new Token(c, Token.Kind.TokEnd, i));
-					start = -1;
-					end = -1;
-					readingLiteralToken = '\0';
-				}
-			}
-
-			private void ReadDelimiter() {
-				if (IsReadingLiteral) { return; }
-				end = i;
-				if (start < 0) {
-					start = end;
-				}
+			private void AddTokenIfNotEmpty(int start, int end) {
 				int len = end - start;
 				if (len > 0) {
-					tokens.Add(new Token(command.Substring(start, len), Token.Kind.Text, start));
+					_tokens.Add(new Token(_command.Substring(start, len), start));
 				}
-				tokens.Add(new Token(c, Token.Kind.Delim, i));
-				start = -1;
-				end = -1;
 			}
 
-			private void ReadEscapeSequence() {
+			private void ResetIndices() {
+				_start = -1;
+				_end = -1;
+			}
+
+			private void HandleLiteralToken() {
+				if (!IsReadingLiteral) {
+					_readingLiteralToken = _currentChar;
+					_tokens.Add(new Token(_currentChar, Token.Kind.TokBeg, _index));
+					_start = _index + 1;
+				} else if (_readingLiteralToken == _currentChar) {
+					_end = _index;
+					string substring = GetTokenSubstring(_start, _end).Replace("\\", "");
+					_tokens.Add(new Token(substring, Token.Kind.Text, _start));
+					_tokens.Add(new Token(_currentChar, Token.Kind.TokEnd, _index));
+					ResetIndices();
+					_readingLiteralToken = '\0';
+				}
+			}
+
+			private string GetTokenSubstring(int start, int end) {
+				return _command.Substring(start, end - start);
+			}
+
+			private void HandleDelimiter() {
+				if (IsReadingLiteral) { return; }
+				_end = _index;
+				if (_start < 0) {
+					_start = _end;
+				}
+				AddTokenIfNotEmpty(_start, _end);
+				_tokens.Add(new Token(_currentChar, Token.Kind.Delim, _index));
+				ResetIndices();
+			}
+
+			private void HandleEscapeSequence() {
 				if (!IsReadingLiteral) { return; }
-				++i;
+				++_index;
 			}
 
-			private void ReadTokenCharacter() {
-				if (start >= 0) { return; }
-				start = i;
+			private void HandleTokenCharacter() {
+				if (_start >= 0) { return; }
+				_start = _index;
 			}
 		}
 
 		public enum ErrorKind {
-			None, UnexpectedInitialToken, MissingEndToken, UnexpectedDelimiter, MissingDictionaryKey, MissingDictionaryValue, UnexpectedToken
+			None, Success, UnexpectedInitialToken, MissingEndToken, UnexpectedDelimiter, MissingDictionaryKey, MissingDictionaryValue, UnexpectedToken
 		}
 
-		public struct Error {
+		public struct ParseResult {
 			public ErrorKind kind;
-			public int index;
-			public Error(ErrorKind kind, int index) { this.kind = kind; this.index = index; }
-			public static Error None = new Error(ErrorKind.None, -1);
-			public override string ToString() => $"{kind}@{index}";
+			public int TextIndex;
+			public bool IsError => kind switch { ErrorKind.None => false, ErrorKind.Success => false, _ => true };
+			public ParseResult(ErrorKind kind, int textIndex) { this.kind = kind; this.TextIndex = textIndex; }
+			public static ParseResult None = new ParseResult(ErrorKind.None, -1);
+			public override string ToString() => $"{kind}@{TextIndex}";
 		}
 
-		public static object ParseText(string text, out Error error) {
-			IList<Token> tokens = new ParseState(text).SplitTokens();
-			int index = 0;
-			return ParseTokens(tokens, ref index, out error);
+		public static object ParseText(string text, out ParseResult error) {
+			IList<Token> tokens = new TokenParsing(text).SplitTokens();
+			int tokenIndex = 0;
+			object result = ParseTokens(tokens, ref tokenIndex, out error);
+			if (error.kind == ErrorKind.None) {
+				error.kind = ErrorKind.Success;
+			}
+			return result;
 		}
 
-		public static object ParseTokens(IList<Token> tokens, ref int index, out Error error) {
-			Token token = tokens[index];
-			error = Error.None;
+		public static object ParseTokens(IList<Token> tokens, ref int tokenIndex, out ParseResult error) {
+			Token token = tokens[tokenIndex];
+			error = ParseResult.None;
 			switch (token.kind) {
 				case Token.Kind.Delim:
-					switch (token.text) {
-						case "[": return ParseArray(tokens, ref index, out error);
-						case "{": return ParseDictionary(tokens, ref index, out error);
-						default:
-							error = new Error(ErrorKind.UnexpectedDelimiter, token.index);
-							return null;
-					}
+					return token.Text switch {
+						"[" => ParseArray(tokens, ref tokenIndex, out error),
+						"{" => ParseDictionary(tokens, ref tokenIndex, out error),
+						_ => SetErrorAndReturnNull(ErrorKind.UnexpectedDelimiter, token, ref error)
+					};
 				case Token.Kind.Text:
 					return token;
 			}
-			error = new Error(ErrorKind.UnexpectedToken, token.index);
+			return SetErrorAndReturnNull(ErrorKind.UnexpectedToken, token, ref error);
+		}
+
+		private static object SetErrorAndReturnNull(ErrorKind kind, Token token, ref ParseResult error) {
+			error = new ParseResult(kind, token.TextIndex);
 			return null;
 		}
 
-		public static IList ParseArray(IList<Token> tokens, ref int index, out Error error) {
-			Token token = tokens[index];
-			if (token.kind != Token.Kind.Delim || token.text != "[") {
-				error = new Error(ErrorKind.UnexpectedInitialToken, token.index);
+		public static IList ParseArray(IList<Token> tokens, ref int tokenIndex, out ParseResult error) {
+			Token token = tokens[tokenIndex];
+			error = ParseResult.None;
+			if (!IsExpectedDelimiter(token, "[", ref error)) {
 				return null;
 			}
-			++index;
-			error = Error.None;
+			++tokenIndex;
 			List<object> arrayValue = new List<object>();
 			int loopguard = 0;
-			while (index < tokens.Count) {
-				token = tokens[index];
-				if (loopguard++ > 10000) {
-					throw new System.Exception($"broke @{token.index}!");
+			while (tokenIndex < tokens.Count) {
+				token = tokens[tokenIndex];
+				if (++loopguard > 10000) {
+					throw new System.Exception($"Parsing loop exceeded at token {token.TextIndex}!");
 				}
-				switch (token.kind) {
-					case Token.Kind.None:
-					case Token.Kind.TokBeg:
-					case Token.Kind.TokEnd:
-						++index;
-						continue;
-					case Token.Kind.Delim:
-						switch (token.text) {
-							case "]":
-								++index;
-								return arrayValue;
-							case "[":
-								IList subArray = ParseArray(tokens, ref index, out error);
-								arrayValue.Add(subArray);
-								if (error.kind != ErrorKind.None) {
-									return arrayValue;
-								}
-								continue;
-							case "{":
-								IDictionary subDictionary = ParseDictionary(tokens, ref index, out error);
-								arrayValue.Add(subDictionary);
-								if (error.kind != ErrorKind.None) {
-									return arrayValue;
-								}
-								continue;
-							case "}":
-								error = new Error(ErrorKind.UnexpectedDelimiter, token.index);
-								return arrayValue;
-						}
-						break;
+				ParseArrayElement(arrayValue, tokens, ref tokenIndex, ref error, out bool finished);
+				if (finished) {
+					return arrayValue;
 				}
-				arrayValue.Add(token);
-				++index;
 			}
-			token = tokens[tokens.Count - 1];
-			error = new Error(ErrorKind.MissingEndToken, token.index + token.text.Length);
+			error = new ParseResult(ErrorKind.MissingEndToken, token.TextEndIndex);
 			return arrayValue;
 		}
 
-		public static IDictionary ParseDictionary(IList<Token> tokens, ref int index, out Error error) {
-			Token token = tokens[index];
-			if (token.kind != Token.Kind.Delim || token.text != "{") {
-				error = new Error(ErrorKind.UnexpectedInitialToken, token.index);
+		public static IDictionary ParseDictionary(IList<Token> tokens, ref int tokenIndex, out ParseResult error) {
+			Token token = tokens[tokenIndex];
+			error = ParseResult.None;
+			if (!IsExpectedDelimiter(token, "{", ref error)) {
 				return null;
 			}
-			++index;
-			error = Error.None; 
+			++tokenIndex;
+			error = ParseResult.None;
 			OrderedDictionary dictionaryValue = new OrderedDictionary();
-			bool isReadingKey = true;
 			object key = null, value = null;
 			int loopguard = 0;
-			while (index < tokens.Count) {
-				token = tokens[index];
+			while (tokenIndex < tokens.Count) {
+				token = tokens[tokenIndex];
 				if (loopguard++ > 10000) {
-					throw new System.Exception($"broke @{token.index}!");
+					throw new System.Exception($"Parsing loop exceeded at token {token.TextIndex}!");
 				}
-				switch (token.kind) {
-					case Token.Kind.Delim:
-						switch (token.text) {
-							case ":":
-								if (isReadingKey) {
-									error = new Error(ErrorKind.MissingDictionaryKey, token.index);
-									return dictionaryValue;
-								}
-								++index;
-								continue;
-							case ",":
-								if (!isReadingKey) {
-									error = new Error(ErrorKind.MissingDictionaryValue, token.index);
-									return dictionaryValue;
-								}
-								++index;
-								continue;
-							case "[":
-								IList subArray = ParseArray(tokens, ref index, out error);
-								if (isReadingKey) {
-									key = subArray;
-								} else {
-									value = subArray;
-								}
-								break;
-							case "{":
-								IDictionary subDictionary = ParseDictionary(tokens, ref index, out error);
-								if (isReadingKey) {
-									key = subDictionary;
-								} else {
-									value = subDictionary;
-								}
-								break;
-							case "}":
-								++index;
-								return dictionaryValue;
-							case "]":
-								error = new Error(ErrorKind.UnexpectedDelimiter, token.index);
-								return dictionaryValue;
-							default:
-								++index;
-								break;
-						}
-						break;
-					case Token.Kind.TokBeg:
-					case Token.Kind.TokEnd:
-						++index;
-						continue;
-					default:
-						value = token;
-						++index;
-						break;
-				}
-				if (isReadingKey) {
-					key = token;
-				} else {
+				ParseDictionaryElement(ref key, ref value, tokens, ref tokenIndex, ref error, out bool finished);
+				if (finished) { return dictionaryValue; }
+				if (key != null && value != null) {
 					dictionaryValue[key] = value;
+					key = value = null;
 				}
-				isReadingKey = !isReadingKey;
 			}
 			return dictionaryValue;
 		}
 
+		private static bool IsExpectedDelimiter(Token token, string expected, ref ParseResult error) {
+			if (token.kind == Token.Kind.Delim && token.Text == expected) {
+				return true;
+			}
+			error = new ParseResult(ErrorKind.UnexpectedDelimiter, token.TextIndex);
+			return false;
+		}
+
+		private static void ParseArrayElement(List<object> arrayValue, IList<Token> tokens, ref int tokenIndex, ref ParseResult error, out bool finished) {
+			Token token = tokens[tokenIndex];
+			finished = false;
+			switch (token.kind) {
+				case Token.Kind.None:
+				case Token.Kind.TokBeg:
+				case Token.Kind.TokEnd: ++tokenIndex; break;
+				case Token.Kind.Text: arrayValue.Add(token); ++tokenIndex; break;
+				case Token.Kind.Delim: ParseArrayDelim(arrayValue, tokens, ref tokenIndex, ref error, out finished); break;
+				default: error = new ParseResult(ErrorKind.UnexpectedToken, token.TextEndIndex); finished = true; break;
+			}
+		}
+
+		private static void ParseDictionaryElement(ref object key, ref object value, IList<Token> tokens, ref int tokenIndex, ref ParseResult error, out bool finished) {
+			Token token = tokens[tokenIndex];
+			finished = false;
+			switch (token.kind) {
+				case Token.Kind.None:
+				case Token.Kind.TokBeg:
+				case Token.Kind.TokEnd: ++tokenIndex; break;
+				case Token.Kind.Text: if (key == null) { key = token; } else { value = token; } ++tokenIndex; break;
+				case Token.Kind.Delim: ParseKeyValuePairDelim(ref key, ref value, tokens, ref tokenIndex, ref error, out finished); break;
+				default: error = new ParseResult(ErrorKind.UnexpectedDelimiter, token.TextIndex); break;
+			}
+		}
+
+		private static void ParseArrayDelim(List<object> arrayValue, IList<Token> tokens, ref int tokenIndex, ref ParseResult error, out bool finished) {
+			finished = false;
+			switch (tokens[tokenIndex].Text) {
+				case ",": ++tokenIndex; break;
+				case "]": ++tokenIndex; finished = true; break;
+				case "[": arrayValue.Add(ParseArray(tokens, ref tokenIndex, out error)); break;
+				case "{": arrayValue.Add(ParseDictionary(tokens, ref tokenIndex, out error)); break;
+				default: error = new ParseResult(ErrorKind.UnexpectedDelimiter, tokens[tokenIndex].TextIndex); break;
+			}
+			if (error.kind != ErrorKind.None) { finished = true; }
+		}
+
+		public static void ParseKeyValuePairDelim(ref object key, ref object value, IList<Token> tokens, ref int tokenIndex, ref ParseResult error, out bool finished) {
+			Token token = tokens[tokenIndex];
+			finished = false;
+			if (key == null) {
+				switch (token.Text) {
+					case ":": error = new ParseResult(ErrorKind.MissingDictionaryKey, token.TextIndex); break;
+					case ",": ++tokenIndex; break;
+					case "[": key = ParseArray(tokens, ref tokenIndex, out error); break;
+					case "{": key = ParseDictionary(tokens, ref tokenIndex, out error); break;
+					case "}": ++tokenIndex; finished = true; break;
+					default: error = new ParseResult(ErrorKind.UnexpectedDelimiter, token.TextIndex); break;
+				}
+			} else {
+				switch (token.Text) {
+					case ":": ++tokenIndex; break;
+					case ",": error = new ParseResult(ErrorKind.MissingDictionaryValue, token.TextIndex); break;
+					case "[": value = ParseArray(tokens, ref tokenIndex, out error); break;
+					case "{": value = ParseDictionary(tokens, ref tokenIndex, out error); break;
+					case "}": error = new ParseResult(ErrorKind.UnexpectedDelimiter, token.TextIndex); break;
+					default: error = new ParseResult(ErrorKind.UnexpectedDelimiter, token.TextIndex); break;
+				}
+			}
+			if (error.IsError) {
+				finished = true;
+			}
+		}
+
 		public static string ToString(object parsedToken, int indent = 0, bool includeWhitespace = true) {
 			StringBuilder sb = new StringBuilder();
-			StringBuilder Indent() {
-				for (int i = 0; i < indent; ++i) { sb.Append("  "); }
-				return sb;
-			}
 			switch (parsedToken) {
-				case Token tok:
-					sb.Append("\"").Append(tok.text).Append("\"");
-					break;
-				case IList<object> list:
-					sb.Append("[");
-					for (int i = 0; i < list.Count; ++i) {
-						if (i > 0) {
-							sb.Append(includeWhitespace ? ", " : ",");
-						}
-						sb.Append(ToString(list[i], indent + 1, includeWhitespace));
-					}
-					sb.Append("]");
-					break;
-				case IDictionary dict:
-					sb.Append("{");
-					++indent;
-					bool addedOne = false;
-					foreach (DictionaryEntry kvp in dict) {
-						if (addedOne) { sb.Append(","); }
-						if (includeWhitespace) {
-							sb.Append("\n");
-							Indent();
-						}
-						sb.Append(ToString(kvp.Key, indent + 1, includeWhitespace))
-							.Append(includeWhitespace?" : ":":").Append(ToString(kvp.Value, indent + 1));
-						addedOne = true;
-					}
-					--indent;
-					if (includeWhitespace) {
-						sb.Append("\n");
-						Indent();
-					}
-					sb.Append(includeWhitespace?"}\n":"}");
-					break;
+				case Token token:        ToStringToken(sb, token); break;
+				case IList<object> list: ToStringArray(sb, list, indent, includeWhitespace); break;
+				case IDictionary dict:   ToStringDictionary(sb, dict, indent, includeWhitespace); break;
 			}
 			return sb.ToString();
+		}
+
+		private static void ToStringToken(StringBuilder sb, Token tok) => sb.Append("\"").Append(tok.Text).Append("\"");
+
+		private static void ToStringArray(StringBuilder sb, IList<object> list, int indent, bool includeWhitespace) {
+			sb.Append("[");
+			for (int i = 0; i < list.Count; ++i) {
+				if (i > 0) {
+					sb.Append(includeWhitespace ? ", " : ",");
+				}
+				sb.Append(ToString(list[i], indent + 1, includeWhitespace));
+			}
+			sb.Append("]");
+		}
+
+		private static void ToStringDictionary(StringBuilder sb, IDictionary dict, int indent, bool includeWhitespace) {
+			sb.Append("{");
+			++indent;
+			bool addedOne = false;
+			foreach (DictionaryEntry kvp in dict) {
+				if (addedOne) { sb.Append(","); }
+				PossibleWhiteSpaceAfterKeyValuePair();
+				sb.Append(ToString(kvp.Key, indent + 1, includeWhitespace))
+					.Append(includeWhitespace ? " : " : ":").Append(ToString(kvp.Value, indent + 1));
+				addedOne = true;
+			}
+			--indent;
+			PossibleWhiteSpaceAfterKeyValuePair();
+			sb.Append(includeWhitespace ? "}\n" : "}");
+			
+			void PossibleWhiteSpaceAfterKeyValuePair() {
+				if (!includeWhitespace) { return; }
+				sb.Append("\n");
+				for (int i = 0; i < indent; ++i) { sb.Append("  "); }
+			}
 		}
 	}
 }

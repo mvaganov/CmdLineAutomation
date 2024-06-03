@@ -21,7 +21,7 @@ MonoBehaviour:
   _command:
     Description: "Create a new directory, run `dir` from inside, then delete the
       new\r directory."
-    Text: 'getchoice
+    Text: '# getchoice
 
       echo /*this is a very basic print function in the command
       line*/ start!
@@ -65,3 +65,4 @@ MonoBehaviour:
       Ignore: 0
     - Text: echo done!
       Ignore: 0
+  _recapOutputAtEnd: 0

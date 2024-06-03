@@ -49,11 +49,15 @@ namespace RunCmd {
 		public string CommandToken => this.name;
 		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
 			UpdateMousePosition();
-			object parsed = Parse.ParseText($"[{command}]", out Parse.Error err);
-			if (err.kind != Parse.ErrorKind.None) {
-				stdOutput.Invoke($"line {err.index}: {err.kind}");
+			object parsed = Parse.ParseText($"[{command}]", out Parse.ParseResult err);
+			if (err.IsError) {
+				string errorMessage = $"error @{err.TextIndex}: {err.kind}";
+				Debug.LogError(errorMessage);
+				stdOutput.Invoke(errorMessage);
 				return;
 			}
+			Debug.Log(Parse.ToString(parsed));
+			//return;
 			IList arguments = parsed as IList;
 			string  message = (arguments.Count > 1) ? (Parse.Token)arguments[1] : (Parse.Token)_defaultMessage;
 			IDictionary args = (arguments.Count > 2) ? arguments[2] as IDictionary : DefaultChoiceDitionary();
@@ -72,12 +76,12 @@ namespace RunCmd {
 			foreach (DictionaryEntry entry in args) {
 				Parse.Token token = (Parse.Token)entry.Key;
 				Parse.Token value = (Parse.Token)entry.Value;
-				argsOptions.Add(token.text);
+				argsOptions.Add(token.Text);
 				int index = entryIndex;
 				argsActions.Add(() => {
 					onChoiceMade?.Invoke(index);
 					CommandAutomation commandAutomation = context as CommandAutomation;
-					commandAutomation.InsertNextCommandToExecute(context, value.text);
+					commandAutomation.InsertNextCommandToExecute(context, value.Text);
 				});
 				++entryIndex;
 			}
@@ -129,7 +133,9 @@ namespace RunCmd {
 
 		public override void RemoveExecutionData(object context) {
 			Execution exec = GetExecutionData(context);
-			exec.choiceWindow.CloseChoiceWindow();
+			if (exec != null && exec.choiceWindow != null) {
+				exec.choiceWindow.CloseChoiceWindow();
+			}
 			base.RemoveExecutionData(context);
 		}
 

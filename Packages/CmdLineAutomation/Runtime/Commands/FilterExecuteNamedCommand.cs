@@ -54,8 +54,13 @@ namespace RunCmd {
 				currentCommand = null;
 			}
 
+			public static string GetFirstToken(string command) {
+				int index = command.IndexOf(' ');
+				return index < 0 ? command : command.Substring(0, index);
+			}
+
 			private bool IsExecutionStoppedByNamedFunction(string command) {
-				string token = Parse.GetFirstToken(command);
+				string token = GetFirstToken(command);
 				//Debug.Log("=============" + command);
 				currentCommand = source.GetNamedCommand(token);
 				if (currentCommand == null) {

@@ -15,7 +15,7 @@ namespace RunCmd {
 		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
 			int now = Environment.TickCount;
 			SetExecutionData(context, new Data(now,now));
-			string[] args = Parse.Split(command);
+			string[] args = command.Split();
 			if (args.Length > 1) {
 				if (float.TryParse(args[1], out float seconds)) {
 					SetExecutionData(context, new Data(now, now + (int)(seconds * 1000)));

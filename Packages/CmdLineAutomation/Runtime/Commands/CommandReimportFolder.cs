@@ -7,7 +7,7 @@ namespace RunCmd {
 		protected override string CreateEmptyContextEntry(object context) => null;
 
 		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
-			string[] args = Parse.Split(command);
+			string[] args = command.Split();
 			if (args.Length > 1) {
 				SetExecutionData(context, args[1]);
 				CommandAutomation.DelayCall(() => ReimportCurrentPathFolder(context));
