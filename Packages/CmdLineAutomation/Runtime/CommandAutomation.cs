@@ -22,10 +22,23 @@ namespace RunCmd {
 		[SerializeField] protected UnityEngine.Object[] _commandFilters;
 
 		/// <summary>
+		/// Variables to read from command line input
+		/// </summary>
+		[SerializeField] protected RegexSearch[] _variablesFromCommandLineRegexSearch = new RegexSearch[] {
+			new RegexSearch("WindowsTerminalVersion", @"Microsoft Windows \[Version ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\]", new int[] { 1 }),
+			new RegexSearch("dir", CommandPromptRegex, null)
+		};
+
+		/// <summary>
 		/// Information about what these commands are for
 		/// </summary>
 		[ContextMenuItem(nameof(ParseCommands),nameof(ParseCommands))]
 		[SerializeField] protected TextCommand _command;
+
+		// TODO move this command line regex analysis to OperatingSystemCommandShell
+		// TODO make a data structure that can set variables by looking for specific regex patterns
+		private const string CommandPromptRegex =
+			"^[A-Z]:\\\\(?:[^\\\\/:*?\" <>|\\r\\n]+\\\\)*[^\\\\/:*? \"<>|\\r\\n]*>";
 
 		public bool _recapOutputAtEnd;
 
@@ -39,6 +52,8 @@ namespace RunCmd {
 		public IList<ICommandFilter> Filters => _filters;
 
 		public TextCommand TextCommandData => _command;
+
+		public IList<RegexSearch> VariablesFromCommandLineRegexSearch => _variablesFromCommandLineRegexSearch;
 
 		public string Commands
 		{

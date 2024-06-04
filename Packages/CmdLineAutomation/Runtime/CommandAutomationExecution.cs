@@ -55,57 +55,28 @@ namespace RunCmd {
 			/// </summary>
 			private StringBuilder outputToScan = new StringBuilder();
 
-			// TODO move this command line regex analysis to OperatingSystemCommandShell
-			// TODO make a data structure that can set variables by looking for specific regex patterns
-			private const string CommandPromptRegex =
-				"^[A-Z]:\\\\(?:[^\\\\/:*?\" <>|\\r\\n]+\\\\)*[^\\\\/:*? \"<>|\\r\\n]*>";
-
-			[System.Serializable] public class RegexSearch {
-				/// <summary>
-				/// Need help writing a regular expression? Ask ChatGPT! (I wonder how well this comment will age)
-				/// </summary>
-				public string Regex;
-				/// <summary>
-				/// leave empty to get the entire match
-				/// </summary>
-				public int[] GroupsToInclude;
-				public RegexSearch(string regex) : this(regex, null) { }
-				public RegexSearch(string regex, int[] groupsToInclude) {
-					Regex = regex;
-					GroupsToInclude = groupsToInclude;
-				}
-				public string Process(string input) {
-					Match m = System.Text.RegularExpressions.Regex.Match(input, Regex);
-					if (!m.Success) {
-						return null;
-					}
-					//Debug.LogWarning($"success {Regex}\n{input}\n{m.Value}");
-					if (GroupsToInclude == null || GroupsToInclude.Length == 0) {
-						return m.Value;
-					}
-					StringBuilder sb = new StringBuilder();
-					for(int i = 0; i < GroupsToInclude.Length; ++i) {
-						sb.Append(m.Groups[GroupsToInclude[i]]);
-					}
-					return sb.ToString();
-				}
-				public static implicit operator RegexSearch(string regex) => new RegexSearch(regex);
-			}
+			private Dictionary<string, RegexSearch> _regexSearches = new Dictionary<string, RegexSearch>();
 
 			private void OutputAnalysis(string fromProcess) {
-				Dictionary<string, RegexSearch> regexSearches = new Dictionary<string, RegexSearch>() {
-					["WindowsTerminalVersion"] = new RegexSearch(@"Microsoft Windows \[Version ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\]", new int[]{ 1 }),
-					["dir"] = CommandPromptRegex,
-				};
 				outputToScan.AppendLine(fromProcess);
 				stdOutput?.Invoke(fromProcess);
-				foreach (var kvp in regexSearches) {
+				foreach (var kvp in _regexSearches) {
 					string value = kvp.Value.Process(fromProcess);
 					if (value != null) {
-						Debug.LogWarning($"success {kvp.Key}\n{fromProcess}\n{value}");
+						int index = FindIndex(source.VariablesFromCommandLineRegexSearch, 0, r => r.Name == kvp.Key);
+						if (index >= 0) {
+							source.VariablesFromCommandLineRegexSearch[index].RuntimeValue = value;
+						}
 					}
 				}
+				int FindIndex<T>(IList<T> source, int startIndex, System.Func<T, bool> predicate) {
+					for (int i = startIndex; i < source.Count; i++) {
+						if (predicate.Invoke(source[i])) { return i; }
+					}
+					return -1;
+				}
 			}
+
 
 			public IList<ParsedTextCommand> CommandsToDo {
 				get {
@@ -161,7 +132,16 @@ namespace RunCmd {
 				cancelled = false;
 				modifiedTextCommand = null;
 				commandExecutingIndex = 0;
+				RefreshRegexSearch();
 				RunEachCommandInSequence();
+			}
+
+			private void RefreshRegexSearch() {
+				_regexSearches.Clear();
+				for (int i = 0; i < source.VariablesFromCommandLineRegexSearch.Count; ++i) {
+					RegexSearch regexSearch = source.VariablesFromCommandLineRegexSearch[i];
+					_regexSearches[regexSearch.Name] = regexSearch;
+				}
 			}
 
 			public void InsertNextCommandToExecute(string command) {
