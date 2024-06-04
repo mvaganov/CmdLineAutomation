@@ -2,26 +2,27 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace RunCmd {
 	/// <summary>
-	/// parse lists and dictionaries
+	/// Parse lists and dictionaries into <see cref="IList"/>
 	/// </summary>
 	public static class Parse {
 		public struct Token {
 			public enum Kind { None, Text, Delim, TokBeg, TokEnd }
 			public string Text;
-			public Kind kind;
+			public Kind TokenKind;
 			public int TextIndex;
 			public int TextEndIndex => TextIndex + Text.Length;
-			public Token(string text, Kind kind, int textIndex) { this.Text = text; this.kind = kind; this.TextIndex = textIndex; }
+			public Token(string text, Kind kind, int textIndex) { Text = text; TokenKind = kind; TextIndex = textIndex; }
 			public Token(char letter, Kind kind, int textIndex) : this(letter.ToString(), kind, textIndex) { }
 			public Token(string text, int textIndex) : this(text, Kind.Text, textIndex) { }
 			public static implicit operator Token(string text) => new Token(text, -1);
 			public static implicit operator string(Token token) => token.Text;
-			public override string ToString() => TextIndex >= 0 ? $"({kind}){Text}@{TextIndex}" : Text;
+			public override string ToString() => TextIndex >= 0 ? $"({TokenKind}){Text}@{TextIndex}" : Text;
 			public override int GetHashCode() => Text.GetHashCode();
-			public override bool Equals(object obj) => obj is Token t && t.kind == kind && t.Text == Text;
+			public override bool Equals(object obj) => obj is Token t && t.TokenKind == TokenKind && t.Text == Text;
 		}
 
 		private class TokenParsing {
@@ -32,7 +33,6 @@ namespace RunCmd {
 			private char _currentChar;
 			private readonly Dictionary<char, System.Action<TokenParsing>> _perCharacterAction;
 			private static readonly Dictionary<char, System.Action<TokenParsing>> DefaultPerCharacterAction;
-			private readonly string _escapeSequence;
 
 			static TokenParsing() {
 				DefaultPerCharacterAction = InitializeDefaultActions();
@@ -63,7 +63,7 @@ namespace RunCmd {
 			}
 
 			public TokenParsing(string command) {
-				this._command = command;
+				_command = command;
 				_perCharacterAction = DefaultPerCharacterAction;
 			}
 
@@ -100,10 +100,8 @@ namespace RunCmd {
 			}
 
 			private void AddTokenIfNotEmpty(int start, int end) {
-				int len = end - start;
-				if (len > 0) {
-					_tokens.Add(new Token(_command.Substring(start, len), start));
-				}
+				if (end <= start) { return; }
+				_tokens.Add(GetTokenSubstring(start, end));
 			}
 
 			private void ResetIndices() {
@@ -118,7 +116,7 @@ namespace RunCmd {
 					_start = _index + 1;
 				} else if (_readingLiteralToken == _currentChar) {
 					_end = _index;
-					string substring = GetTokenSubstring(_start, _end).Replace("\\", "");
+					string substring = Regex.Unescape(GetTokenSubstring(_start, _end));
 					_tokens.Add(new Token(substring, Token.Kind.Text, _start));
 					_tokens.Add(new Token(_currentChar, Token.Kind.TokEnd, _index));
 					ResetIndices();
@@ -152,25 +150,25 @@ namespace RunCmd {
 			}
 		}
 
-		public enum ErrorKind {
-			None, Success, UnexpectedInitialToken, MissingEndToken, UnexpectedDelimiter, MissingDictionaryKey, MissingDictionaryValue, UnexpectedToken
-		}
 
 		public struct ParseResult {
-			public ErrorKind kind;
+			public enum Kind {
+				None, Success, UnexpectedInitialToken, MissingEndToken, UnexpectedDelimiter, MissingDictionaryKey, MissingDictionaryValue, UnexpectedToken
+			}
+			public Kind ResultKind;
 			public int TextIndex;
-			public bool IsError => kind switch { ErrorKind.None => false, ErrorKind.Success => false, _ => true };
-			public ParseResult(ErrorKind kind, int textIndex) { this.kind = kind; this.TextIndex = textIndex; }
-			public static ParseResult None = new ParseResult(ErrorKind.None, -1);
-			public override string ToString() => $"{kind}@{TextIndex}";
+			public bool IsError => ResultKind switch { Kind.None => false, Kind.Success => false, _ => true };
+			public ParseResult(Kind kind, int textIndex) { this.ResultKind = kind; this.TextIndex = textIndex; }
+			public static ParseResult None = new ParseResult(Kind.None, -1);
+			public override string ToString() => $"{ResultKind}@{TextIndex}";
 		}
 
 		public static object ParseText(string text, out ParseResult error) {
 			IList<Token> tokens = new TokenParsing(text).SplitTokens();
 			int tokenIndex = 0;
 			object result = ParseTokens(tokens, ref tokenIndex, out error);
-			if (error.kind == ErrorKind.None) {
-				error.kind = ErrorKind.Success;
+			if (error.ResultKind == ParseResult.Kind.None) {
+				error.ResultKind = ParseResult.Kind.Success;
 			}
 			return result;
 		}
@@ -178,20 +176,20 @@ namespace RunCmd {
 		public static object ParseTokens(IList<Token> tokens, ref int tokenIndex, out ParseResult error) {
 			Token token = tokens[tokenIndex];
 			error = ParseResult.None;
-			switch (token.kind) {
+			switch (token.TokenKind) {
 				case Token.Kind.Delim:
 					return token.Text switch {
 						"[" => ParseArray(tokens, ref tokenIndex, out error),
 						"{" => ParseDictionary(tokens, ref tokenIndex, out error),
-						_ => SetErrorAndReturnNull(ErrorKind.UnexpectedDelimiter, token, ref error)
+						_ => SetErrorAndReturnNull(ParseResult.Kind.UnexpectedDelimiter, token, ref error)
 					};
 				case Token.Kind.Text:
 					return token;
 			}
-			return SetErrorAndReturnNull(ErrorKind.UnexpectedToken, token, ref error);
+			return SetErrorAndReturnNull(ParseResult.Kind.UnexpectedToken, token, ref error);
 		}
 
-		private static object SetErrorAndReturnNull(ErrorKind kind, Token token, ref ParseResult error) {
+		private static object SetErrorAndReturnNull(ParseResult.Kind kind, Token token, ref ParseResult error) {
 			error = new ParseResult(kind, token.TextIndex);
 			return null;
 		}
@@ -215,7 +213,7 @@ namespace RunCmd {
 					return arrayValue;
 				}
 			}
-			error = new ParseResult(ErrorKind.MissingEndToken, token.TextEndIndex);
+			error = new ParseResult(ParseResult.Kind.MissingEndToken, token.TextEndIndex);
 			return arrayValue;
 		}
 
@@ -246,36 +244,36 @@ namespace RunCmd {
 		}
 
 		private static bool IsExpectedDelimiter(Token token, string expected, ref ParseResult error) {
-			if (token.kind == Token.Kind.Delim && token.Text == expected) {
+			if (token.TokenKind == Token.Kind.Delim && token.Text == expected) {
 				return true;
 			}
-			error = new ParseResult(ErrorKind.UnexpectedDelimiter, token.TextIndex);
+			error = new ParseResult(ParseResult.Kind.UnexpectedDelimiter, token.TextIndex);
 			return false;
 		}
 
 		private static void ParseArrayElement(List<object> arrayValue, IList<Token> tokens, ref int tokenIndex, ref ParseResult error, out bool finished) {
 			Token token = tokens[tokenIndex];
 			finished = false;
-			switch (token.kind) {
+			switch (token.TokenKind) {
 				case Token.Kind.None:
 				case Token.Kind.TokBeg:
 				case Token.Kind.TokEnd: ++tokenIndex; break;
 				case Token.Kind.Text: arrayValue.Add(token); ++tokenIndex; break;
 				case Token.Kind.Delim: ParseArrayDelim(arrayValue, tokens, ref tokenIndex, ref error, out finished); break;
-				default: error = new ParseResult(ErrorKind.UnexpectedToken, token.TextEndIndex); finished = true; break;
+				default: error = new ParseResult(ParseResult.Kind.UnexpectedToken, token.TextEndIndex); finished = true; break;
 			}
 		}
 
 		private static void ParseDictionaryElement(ref object key, ref object value, IList<Token> tokens, ref int tokenIndex, ref ParseResult error, out bool finished) {
 			Token token = tokens[tokenIndex];
 			finished = false;
-			switch (token.kind) {
+			switch (token.TokenKind) {
 				case Token.Kind.None:
 				case Token.Kind.TokBeg:
 				case Token.Kind.TokEnd: ++tokenIndex; break;
 				case Token.Kind.Text: if (key == null) { key = token; } else { value = token; } ++tokenIndex; break;
 				case Token.Kind.Delim: ParseKeyValuePairDelim(ref key, ref value, tokens, ref tokenIndex, ref error, out finished); break;
-				default: error = new ParseResult(ErrorKind.UnexpectedDelimiter, token.TextIndex); break;
+				default: error = new ParseResult(ParseResult.Kind.UnexpectedDelimiter, token.TextIndex); break;
 			}
 		}
 
@@ -286,9 +284,9 @@ namespace RunCmd {
 				case "]": ++tokenIndex; finished = true; break;
 				case "[": arrayValue.Add(ParseArray(tokens, ref tokenIndex, out error)); break;
 				case "{": arrayValue.Add(ParseDictionary(tokens, ref tokenIndex, out error)); break;
-				default: error = new ParseResult(ErrorKind.UnexpectedDelimiter, tokens[tokenIndex].TextIndex); break;
+				default: error = new ParseResult(ParseResult.Kind.UnexpectedDelimiter, tokens[tokenIndex].TextIndex); break;
 			}
-			if (error.kind != ErrorKind.None) { finished = true; }
+			if (error.ResultKind != ParseResult.Kind.None) { finished = true; }
 		}
 
 		public static void ParseKeyValuePairDelim(ref object key, ref object value, IList<Token> tokens, ref int tokenIndex, ref ParseResult error, out bool finished) {
@@ -296,21 +294,21 @@ namespace RunCmd {
 			finished = false;
 			if (key == null) {
 				switch (token.Text) {
-					case ":": error = new ParseResult(ErrorKind.MissingDictionaryKey, token.TextIndex); break;
+					case ":": error = new ParseResult(ParseResult.Kind.MissingDictionaryKey, token.TextIndex); break;
 					case ",": ++tokenIndex; break;
 					case "[": key = ParseArray(tokens, ref tokenIndex, out error); break;
 					case "{": key = ParseDictionary(tokens, ref tokenIndex, out error); break;
 					case "}": ++tokenIndex; finished = true; break;
-					default: error = new ParseResult(ErrorKind.UnexpectedDelimiter, token.TextIndex); break;
+					default: error = new ParseResult(ParseResult.Kind.UnexpectedDelimiter, token.TextIndex); break;
 				}
 			} else {
 				switch (token.Text) {
 					case ":": ++tokenIndex; break;
-					case ",": error = new ParseResult(ErrorKind.MissingDictionaryValue, token.TextIndex); break;
+					case ",": error = new ParseResult(ParseResult.Kind.MissingDictionaryValue, token.TextIndex); break;
 					case "[": value = ParseArray(tokens, ref tokenIndex, out error); break;
 					case "{": value = ParseDictionary(tokens, ref tokenIndex, out error); break;
-					case "}": error = new ParseResult(ErrorKind.UnexpectedDelimiter, token.TextIndex); break;
-					default: error = new ParseResult(ErrorKind.UnexpectedDelimiter, token.TextIndex); break;
+					case "}": error = new ParseResult(ParseResult.Kind.UnexpectedDelimiter, token.TextIndex); break;
+					default: error = new ParseResult(ParseResult.Kind.UnexpectedDelimiter, token.TextIndex); break;
 				}
 			}
 			if (error.IsError) {
@@ -321,21 +319,19 @@ namespace RunCmd {
 		public static string ToString(object parsedToken, int indent = 0, bool includeWhitespace = true) {
 			StringBuilder sb = new StringBuilder();
 			switch (parsedToken) {
-				case Token token:        ToStringToken(sb, token); break;
-				case IList<object> list: ToStringArray(sb, list, indent, includeWhitespace); break;
-				case IDictionary dict:   ToStringDictionary(sb, dict, indent, includeWhitespace); break;
+				case Token token:      ToStringToken(sb, token); break;
+				case IList list:       ToStringArray(sb, list, indent, includeWhitespace); break;
+				case IDictionary dict: ToStringDictionary(sb, dict, indent, includeWhitespace); break;
 			}
 			return sb.ToString();
 		}
 
 		private static void ToStringToken(StringBuilder sb, Token tok) => sb.Append("\"").Append(tok.Text).Append("\"");
 
-		private static void ToStringArray(StringBuilder sb, IList<object> list, int indent, bool includeWhitespace) {
+		private static void ToStringArray(StringBuilder sb, IList list, int indent, bool includeWhitespace) {
 			sb.Append("[");
 			for (int i = 0; i < list.Count; ++i) {
-				if (i > 0) {
-					sb.Append(includeWhitespace ? ", " : ",");
-				}
+				if (i > 0) { sb.Append(includeWhitespace ? ", " : ","); }
 				sb.Append(ToString(list[i], indent + 1, includeWhitespace));
 			}
 			sb.Append("]");

@@ -51,7 +51,7 @@ namespace RunCmd {
 			UpdateMousePosition();
 			object parsed = Parse.ParseText($"[{command}]", out Parse.ParseResult err);
 			if (err.IsError) {
-				string errorMessage = $"error @{err.TextIndex}: {err.kind}";
+				string errorMessage = $"error @{err.TextIndex}: {err.ResultKind}";
 				Debug.LogError(errorMessage);
 				stdOutput.Invoke(errorMessage);
 				return;
