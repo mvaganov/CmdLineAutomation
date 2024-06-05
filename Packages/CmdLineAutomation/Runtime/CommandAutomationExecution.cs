@@ -55,7 +55,7 @@ namespace RunCmd {
 			/// </summary>
 			private StringBuilder outputToScan = new StringBuilder();
 
-			private Dictionary<string, RegexSearch> _regexSearches = new Dictionary<string, RegexSearch>();
+			private Dictionary<string, NamedRegexSearch> _regexSearches = new Dictionary<string, NamedRegexSearch>();
 
 			private void OutputAnalysis(string fromProcess) {
 				outputToScan.AppendLine(fromProcess);
@@ -139,7 +139,7 @@ namespace RunCmd {
 			private void RefreshRegexSearch() {
 				_regexSearches.Clear();
 				for (int i = 0; i < source.VariablesFromCommandLineRegexSearch.Count; ++i) {
-					RegexSearch regexSearch = source.VariablesFromCommandLineRegexSearch[i];
+					NamedRegexSearch regexSearch = source.VariablesFromCommandLineRegexSearch[i];
 					_regexSearches[regexSearch.Name] = regexSearch;
 				}
 			}

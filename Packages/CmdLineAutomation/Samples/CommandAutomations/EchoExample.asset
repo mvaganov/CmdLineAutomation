@@ -18,6 +18,15 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 3a059507b0e37fa4cbd78a964cfbcc5e, type: 2}
   - {fileID: 11400000, guid: f0b3e3b72a2389f47a7b91a73bd4cb04, type: 2}
   - {fileID: 11400000, guid: cfcf488bb7e2fdb48814650befb3910b, type: 2}
+  _variablesFromCommandLineRegexSearch:
+  - Name: WindowsTerminalVersion
+    Regex: Microsoft Windows \[Version ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\]
+    GroupsToInclude: 01000000
+    RuntimeValue: 10.0.19045.4412
+  - Name: dir
+    Regex: ^[A-Z]:\\(?:[^\\/:*?" <>|\r\n]+\\)*[^\\/:*? "<>|\r\n]*>
+    GroupsToInclude: 
+    RuntimeValue: C:\Users\mvaga\Developer\CmdLineAutomation>
   _command:
     Description: "Create a new directory, run `dir` from inside, then delete the
       new\r directory."
@@ -27,7 +36,7 @@ MonoBehaviour:
       line*/ start!
 
       getchoice "Question / Message" { "clear screen" : "cls",
-      "don''t clear": "" }
+      "don\''t clear": "" }
 
       mkdir test
 
@@ -44,11 +53,11 @@ MonoBehaviour:
 
       echo done!'
     ParsedCommands:
-    - Text: getchoice
+    - Text: '# getchoice'
       Ignore: 0
     - Text: echo /*this is a very basic print function in the command line*/ start!
       Ignore: 0
-    - Text: 'getchoice "Question / Message" { "clear screen" : "cls", "don''t clear":
+    - Text: 'getchoice "Question / Message" { "clear screen" : "cls", "don\''t clear":
         "" }'
       Ignore: 0
     - Text: mkdir test
