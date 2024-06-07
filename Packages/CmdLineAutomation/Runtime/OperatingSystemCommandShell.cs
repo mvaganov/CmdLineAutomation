@@ -4,8 +4,6 @@ using System;
 using System.IO;
 
 namespace RunCmd {
-	// TODO keep track of the current working directory
-	// TODO read formatted output from command line programs and do something with that logic?
 	public class OperatingSystemCommandShell {
 		[Serializable]
 		public struct Line {

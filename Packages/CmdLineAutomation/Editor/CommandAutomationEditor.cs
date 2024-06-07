@@ -16,6 +16,7 @@ namespace RunCmd {
 		/// <summary>
 		/// Results of the commandline running in the operating system
 		/// TODO keep all stdoutput from commands, not just lines from the OperatingSystemCommandShell
+		/// TODO egular expressions that will turn on and turn off the output (to limit spam from something like logcat)
 		/// </summary>
 		private List<string> _osLines = new List<string>();
 		/// <summary>

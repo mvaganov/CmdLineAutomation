@@ -11,8 +11,6 @@ namespace RunCmd {
 	///   * does not block the Unity thread
 	///   * tracks state of which command is executing now
 	///   * can be cancelled
-	/// * TODO an object to manage output from commands
-	/// * TODO create variable listing? auto-populate variables based on std output?
 	/// </summary>
 	[CreateAssetMenu(fileName = "NewCmdLineAutomation", menuName = "ScriptableObjects/CmdLineAutomation", order = 1)]
 	public partial class CommandAutomation : CommandRunner<CommandAutomation.CommandExecution>, ICommandProcessor {
