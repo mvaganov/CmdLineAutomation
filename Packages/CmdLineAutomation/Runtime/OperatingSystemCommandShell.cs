@@ -13,10 +13,6 @@ namespace RunCmd {
 			public static implicit operator Line(string text) { return new Line(Environment.TickCount, text); }
 		}
 
-		internal void Exit() {
-			RunCommand("exit");
-		}
-
 		/// <summary>
 		/// What object owns this shell, which might be used to get scope-specific data
 		/// </summary>
@@ -33,7 +29,17 @@ namespace RunCmd {
 		private List<Line> _lines = new List<Line>();
 		private bool _running = false;
 		public TextResultCallback LineOutput = delegate { };
+		/// <summary>
+		/// Condition to end this command shell thread
+		/// </summary>
 		public Func<bool> KeepAlive;
+		/// <summary>
+		/// Variables to read from command line input
+		/// </summary>
+		private NamedRegexSearch[] _variablesFromCommandLineRegexSearch = new NamedRegexSearch[] {
+			new NamedRegexSearch("WindowsTerminalVersion", @"Microsoft Windows \[Version ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\]", new int[] { 1 }, false),
+			new NamedRegexSearch("dir", NamedRegexSearch.CommandPromptRegexWindows, null, false)
+		};
 
 		public static Dictionary<object, OperatingSystemCommandShell> RunningShells
 			= new Dictionary<object, OperatingSystemCommandShell>();
@@ -175,11 +181,10 @@ namespace RunCmd {
 			} else if (c != '\r') {
 				_lineBuffer += ((char)c);
 			}
-			if (LineOutput != null) {
-				// invoke callbacks outside of the lock
-				for(int i = 0; i < newLines.Count; ++i) {
-					LineOutput?.Invoke(newLines[i].text);
-				}
+			// invoke callbacks outside of the lock
+			for(int i = 0; i < newLines.Count; ++i) {
+				ReadLineFromTerminal(newLines[i].text);
+				LineOutput?.Invoke(newLines[i].text);
 			}
 			return true;
 		}
@@ -193,6 +198,29 @@ namespace RunCmd {
 		public void Run(string command, TextResultCallback stdOutput) {
 			LineOutput = stdOutput;
 			RunCommand(command);
+		}
+
+		public void Exit() {
+			RunCommand("exit");
+		}
+
+		public string VariableName(int index) {
+			return Shell._variablesFromCommandLineRegexSearch[index].Name;
+		}
+
+		public string VariableValue(int index) {
+			return Shell._variablesFromCommandLineRegexSearch[index].RuntimeValue;
+		}
+
+		public void ReadLineFromTerminal(string line) {
+			for (int i = 0; i < Shell._variablesFromCommandLineRegexSearch.Length; ++i) {
+				NamedRegexSearch regexSearch = Shell._variablesFromCommandLineRegexSearch[i];
+				if (regexSearch.Ignore) { continue; }
+				string result = regexSearch.Process(line);
+				//if (result != null) {
+				//	Debug.LogWarning(result);
+				//}
+			}
 		}
 	}
 }

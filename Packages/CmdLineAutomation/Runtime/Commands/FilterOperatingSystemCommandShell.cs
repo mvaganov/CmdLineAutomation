@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace RunCmd {
@@ -22,43 +23,9 @@ namespace RunCmd {
 		/// </summary>
 		private TextResultCallback _stdOutput;
 
-		/// <summary>
-		/// Variables to read from command line input
-		/// </summary>
-		private NamedRegexSearch[] _variablesFromCommandLineRegexSearch = new NamedRegexSearch[] {
-			new NamedRegexSearch("WindowsTerminalVersion", @"Microsoft Windows \[Version ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\]", new int[] { 1 }, false),
-			new NamedRegexSearch("dir", NamedRegexSearch.CommandPromptRegexWindows, null, false)
-		};
-
 		public class Execution {
 			public string CurrentCommand;
 			public string CurrentResult;
-			public TextResultCallback StdOutput;
-			private string[] _variableData = new string[0];
-			public FilterOperatingSystemCommandShell Shell;
-			public int VariableCount => _variableData.Length;
-
-			public string VariableName(int index) {
-				return Shell._variablesFromCommandLineRegexSearch[index].Name;
-			}
-
-			public string VariableData(int index) {
-				return _variableData[index];
-			}
-
-			public void ReadLineFromTerminal(string line) {
-				if (_variableData == null || _variableData.Length != Shell._variablesFromCommandLineRegexSearch.Length) {
-					_variableData = new string[Shell._variablesFromCommandLineRegexSearch.Length];
-				}
-				for(int i = 0; i < Shell._variablesFromCommandLineRegexSearch.Length; ++i) {
-					string result = Shell._variablesFromCommandLineRegexSearch[i].Process(line);
-					if (result != null) {
-						_variableData[i] = result;
-						Shell._variablesFromCommandLineRegexSearch[i].RuntimeValue = result;
-					}
-				}
-				StdOutput?.Invoke(line);
-			}
 		}
 
 		public OperatingSystemCommandShell Shell {
@@ -71,10 +38,6 @@ namespace RunCmd {
 			}
 		}
 
-		public string TerminalVersion(object context) => GetExecutionData(context).VariableData((int)RegexVariable.TerminalVersion);
-
-		public string WorkingDirecory(object context) => GetExecutionData(context).VariableData((int)RegexVariable.WorkingDirecory);
-
 		public string FunctionResult(object context) => _consumeCommand ? null : GetExecutionData(context).CurrentResult;
 
 		public override bool IsExecutionFinished(object context) => true;
@@ -83,11 +46,9 @@ namespace RunCmd {
 			Execution e = GetExecutionData(context);
 			if (e == null) {
 				SetExecutionData(context, e = new Execution());
-				e.Shell = this;
 			}
 			e.CurrentResult = e.CurrentCommand = command;
-			e.StdOutput = stdOutput;
-			_stdOutput = e.ReadLineFromTerminal;
+			_stdOutput = stdOutput;
 			bool missingShell = Shell == null;
 			bool deadShell = !missingShell && !Shell.IsRunning;
 			if (missingShell || deadShell) {
@@ -104,7 +65,8 @@ namespace RunCmd {
 
 		private OperatingSystemCommandShell CreateShell(string name, object context) {
 			OperatingSystemCommandShell thisShell = OperatingSystemCommandShell.CreateUnityEditorShell(context);
-			thisShell.Name = $"{name} {System.Environment.TickCount}";
+			long milliseconds = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+			thisShell.Name = $"{name} {milliseconds}";
 			thisShell.KeepAlive = () => {
 				if (Shell != thisShell) {
 					Debug.LogWarning($"lost {nameof(OperatingSystemCommandShell)}");

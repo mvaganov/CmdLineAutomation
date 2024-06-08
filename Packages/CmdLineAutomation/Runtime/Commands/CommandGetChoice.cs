@@ -56,7 +56,7 @@ namespace RunCmd {
 				stdOutput.Invoke(errorMessage);
 				return;
 			}
-			Debug.Log(Parse.ToString(parsed));
+			//Debug.Log(Parse.ToString(parsed));
 			//return;
 			IList arguments = parsed as IList;
 			string  message = (arguments.Count > 1) ? (Parse.Token)arguments[1] : (Parse.Token)_defaultMessage;

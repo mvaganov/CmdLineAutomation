@@ -28,7 +28,11 @@ namespace RunCmd {
 		/// How the variable is discovered, using regular expression.
 		/// Need help writing a regular expression? Ask ChatGPT! (I wonder how well this comment will age)
 		/// </summary>
-		public string Regex;
+		public string _regex;
+		/// <summary>
+		/// Only parse the regex string once, and cache the result here.
+		/// </summary>
+		private Regex _compiledRegex;
 		/// <summary>
 		/// leave empty to get the entire match
 		/// </summary>
@@ -41,17 +45,44 @@ namespace RunCmd {
 		/// Called when the value is set by <see cref="Process(string)"/>
 		/// </summary>
 		public UnityEvents Events;
+		public enum SpecialReadLogic { None, IgnoreAfterFirstValue, OnlyCheckLastOutput }
+		/// <summary>
+		/// Processing optimizations, to prevent regex from running if it doesn't make sense
+		/// </summary>
+		public SpecialReadLogic readLogic = SpecialReadLogic.None;
+
+		public string RegexString {
+			get => _regex;
+			set {
+				_regex = value;
+				_compiledRegex = null;
+			}
+		}
 
 		public NamedRegexSearch(string name, string regex) : this(name, regex, null, false) { }
 		public NamedRegexSearch(string name, string regex, int[] groupsToInclude, bool ignore) {
 			Name = name;
-			Regex = regex;
+			RegexString = regex;
 			GroupsToInclude = groupsToInclude;
 			Ignore = ignore;
 		}
+
+		public string Process(string input, bool isLastLine) {
+			switch (readLogic) {
+				case SpecialReadLogic.OnlyCheckLastOutput: if (!isLastLine) {
+						return null;
+					}
+					break;
+			}
+			return Process(input);
+		}
+
 		public string Process(string input) {
 			if (Ignore) { return null; }
-			Match m = System.Text.RegularExpressions.Regex.Match(input, Regex);
+			if (_compiledRegex == null) {
+				_compiledRegex = new Regex(RegexString);
+			}
+			Match m = _compiledRegex.Match(input);
 			if (!m.Success) {
 				return null;
 			}
@@ -64,6 +95,9 @@ namespace RunCmd {
 				sb.Append(m.Groups[GroupsToInclude[i]]);
 			}
 			Events.onValueProcessed?.Invoke(RuntimeValue);
+			switch (readLogic) {
+				case SpecialReadLogic.IgnoreAfterFirstValue: Ignore = true; break;
+			}
 			return RuntimeValue = sb.ToString();
 		}
 		public static implicit operator NamedRegexSearch(string regex) => new NamedRegexSearch("", regex);
