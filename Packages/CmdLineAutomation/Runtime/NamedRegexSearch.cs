@@ -11,6 +11,10 @@ namespace RunCmd {
 
 		[Serializable]
 		public class UnityEvent_string : UnityEvent<string> { }
+		[Serializable]
+		public struct UnityEvents {
+			public UnityEvent_string onValueProcessed;
+		}
 
 		/// <summary>
 		/// Name for the variable from the regex search
@@ -36,7 +40,7 @@ namespace RunCmd {
 		/// <summary>
 		/// Called when the value is set by <see cref="Process(string)"/>
 		/// </summary>
-		public UnityEvent_string onValueProcessed;
+		public UnityEvents Events;
 
 		public NamedRegexSearch(string name, string regex) : this(name, regex, null, false) { }
 		public NamedRegexSearch(string name, string regex, int[] groupsToInclude, bool ignore) {
@@ -59,7 +63,7 @@ namespace RunCmd {
 			for (int i = 0; i < GroupsToInclude.Length; ++i) {
 				sb.Append(m.Groups[GroupsToInclude[i]]);
 			}
-			onValueProcessed?.Invoke(RuntimeValue);
+			Events.onValueProcessed?.Invoke(RuntimeValue);
 			return RuntimeValue = sb.ToString();
 		}
 		public static implicit operator NamedRegexSearch(string regex) => new NamedRegexSearch("", regex);
