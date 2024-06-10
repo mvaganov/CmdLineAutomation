@@ -177,19 +177,13 @@ namespace RunCmd {
 			Token token = tokens[tokenIndex];
 			error = ParseResult.None;
 			switch (token.TokenKind) {
-				case Token.Kind.Delim:
-					return token.Text switch {
-						"[" => ParseArray(tokens, ref tokenIndex, out error),
-						"{" => ParseDictionary(tokens, ref tokenIndex, out error),
-						_ => SetErrorAndReturnNull(ParseResult.Kind.UnexpectedDelimiter, token, ref error)
-					};
-				case Token.Kind.Text:
-					return token;
+				case Token.Kind.Delim: return ParseDelimKnownStructure(tokens, ref tokenIndex, out error);
+				case Token.Kind.Text:  return token;
 			}
-			return SetErrorAndReturnNull(ParseResult.Kind.UnexpectedToken, token, ref error);
+			return SetErrorAndReturnNull(ParseResult.Kind.UnexpectedToken, token, out error);
 		}
 
-		private static object SetErrorAndReturnNull(ParseResult.Kind kind, Token token, ref ParseResult error) {
+		private static object SetErrorAndReturnNull(ParseResult.Kind kind, Token token, out ParseResult error) {
 			error = new ParseResult(kind, token.TextIndex);
 			return null;
 		}
@@ -233,7 +227,7 @@ namespace RunCmd {
 				if (loopguard++ > 10000) {
 					throw new System.Exception($"Parsing loop exceeded at token {token.TextIndex}!");
 				}
-				ParseDictionaryElement(ref key, ref value, tokens, ref tokenIndex, ref error, out bool finished);
+				ParseDictionaryKeyValuePair(ref key, ref value, tokens, ref tokenIndex, ref error, out bool finished);
 				if (finished) { return dictionaryValue; }
 				if (key != null && value != null) {
 					dictionaryValue[key] = value;
@@ -259,12 +253,16 @@ namespace RunCmd {
 				case Token.Kind.TokBeg:
 				case Token.Kind.TokEnd: ++tokenIndex; break;
 				case Token.Kind.Text: arrayValue.Add(token); ++tokenIndex; break;
-				case Token.Kind.Delim: ParseArrayDelim(arrayValue, tokens, ref tokenIndex, ref error, out finished); break;
+				case Token.Kind.Delim: 
+					object elementValue = ParseDelimArray(ref token, tokens, ref tokenIndex, ref error, out finished);
+					if (elementValue != null) { arrayValue.Add(elementValue); }
+					break;
 				default: error = new ParseResult(ParseResult.Kind.UnexpectedToken, token.TextEndIndex); finished = true; break;
 			}
+			if (error.ResultKind != ParseResult.Kind.None) { finished = true; }
 		}
 
-		private static void ParseDictionaryElement(ref object key, ref object value, IList<Token> tokens, ref int tokenIndex, ref ParseResult error, out bool finished) {
+		private static void ParseDictionaryKeyValuePair(ref object key, ref object value, IList<Token> tokens, ref int tokenIndex, ref ParseResult error, out bool finished) {
 			Token token = tokens[tokenIndex];
 			finished = false;
 			switch (token.TokenKind) {
@@ -277,39 +275,48 @@ namespace RunCmd {
 			}
 		}
 
-		private static void ParseArrayDelim(List<object> arrayValue, IList<Token> tokens, ref int tokenIndex, ref ParseResult error, out bool finished) {
+		private static object ParseDelimArray(ref Token token, IList<Token> tokens, ref int tokenIndex, ref ParseResult error, out bool finished) {
 			finished = false;
-			switch (tokens[tokenIndex].Text) {
-				case ",": ++tokenIndex; break;
-				case "]": ++tokenIndex; finished = true; break;
-				case "[": arrayValue.Add(ParseArray(tokens, ref tokenIndex, out error)); break;
-				case "{": arrayValue.Add(ParseDictionary(tokens, ref tokenIndex, out error)); break;
-				default: error = new ParseResult(ParseResult.Kind.UnexpectedDelimiter, tokens[tokenIndex].TextIndex); break;
+			switch (token.Text) {
+				case ",": ++tokenIndex; return null;
+				case "]": ++tokenIndex; finished = true; return null;
+				default: return ParseDelimKnownStructure(tokens, ref tokenIndex, out error);
 			}
-			if (error.ResultKind != ParseResult.Kind.None) { finished = true; }
+		}
+
+		private static object ParseDelimDictionaryKey(ref Token token, IList<Token> tokens, ref int tokenIndex, ref ParseResult error, out bool finished) {
+			finished = false;
+			switch (token.Text) {
+				case ":": error = new ParseResult(ParseResult.Kind.MissingDictionaryKey, token.TextIndex); return null;
+				case ",": ++tokenIndex; return null;
+				case "}": ++tokenIndex; finished = true; return null;
+				default: return ParseDelimKnownStructure(tokens, ref tokenIndex, out error);
+			}
+		}
+
+		private static object ParseDelimDictionaryValue(ref Token token, IList<Token> tokens, ref int tokenIndex, ref ParseResult error) {
+			switch (token.Text) {
+				case ":": ++tokenIndex; return null;
+				case ",": error = new ParseResult(ParseResult.Kind.MissingDictionaryValue, token.TextIndex); return null;
+				default: return ParseDelimKnownStructure(tokens, ref tokenIndex, out error);
+			}
+		}
+
+		private static object ParseDelimKnownStructure(IList<Token> tokens, ref int tokenIndex, out ParseResult error) {
+			return tokens[tokenIndex].Text switch {
+				"[" => ParseArray(tokens, ref tokenIndex, out error),
+				"{" => ParseDictionary(tokens, ref tokenIndex, out error),
+				_ => SetErrorAndReturnNull(ParseResult.Kind.UnexpectedDelimiter, tokens[tokenIndex], out error)
+			};
 		}
 
 		public static void ParseKeyValuePairDelim(ref object key, ref object value, IList<Token> tokens, ref int tokenIndex, ref ParseResult error, out bool finished) {
 			Token token = tokens[tokenIndex];
-			finished = false;
 			if (key == null) {
-				switch (token.Text) {
-					case ":": error = new ParseResult(ParseResult.Kind.MissingDictionaryKey, token.TextIndex); break;
-					case ",": ++tokenIndex; break;
-					case "[": key = ParseArray(tokens, ref tokenIndex, out error); break;
-					case "{": key = ParseDictionary(tokens, ref tokenIndex, out error); break;
-					case "}": ++tokenIndex; finished = true; break;
-					default: error = new ParseResult(ParseResult.Kind.UnexpectedDelimiter, token.TextIndex); break;
-				}
+				key = ParseDelimDictionaryKey(ref token, tokens, ref tokenIndex, ref error, out finished);
 			} else {
-				switch (token.Text) {
-					case ":": ++tokenIndex; break;
-					case ",": error = new ParseResult(ParseResult.Kind.MissingDictionaryValue, token.TextIndex); break;
-					case "[": value = ParseArray(tokens, ref tokenIndex, out error); break;
-					case "{": value = ParseDictionary(tokens, ref tokenIndex, out error); break;
-					case "}": error = new ParseResult(ParseResult.Kind.UnexpectedDelimiter, token.TextIndex); break;
-					default: error = new ParseResult(ParseResult.Kind.UnexpectedDelimiter, token.TextIndex); break;
-				}
+				finished = false;
+				value = ParseDelimDictionaryValue(ref token, tokens, ref tokenIndex, ref error);
 			}
 			if (error.IsError) {
 				finished = true;
