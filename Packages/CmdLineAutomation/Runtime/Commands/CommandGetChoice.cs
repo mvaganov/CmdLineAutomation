@@ -39,14 +39,17 @@ namespace RunCmd {
 				case EventType.MouseUp:
 				case EventType.MouseMove:
 				case EventType.MouseDrag:
+				case EventType.Repaint:
 #if UNITY_EDITOR
 					MousePosition = Event.current.mousePosition;
-					Debug.Log(MousePosition);
+					//Debug.Log("MousePosition : " + MousePosition);
 #endif
 					break;
 			}
 		}
+
 		public string CommandToken => this.name;
+
 		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
 			UpdateMousePosition();
 			object parsed = Parse.ParseText($"[{command}]", out Parse.ParseResult err);
@@ -56,8 +59,6 @@ namespace RunCmd {
 				stdOutput.Invoke(errorMessage);
 				return;
 			}
-			//Debug.Log(Parse.ToString(parsed));
-			//return;
 			IList arguments = parsed as IList;
 			string  message = (arguments.Count > 1) ? (Parse.Token)arguments[1] : (Parse.Token)_defaultMessage;
 			IDictionary args = (arguments.Count > 2) ? arguments[2] as IDictionary : DefaultChoiceDitionary();
@@ -165,6 +166,8 @@ namespace RunCmd {
 			private IList<string> _options;
 			private IList<Action> _actions;
 			public ChoiceBlocker _choiceBlocker;
+			private bool _initailized = false;
+			private Vector2 _mouseOffset;
 
 			public static void ReopenProjectDialog(Action<int> onChoiceMade) {
 				GetChoiceWindow.Dialog("Restart Project?",
@@ -181,7 +184,6 @@ namespace RunCmd {
 					_dialogs.RemoveAt(foundIndex);
 					oldDialog.Close();
 				}
-
 				GetChoiceWindow newDialog = CreateInstance<GetChoiceWindow>();
 				if (useUiBlocker) {
 					newDialog._choiceBlocker = CreateInstance<ChoiceBlocker>();
@@ -195,15 +197,21 @@ namespace RunCmd {
 				newDialog._message = message;
 				newDialog._options = options;
 				newDialog._actions = actions;
-				Vector2 mousePos = GUIUtility.GUIToScreenPoint(MousePosition) + mouseOffset;
-				newDialog.position = new Rect(mousePos.x, mousePos.y, size.x, size.y);
+				newDialog._mouseOffset = mouseOffset;
 				newDialog.ShowPopup();
 				_dialogs.Add(newDialog);
 				return newDialog;
 			}
 
 			private void OnInspectorUpdate() {
-				UpdateMousePosition();
+				if (!_initailized) {
+					UpdateMousePosition();
+					_initailized = true;
+					Vector2 size = position.size;
+					size.y = 30 + _options.Count * 20;
+					Vector2 mousePos = GUIUtility.GUIToScreenPoint(MousePosition) + _mouseOffset;
+					position = new Rect(mousePos.x, mousePos.y, size.x, size.y);
+				}
 			}
 
 			public void CloseChoiceWindow() {

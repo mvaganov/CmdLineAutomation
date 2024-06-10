@@ -15,14 +15,8 @@ namespace RunCmd {
 		private CommandAutomation _target;
 		/// <summary>
 		/// Results of the commandline running in the operating system
-		/// TODO keep all stdoutput from commands, not just lines from the OperatingSystemCommandShell
-		/// TODO egular expressions that will turn on and turn off the output (to limit spam from something like logcat)
 		/// </summary>
 		private List<string> _osLines = new List<string>();
-		/// <summary>
-		/// Command being typed into the command prompt by the Unity Editor user
-		/// </summary>
-		private string _inspectorCommandOutput;
 		/// <summary>
 		/// How to draw the console, including font, bg and fg text colors, border, etc.
 		/// </summary>
@@ -82,7 +76,7 @@ namespace RunCmd {
 			RunCommandsButtonGUI();
 			ClearOutputButtonGUI();
 			GUILayout.EndHorizontal();
-			EditorGUILayout.TextArea(_inspectorCommandOutput, _consoleTextStyle);
+			EditorGUILayout.TextArea(Target.CommandOutput, _consoleTextStyle);
 			ShowAllCommandAutomationsListingGUI();
 			serializedObject.Update();
 			serializedObject.ApplyModifiedProperties();
@@ -120,13 +114,17 @@ namespace RunCmd {
 			PopulateOutputText();
 		}
 
+		// TODO this should be in CommandAutomation...
 		private void PopulateOutputText() {
 			if (Shell != null) {
 				_osLines.Clear();
-				_inspectorCommandOutput = "";
-				Shell.GetRecentLines(_osLines);
+				Shell.GetRecentLines(_osLines, true);
+				// TODO decide which lines should be removed, because they are considered spam, and remove those lines
+				if (_osLines.Count > 0) {
+					Target.CommandOutput += (string.IsNullOrEmpty(Target.CommandOutput) ? "" : "\n") +
+						string.Join("\n", _osLines);
+				}
 			}
-			_inspectorCommandOutput = string.Join("\n", _osLines);
 		}
 
 		private void RunCommandsButtonGUI() {
@@ -165,6 +163,7 @@ namespace RunCmd {
 			if (!GUILayout.Button("Clear Output")) {
 				return;
 			}
+			Target.CommandOutput = "";
 			if (Shell != null) {
 				Shell.ClearLines();
 			} else {

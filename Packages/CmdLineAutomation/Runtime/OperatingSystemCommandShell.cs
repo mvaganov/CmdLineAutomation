@@ -33,6 +33,7 @@ namespace RunCmd {
 		/// Condition to end this command shell thread
 		/// </summary>
 		public Func<bool> KeepAlive;
+		/// TODO regular expressions that will turn on and turn off the output (to limit spam from something like logcat)
 		/// <summary>
 		/// Variables to read from command line input
 		/// </summary>
@@ -142,9 +143,12 @@ namespace RunCmd {
 			return _lineBuffer.ToString();
 		}
 
-		public void GetRecentLines(List<string> aLines) {
+		public void GetRecentLines(List<string> aLines, bool clearAfterCopy) {
 			if (!IsRunning || aLines == null) { return; }
 			CopyRecentLines(aLines);
+			if (clearAfterCopy) {
+				_lines.Clear();
+			}
 		}
 
 		private void CopyRecentLines(List<string> aLines) {

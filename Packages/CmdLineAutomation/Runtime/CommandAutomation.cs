@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
@@ -36,6 +37,11 @@ namespace RunCmd {
 		public bool _recapOutputAtEnd;
 
 		/// <summary>
+		/// Command being typed into the command prompt by the Unity Editor user
+		/// </summary>
+		private string _inspectorCommandOutput;
+
+		/// <summary>
 		/// List if filtering functions for input, which may or may not consume a command
 		/// </summary>
 		private List<ICommandFilter> _filters;
@@ -56,6 +62,11 @@ namespace RunCmd {
 				_command.Text = value;
 				ParseCommands();
 			}
+		}
+
+		public string CommandOutput {
+			get => _inspectorCommandOutput;
+			set => _inspectorCommandOutput = value;
 		}
 
 		public override float Progress(object context) => GetExecutionData(context).Progress;
@@ -116,6 +127,10 @@ namespace RunCmd {
 #if UNITY_EDITOR
 		public static void DelayCall(UnityEditor.EditorApplication.CallbackFunction call) {
 			UnityEditor.EditorApplication.delayCall += call;
+		}
+
+		internal void ClearOutput(object context) {
+			CommandOutput = "";
 		}
 
 #else

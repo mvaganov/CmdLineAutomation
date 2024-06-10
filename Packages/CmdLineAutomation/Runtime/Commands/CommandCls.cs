@@ -9,6 +9,9 @@ namespace RunCmd {
 				//Debug.LogError($"no shell for '{context}'");
 				return;
 			}
+			if (context is CommandAutomation automation) {
+				automation.ClearOutput(context);
+			}
 			shell.ClearLines();
 		}
 
