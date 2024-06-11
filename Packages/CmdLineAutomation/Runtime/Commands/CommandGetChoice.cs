@@ -1,10 +1,12 @@
 using UnityEngine;
-using UnityEditor;
 using System;
 using System.Collections.Generic;
 using UnityEngine.UIElements;
 using System.Collections;
 using System.Collections.Specialized;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace RunCmd {
 	[CreateAssetMenu(fileName = "getchoice", menuName = "ScriptableObjects/Commands/getchoice")]
@@ -27,7 +29,9 @@ namespace RunCmd {
 			public bool finished;
 			public int timeoutStart;
 			public int timeoutDuration;
+#if UNITY_EDITOR
 			public GetChoiceWindow choiceWindow;
+#endif
 		}
 
 		public static void UpdateMousePosition() {
@@ -86,12 +90,14 @@ namespace RunCmd {
 				});
 				++entryIndex;
 			}
+#if UNITY_EDITOR
 			exec.choiceWindow = GetChoiceWindow.Dialog(message, argsOptions,
 				argsActions, onChoiceMade, size, size / -2, _blockingUnderlay);
 			exec.choiceWindow.rootVisualElement.style.backgroundColor = _choiceWindowColor;
 			if (_blockingUnderlay) {
 				exec.choiceWindow._choiceBlocker.rootVisualElement.style.backgroundColor = _underlayWindowColor;
 			}
+#endif
 		}
 
 		public IDictionary DefaultChoiceDitionary() {
@@ -140,6 +146,7 @@ namespace RunCmd {
 			base.RemoveExecutionData(context);
 		}
 
+#if UNITY_EDITOR
 		/// <summary>
 		/// Block UI, preventing other clicks. Clicking non-choice is a choice (probably cancel).
 		/// </summary>
@@ -249,5 +256,6 @@ namespace RunCmd {
 				if (_choiceBlocker != null) { _choiceBlocker.Close(); }
 			}
 		}
+#endif
 	}
 }

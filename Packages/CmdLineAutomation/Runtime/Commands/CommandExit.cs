@@ -9,7 +9,7 @@ namespace RunCmd {
 				automation.CancelProcess(context);
 			}
 			if (!OperatingSystemCommandShell.RunningShells.TryGetValue(context, out OperatingSystemCommandShell shell)) {
-				//Debug.LogError($"no shell for '{context}'");
+				Debug.LogError($"no shell for '{context}'");
 				return;
 			}
 			shell.Exit();

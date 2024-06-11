@@ -6,7 +6,7 @@ namespace RunCmd {
 		public string CommandToken => this.name;
 		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
 			if (!OperatingSystemCommandShell.RunningShells.TryGetValue(context, out OperatingSystemCommandShell shell)) {
-				//Debug.LogError($"no shell for '{context}'");
+				Debug.LogError($"no shell for '{context}'");
 				return;
 			}
 			if (context is CommandAutomation automation) {
