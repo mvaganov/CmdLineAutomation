@@ -20,13 +20,25 @@ MonoBehaviour:
   - {fileID: 11400000, guid: cfcf488bb7e2fdb48814650befb3910b, type: 2}
   _variablesFromCommandLineRegexSearch:
   - Name: WindowsTerminalVersion
-    Regex: Microsoft Windows \[Version ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\]
+    Ignore: 1
+    _regex: Microsoft Windows \[Version ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\]
     GroupsToInclude: 01000000
     RuntimeValue: 10.0.19045.4412
+    Events:
+      onValueProcessed:
+        m_PersistentCalls:
+          m_Calls: []
+    readLogic: 0
   - Name: dir
-    Regex: ^[A-Z]:\\(?:[^\\/:*?" <>|\r\n]+\\)*[^\\/:*? "<>|\r\n]*>
+    Ignore: 1
+    _regex: ^[A-Z]:\\(?:[^\\/:*?" <>|\r\n]+\\)*[^\\/:*? "<>|\r\n]*>
     GroupsToInclude: 
     RuntimeValue: C:\Users\mvaga\Developer\CmdLineAutomation>
+    Events:
+      onValueProcessed:
+        m_PersistentCalls:
+          m_Calls: []
+    readLogic: 0
   _command:
     Description: "Create a new directory, run `dir` from inside, then delete the
       new\r directory."

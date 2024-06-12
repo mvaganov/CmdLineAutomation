@@ -111,7 +111,9 @@ namespace RunCmd {
 		public void ChoiceMade(object context, int choiceIndex) {
 			Execution exec = GetExecutionData(context);
 			exec.finished = true;
+#if UNITY_EDITOR
 			exec.choiceWindow?.CloseChoiceWindow();
+#endif
 		}
 
 		public string UsageString() {
@@ -139,10 +141,12 @@ namespace RunCmd {
 		protected override Execution CreateEmptyContextEntry(object context) => new Execution();
 
 		public override void RemoveExecutionData(object context) {
+#if UNITY_EDITOR
 			Execution exec = GetExecutionData(context);
 			if (exec != null && exec.choiceWindow != null) {
 				exec.choiceWindow.CloseChoiceWindow();
 			}
+#endif
 			base.RemoveExecutionData(context);
 		}
 

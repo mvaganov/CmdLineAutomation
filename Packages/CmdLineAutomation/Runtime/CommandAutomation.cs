@@ -124,13 +124,13 @@ namespace RunCmd {
 
 		public string FunctionResult(object context) => GetExecutionData(context).FunctionResult();
 
+		public void ClearOutput(object context) {
+			CommandOutput = "";
+		}
+
 #if UNITY_EDITOR
 		public static void DelayCall(UnityEditor.EditorApplication.CallbackFunction call) {
 			UnityEditor.EditorApplication.delayCall += call;
-		}
-
-		internal void ClearOutput(object context) {
-			CommandOutput = "";
 		}
 
 #else
