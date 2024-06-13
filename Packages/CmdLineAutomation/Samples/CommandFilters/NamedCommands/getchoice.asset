@@ -21,7 +21,7 @@ MonoBehaviour:
   _underlayWindowColor: {r: 0.125, g: 0.125, b: 0.125, a: 1}
   _defaultMessage: Continue execution?
   _defaultChoices:
-  - OptionText: yes
-    OptionCommand: 
-  - OptionText: no
-    OptionCommand: exit
+  - Key: yes
+    Value: 
+  - Key: no
+    Value: exit
