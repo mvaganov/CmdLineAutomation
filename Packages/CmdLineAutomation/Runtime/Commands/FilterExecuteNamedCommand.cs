@@ -48,7 +48,7 @@ namespace RunCmd {
 					Debug.Log($"still processing {currentCommand}");
 					return;
 				}
-				if (IsExecutionStoppedByNamedFunction(currentCommandText)) {
+				if (IsExecutionStoppedByNamedFunction(currentCommandText, stdOutput)) {
 					return;
 				}
 				currentCommand = null;
@@ -59,7 +59,7 @@ namespace RunCmd {
 				return index < 0 ? command : command.Substring(0, index);
 			}
 
-			private bool IsExecutionStoppedByNamedFunction(string command) {
+			private bool IsExecutionStoppedByNamedFunction(string command, TextResultCallback stdOutput) {
 				string token = GetFirstToken(command);
 				//Debug.Log("=============" + command);
 				currentCommand = source.GetNamedCommand(token);

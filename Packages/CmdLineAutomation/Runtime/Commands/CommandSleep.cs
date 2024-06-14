@@ -19,6 +19,8 @@ namespace RunCmd {
 			if (args.Length > 1) {
 				if (float.TryParse(args[1], out float seconds)) {
 					SetExecutionData(context, new Data(now, now + (int)(seconds * 1000)));
+					stdOutput.Invoke($"waiting {seconds} seconds");
+					Debug.LogWarning($"waiting '{args[1]}' seconds!!!!!!!! [{stdOutput.Method}]");
 				} else {
 					Debug.LogWarning($"unable to wait '{args[1]}' seconds");
 				}
