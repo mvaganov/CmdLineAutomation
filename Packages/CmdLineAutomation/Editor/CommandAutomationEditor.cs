@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEditor;
-using System.Collections.Generic;
 
 namespace RunCmd {
 	/// <summary>
@@ -13,10 +12,6 @@ namespace RunCmd {
 		/// The Automation being edited
 		/// </summary>
 		private CommandAutomation _target;
-		///// <summary>
-		///// Results of the commandline running in the operating system
-		///// </summary>
-		//private List<string> _osLines = new List<string>();
 		/// <summary>
 		/// How to draw the console, including font, bg and fg text colors, border, etc.
 		/// </summary>
@@ -53,17 +48,12 @@ namespace RunCmd {
 
 		private void OnEnable() {
 			if (Shell != null) {
-				EditorApplication.delayCall += RefreshInspectorInternalDelayed;// RefreshInspector;
+				EditorApplication.delayCall += RefreshInspector;
 			}
 			_context = Target;
 		}
 
-		//public void RefreshInspector() {
-		//	PopulateOutputText();
-		//	RefreshInspectorInternalDelayed();
-		//}
-
-		public void RefreshInspectorInternalDelayed() {
+		public void RefreshInspector() {
 			EditorApplication.delayCall += RefreshInspectorInternal;
 		}
 
@@ -104,34 +94,15 @@ namespace RunCmd {
 				Debug.Log("waiting for command to finish...");
 			} else {
 				RunInternalCommand(command);
-				RefreshInspectorInternalDelayed();
-				//RefreshInspector();
+				RefreshInspector();
 			}
 		}
 
 		private void RunInternalCommand(string command) {
-			Target.StartCooperativeFunction(_context, command, StdOutput);// PopulateOutputText);
+			Target.StartCooperativeFunction(_context, command, StdOutput);
 			waitingForCommand = !Target.IsExecutionFinished(_context);
-			//PopulateOutputText();
-			RefreshInspectorInternalDelayed();
+			RefreshInspector();
 		}
-
-		//private void PopulateOutputText(string latestLine) {
-		//	PopulateOutputText();
-		//}
-
-		// TODO this should be in CommandAutomation...
-		//private void PopulateOutputText() {
-		//	if (Shell != null) {
-		//		_osLines.Clear();
-		//		Shell.GetRecentLines(_osLines, true);
-		//		// TODO decide which lines should be removed, because they are considered spam, and remove those lines
-		//		if (_osLines.Count > 0) {
-		//			Target.CommandOutput += (string.IsNullOrEmpty(Target.CommandOutput) ? "" : "\n") +
-		//				string.Join("\n", _osLines);
-		//		}
-		//	}
-		//}
 
 		private void RunCommandsButtonGUI() {
 			float commandProgress = Target.Progress(_context);
@@ -170,13 +141,7 @@ namespace RunCmd {
 				return;
 			}
 			Target.CommandOutput = "";
-			//if (Shell != null) {
-			//	Shell.ClearLines();
-			//} else {
-			//	_osLines.Clear();
-			//}
-			RefreshInspectorInternalDelayed();
-			//PopulateOutputText();
+			RefreshInspector();
 		}
 
 		private enum EffectOfShellButton { None, EndProcess, ShowProcess }
@@ -222,31 +187,24 @@ namespace RunCmd {
 		
 		private void PopulateShell(OperatingSystemCommandShell sh) {
 			Shell = sh;
-			RefreshInspectorInternalDelayed();
-			//RefreshInspector();
+			RefreshInspector();
 		}
 
 		private void RunCommands() {
 			Target.RunCommands(_context, StdOutput);
-			//RefreshInspector();
-			RefreshInspectorInternalDelayed();
+			RefreshInspector();
 		}
 
 		private void StdOutput(string line) {
-			//Debug.Log(line);
 			if (Shell == null) {
 				OperatingSystemCommandShell shell = Target.GetShell(_context);
 				if (shell != null) {
 					PopulateShell(shell);
 				}
 			}
-			Debug.Log("ADDING " + line);
+			//Debug.Log("PRINT: "+line);
 			Target.CommandOutput += line + "\n";
-			//Shell.AddLineOutput(line);
-			RefreshInspectorInternalDelayed();
-			//if (Shell != null) {
-			//	RefreshInspector();
-			//}
+			RefreshInspector();
 		}
 
 		public void Stop() {

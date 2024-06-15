@@ -1,7 +1,5 @@
-using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Text.RegularExpressions;
 using UnityEngine;
 
 namespace RunCmd {
@@ -53,7 +51,6 @@ namespace RunCmd {
 			private bool cancelled = false;
 			/// <summary>
 			/// records output
-			/// TODO keep all stdoutput from commands, not just lines from the OperatingSystemCommandShell
 			/// </summary>
 			private StringBuilder outputToScan = new StringBuilder();
 

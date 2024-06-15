@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 namespace RunCmd {
@@ -6,13 +7,13 @@ namespace RunCmd {
 		public string CommandToken => this.name;
 		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
 			if (context is CommandAutomation automation) {
-				automation.ClearOutput(context);
-				//OperatingSystemCommandShell shell = automation.GetShell(context);
-				//shell?.ClearLines();
-			} else if (OperatingSystemCommandShell.RunningShells.TryGetValue(context, out OperatingSystemCommandShell shell)) {
-				//shell.ClearLines();
+				// clear the screen just after this command is processed
+				CommandAutomation.DelayCall(ClearOnNextUpdate);
+				void ClearOnNextUpdate() {
+					automation.ClearOutput(automation);
+				}
 			} else {
-				Debug.LogError($"no shell for '{context}'");
+				Debug.LogWarning($"{name} unable to clear {context}");
 			}
 		}
 

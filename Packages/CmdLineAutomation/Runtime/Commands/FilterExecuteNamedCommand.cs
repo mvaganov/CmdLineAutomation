@@ -18,7 +18,6 @@ namespace RunCmd {
 
 		public class CommandExecution {
 			private object context;
-			private TextResultCallback stdOutput;
 			private string currentCommandText;
 			private string currentCommandFilterResult;
 			private ICommandProcessor currentCommand;
@@ -40,7 +39,6 @@ namespace RunCmd {
 			}
 
 			public void StartCooperativeFunction(string command, TextResultCallback stdOutput) {
-				this.stdOutput = stdOutput;
 				currentCommandText = command;
 				currentCommandFilterResult = command;
 				//Debug.Log("....... " + command);

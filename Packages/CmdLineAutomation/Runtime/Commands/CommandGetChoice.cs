@@ -9,6 +9,7 @@ using UnityEditor;
 #endif
 
 namespace RunCmd {
+	// TODO make choice UI that can execute during runtime
 	[CreateAssetMenu(fileName = "getchoice", menuName = "ScriptableObjects/Commands/getchoice")]
 	public class CommandGetChoice : CommandRunner<CommandGetChoice.Execution>, INamedCommand {
 		public static Vector2 MousePosition;

@@ -20,12 +20,12 @@ namespace RunCmd {
 				if (float.TryParse(args[1], out float seconds)) {
 					SetExecutionData(context, new Data(now, now + (int)(seconds * 1000)));
 					stdOutput.Invoke($"~~~waiting {seconds} seconds~~~");
-					Debug.LogWarning($"waiting '{args[1]}' seconds!!!!!!!! [{stdOutput.Method}]");
+					//Debug.LogWarning($"waiting '{args[1]}' seconds!!!!!!!! [{stdOutput.Method}]");
 				} else {
 					Debug.LogWarning($"unable to wait '{args[1]}' seconds");
 				}
 			} else {
-				Debug.LogWarning($"missing time parameter");
+				Debug.LogWarning($"'{name}' missing time parameter");
 			}
 		}
 

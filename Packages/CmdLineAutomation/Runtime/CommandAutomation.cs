@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
 
 namespace RunCmd {
@@ -121,8 +119,6 @@ namespace RunCmd {
 		}
 
 		public override bool IsExecutionFinished(object context) => GetExecutionData(context).IsExecutionFinished();
-
-		public string FunctionResult(object context) => GetExecutionData(context).FunctionResult();
 
 		public void ClearOutput(object context) {
 			CommandOutput = "";
