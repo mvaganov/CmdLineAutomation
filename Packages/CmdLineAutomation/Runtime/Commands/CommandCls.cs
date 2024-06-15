@@ -7,10 +7,10 @@ namespace RunCmd {
 		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
 			if (context is CommandAutomation automation) {
 				automation.ClearOutput(context);
-				OperatingSystemCommandShell shell = automation.GetShell(context);
-				shell?.ClearLines();
+				//OperatingSystemCommandShell shell = automation.GetShell(context);
+				//shell?.ClearLines();
 			} else if (OperatingSystemCommandShell.RunningShells.TryGetValue(context, out OperatingSystemCommandShell shell)) {
-				shell.ClearLines();
+				//shell.ClearLines();
 			} else {
 				Debug.LogError($"no shell for '{context}'");
 			}

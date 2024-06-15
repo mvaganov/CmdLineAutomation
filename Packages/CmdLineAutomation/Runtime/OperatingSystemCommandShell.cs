@@ -5,13 +5,13 @@ using System.IO;
 
 namespace RunCmd {
 	public class OperatingSystemCommandShell {
-		[Serializable]
-		public struct Line {
-			public int timestamp;
-			public string text;
-			public Line(int timestamp, string text) { this.timestamp = timestamp; this.text = text; }
-			public static implicit operator Line(string text) { return new Line(Environment.TickCount, text); }
-		}
+		//[Serializable]
+		//public struct Line {
+		//	public int timestamp;
+		//	public string text;
+		//	public Line(int timestamp, string text) { this.timestamp = timestamp; this.text = text; }
+		//	public static implicit operator Line(string text) { return new Line(Environment.TickCount, text); }
+		//}
 
 		/// <summary>
 		/// What object owns this shell, which might be used to get scope-specific data
@@ -26,7 +26,7 @@ namespace RunCmd {
 		private System.Threading.Thread _thread;
 		private StreamReader _output;
 		private string _lineBuffer = ""; // TODO semaphores to make StringBuilder threadsafe
-		private List<Line> _lines = new List<Line>();
+//		private List<Line> _lines = new List<Line>();
 		private bool _running = false;
 		public TextResultCallback LineOutput = delegate { };
 		/// <summary>
@@ -48,7 +48,7 @@ namespace RunCmd {
 		public static OperatingSystemCommandShell CreateUnityEditorShell(object context) =>
 			new OperatingSystemCommandShell(context, "cmd.exe", Path.Combine(Application.dataPath, ".."));
 		
-		public int LineCount => _lines.Count;
+//		public int LineCount => _lines.Count;
 
 		public string Name { get => _name; set => _name = value; }
 
@@ -143,61 +143,69 @@ namespace RunCmd {
 			return _lineBuffer.ToString();
 		}
 
-		public void GetRecentLines(List<string> aLines, bool clearAfterCopy) {
-			if (!IsRunning || aLines == null) { return; }
-			CopyRecentLines(aLines);
-			if (clearAfterCopy) {
-				_lines.Clear();
-			}
-		}
+		//public void GetRecentLines(List<string> aLines, bool clearAfterCopy) {
+		//	if (!IsRunning || aLines == null) { return; }
+		//	CopyRecentLines(aLines);
+		//	if (clearAfterCopy) {
+		//		_lines.Clear();
+		//	}
+		//}
 
-		private void CopyRecentLines(List<string> aLines) {
-			if (_lines.Count == 0) { return; }
-			lock (_lines) {
-				for(int i = 0; i < _lines.Count; ++i) {
-					aLines.Add(_lines[i].text);
-				}
-			}
-		}
+		//private void CopyRecentLines(List<string> aLines) {
+		//	if (_lines.Count == 0) { return; }
+		//	lock (_lines) {
+		//		for(int i = 0; i < _lines.Count; ++i) {
+		//			aLines.Add(_lines[i].text);
+		//		}
+		//	}
+		//}
 
-		public void GetRecentLines(List<Line> aLines) {
-			if (!IsRunning || aLines == null) { return; }
-			CopyRecentLines(aLines);
-		}
+		//public void GetRecentLines(List<Line> aLines) {
+		//	if (!IsRunning || aLines == null) { return; }
+		//	CopyRecentLines(aLines);
+		//}
 
-		private void CopyRecentLines(List<Line> aLines) {
-			if (_lines.Count == 0) { return; }
-			lock (_lines) { aLines.AddRange(_lines); }
-		}
+		//private void CopyRecentLines(List<Line> aLines) {
+		//	if (_lines.Count == 0) { return; }
+		//	lock (_lines) { aLines.AddRange(_lines); }
+		//}
 
 		private bool Reading() {
 			int c = _output.Read();
-			List<Line> newLines = new List<Line>();
+			List<string> newLines = new List<string>();
 			if (c <= 0) {
 				return false;
 			} else if (c == '\n') {
-				lock (_lines) {
-					Line line = GetCurrentLine();
-					_lines.Add(line);
+				//lock (_lines) {
+					string line = GetCurrentLine();
+					//_lines.Add(line);
+					//AddLineOutput(line);
 					_lineBuffer = "";//.Clear();
 					newLines.Add(line);
-				}
+				//}
 			} else if (c != '\r') {
 				_lineBuffer += ((char)c);
 			}
 			// invoke callbacks outside of the lock
 			for(int i = 0; i < newLines.Count; ++i) {
-				ReadLineFromTerminal(newLines[i].text);
-				LineOutput?.Invoke(newLines[i].text);
+				RegexProcessLineFromTerminal(newLines[i]);
+				LineOutput?.Invoke(newLines[i]);
 			}
 			return true;
 		}
+		//public void AddLineOutput(string lineText) => AddLineOutput((Line)lineText);
 
-		public void ClearLines() {
-			lock (_lines) {
-				_lines.Clear();
-			}
-		}
+		//public void AddLineOutput(Line line) {
+		//	lock (_lines) {
+		//		_lines.Add(line);
+		//	}
+		//}
+
+		//public void ClearLines() {
+		//	lock (_lines) {
+		//		_lines.Clear();
+		//	}
+		//}
 
 		public void Run(string command, TextResultCallback stdOutput) {
 			LineOutput = stdOutput;
@@ -216,11 +224,12 @@ namespace RunCmd {
 			return Shell._variablesFromCommandLineRegexSearch[index].RuntimeValue;
 		}
 
-		public void ReadLineFromTerminal(string line) {
+		public void RegexProcessLineFromTerminal(string line) {
 			for (int i = 0; i < Shell._variablesFromCommandLineRegexSearch.Length; ++i) {
 				NamedRegexSearch regexSearch = Shell._variablesFromCommandLineRegexSearch[i];
 				if (regexSearch.Ignore) { continue; }
-				string result = regexSearch.Process(line);
+				//string result =
+				regexSearch.Process(line);
 				//if (result != null) {
 				//	Debug.LogWarning(result);
 				//}

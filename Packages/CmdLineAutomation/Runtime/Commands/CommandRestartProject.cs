@@ -22,7 +22,7 @@ namespace RunCmd {
 #else
 			Debug.Log("Cannot restart project");
 #endif
-			shell.ClearLines();
+			//shell.ClearLines();
 		}
 
 		public bool IsExecutionFinished(object context) => true;

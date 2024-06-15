@@ -13,10 +13,10 @@ namespace RunCmd {
 		/// The Automation being edited
 		/// </summary>
 		private CommandAutomation _target;
-		/// <summary>
-		/// Results of the commandline running in the operating system
-		/// </summary>
-		private List<string> _osLines = new List<string>();
+		///// <summary>
+		///// Results of the commandline running in the operating system
+		///// </summary>
+		//private List<string> _osLines = new List<string>();
 		/// <summary>
 		/// How to draw the console, including font, bg and fg text colors, border, etc.
 		/// </summary>
@@ -53,13 +53,17 @@ namespace RunCmd {
 
 		private void OnEnable() {
 			if (Shell != null) {
-				EditorApplication.delayCall += RefreshInspector;
+				EditorApplication.delayCall += RefreshInspectorInternalDelayed;// RefreshInspector;
 			}
 			_context = Target;
 		}
 
-		public void RefreshInspector() {
-			PopulateOutputText();
+		//public void RefreshInspector() {
+		//	PopulateOutputText();
+		//	RefreshInspectorInternalDelayed();
+		//}
+
+		public void RefreshInspectorInternalDelayed() {
 			EditorApplication.delayCall += RefreshInspectorInternal;
 		}
 
@@ -100,32 +104,34 @@ namespace RunCmd {
 				Debug.Log("waiting for command to finish...");
 			} else {
 				RunInternalCommand(command);
-				RefreshInspector();
+				RefreshInspectorInternalDelayed();
+				//RefreshInspector();
 			}
 		}
 
 		private void RunInternalCommand(string command) {
-			Target.StartCooperativeFunction(_context, command, PopulateOutputText);
+			Target.StartCooperativeFunction(_context, command, StdOutput);// PopulateOutputText);
 			waitingForCommand = !Target.IsExecutionFinished(_context);
-			PopulateOutputText();
+			//PopulateOutputText();
+			RefreshInspectorInternalDelayed();
 		}
 
-		private void PopulateOutputText(string latestLine) {
-			PopulateOutputText();
-		}
+		//private void PopulateOutputText(string latestLine) {
+		//	PopulateOutputText();
+		//}
 
 		// TODO this should be in CommandAutomation...
-		private void PopulateOutputText() {
-			if (Shell != null) {
-				_osLines.Clear();
-				Shell.GetRecentLines(_osLines, true);
-				// TODO decide which lines should be removed, because they are considered spam, and remove those lines
-				if (_osLines.Count > 0) {
-					Target.CommandOutput += (string.IsNullOrEmpty(Target.CommandOutput) ? "" : "\n") +
-						string.Join("\n", _osLines);
-				}
-			}
-		}
+		//private void PopulateOutputText() {
+		//	if (Shell != null) {
+		//		_osLines.Clear();
+		//		Shell.GetRecentLines(_osLines, true);
+		//		// TODO decide which lines should be removed, because they are considered spam, and remove those lines
+		//		if (_osLines.Count > 0) {
+		//			Target.CommandOutput += (string.IsNullOrEmpty(Target.CommandOutput) ? "" : "\n") +
+		//				string.Join("\n", _osLines);
+		//		}
+		//	}
+		//}
 
 		private void RunCommandsButtonGUI() {
 			float commandProgress = Target.Progress(_context);
@@ -164,12 +170,13 @@ namespace RunCmd {
 				return;
 			}
 			Target.CommandOutput = "";
-			if (Shell != null) {
-				Shell.ClearLines();
-			} else {
-				_osLines.Clear();
-			}
-			PopulateOutputText();
+			//if (Shell != null) {
+			//	Shell.ClearLines();
+			//} else {
+			//	_osLines.Clear();
+			//}
+			RefreshInspectorInternalDelayed();
+			//PopulateOutputText();
 		}
 
 		private enum EffectOfShellButton { None, EndProcess, ShowProcess }
@@ -186,7 +193,7 @@ namespace RunCmd {
 				} else {
 					string action = effect != EffectOfShellButton.None ? $"[{effect}]" : "";
 					string runningMark = sh.IsRunning ? "" : "<dead> ";
-					label = $"{action} {runningMark} \"{sh.Name}\" (lines {sh.LineCount})";
+					label = $"{action} {runningMark} \"{sh.Name}\"";// (lines {sh.LineCount})";
 				}
 				if (GUILayout.Button(label)) {
 					CommandAutomation.DelayCall(() => {
@@ -215,12 +222,14 @@ namespace RunCmd {
 		
 		private void PopulateShell(OperatingSystemCommandShell sh) {
 			Shell = sh;
-			RefreshInspector();
+			RefreshInspectorInternalDelayed();
+			//RefreshInspector();
 		}
 
 		private void RunCommands() {
 			Target.RunCommands(_context, StdOutput);
-			RefreshInspector();
+			//RefreshInspector();
+			RefreshInspectorInternalDelayed();
 		}
 
 		private void StdOutput(string line) {
@@ -231,9 +240,13 @@ namespace RunCmd {
 					PopulateShell(shell);
 				}
 			}
-			if (Shell != null) {
-				RefreshInspector();
-			}
+			Debug.Log("ADDING " + line);
+			Target.CommandOutput += line + "\n";
+			//Shell.AddLineOutput(line);
+			RefreshInspectorInternalDelayed();
+			//if (Shell != null) {
+			//	RefreshInspector();
+			//}
 		}
 
 		public void Stop() {
