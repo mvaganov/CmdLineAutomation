@@ -203,7 +203,7 @@ namespace RunCmd {
 				}
 			}
 			//Debug.Log("PRINT: "+line);
-			Target.CommandOutput += line + "\n";
+			Target.CommandOutput += line;// + "\n";
 			RefreshInspector();
 		}
 

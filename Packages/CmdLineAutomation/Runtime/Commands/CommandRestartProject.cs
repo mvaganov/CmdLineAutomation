@@ -4,7 +4,7 @@ namespace RunCmd {
 	[CreateAssetMenu(fileName = "restartproject", menuName = "ScriptableObjects/Commands/restartproject")]
 	public class CommandRestartProject : ScriptableObject, INamedCommand {
 		public string CommandToken => this.name;
-		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
+		public void StartCooperativeFunction(object context, string command, PrintCallback print) {
 			if (!OperatingSystemCommandShell.RunningShells.TryGetValue(context, out OperatingSystemCommandShell shell)) {
 				return;
 			}

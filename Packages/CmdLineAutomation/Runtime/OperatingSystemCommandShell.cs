@@ -21,7 +21,7 @@ namespace RunCmd {
 		//private string _lineBuffer = "";
 		private StringBuilder _lineBuffer = new StringBuilder();
 		private bool _running = false;
-		public TextResultCallback LineOutput = delegate { };
+		public PrintCallback Print = delegate { };
 		/// <summary>
 		/// Condition to end this command shell thread
 		/// </summary>
@@ -108,6 +108,31 @@ namespace RunCmd {
 			_running = false;
 		}
 
+		char[] buffer = new char[1024];
+		private bool Reading() {
+			int c = _output.Read();
+			string line = null;
+			//int read = _output.Read(buffer, 0, buffer.Length);
+			if (c <= 0) {
+				return false;
+			} else if (c == '\n') {
+				line = GetCurrentLine() + '\n';
+				_lineBuffer.Clear();
+				//_lineBuffer = "";
+			} else if (c != '\r') {
+				_lineBuffer.Append((char)c);
+				//_lineBuffer += ((char)c);
+			}
+			// invoke callbacks outside of the lock
+			//for (int i = 0; i < newLines.Count; ++i) {
+			if (line != null) {
+				RegexProcessLineFromTerminal(line);
+				Print?.Invoke(line);
+			}
+			//}
+			return true;
+		}
+
 		public void RunCommand(string command) {
 			//Debug.Log($"running \"{command}\"");
 			if (IsRunning) {
@@ -134,30 +159,8 @@ namespace RunCmd {
 			return _lineBuffer.ToString();
 		}
 
-		private bool Reading() {
-			int c = _output.Read();
-			List<string> newLines = new List<string>();
-			if (c <= 0) {
-				return false;
-			} else if (c == '\n') {
-					string line = GetCurrentLine();
-					_lineBuffer.Clear();
-					//_lineBuffer = "";
-					newLines.Add(line);
-			} else if (c != '\r') {
-				_lineBuffer.Append((char)c);
-				//_lineBuffer += ((char)c);
-			}
-			// invoke callbacks outside of the lock
-			for(int i = 0; i < newLines.Count; ++i) {
-				RegexProcessLineFromTerminal(newLines[i]);
-				LineOutput?.Invoke(newLines[i]);
-			}
-			return true;
-		}
-
-		public void Run(string command, TextResultCallback stdOutput) {
-			LineOutput = stdOutput;
+		public void Run(string command, PrintCallback print) {
+			Print = print;
 			RunCommand(command);
 		}
 

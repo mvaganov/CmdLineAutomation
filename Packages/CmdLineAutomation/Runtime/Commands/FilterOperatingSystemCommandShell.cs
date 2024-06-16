@@ -21,7 +21,7 @@ namespace RunCmd {
 		/// <summary>
 		/// Function to pass all lines from standard input to
 		/// </summary>
-		private TextResultCallback _stdOutput;
+		private PrintCallback _print;
 
 		public class Execution {
 			public string CurrentCommand;
@@ -33,7 +33,7 @@ namespace RunCmd {
 			set {
 				_shell = value;
 				if (_shell != null) {
-					Shell.LineOutput = _stdOutput;
+					Shell.Print = _print;
 				}
 			}
 		}
@@ -42,13 +42,13 @@ namespace RunCmd {
 
 		public override bool IsExecutionFinished(object context) => true;
 
-		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
+		public override void StartCooperativeFunction(object context, string command, PrintCallback print) {
 			Execution e = GetExecutionData(context);
 			if (e == null) {
 				SetExecutionData(context, e = new Execution());
 			}
 			e.CurrentResult = e.CurrentCommand = command;
-			_stdOutput = stdOutput;
+			_print = print;
 			bool missingShell = Shell == null;
 			bool deadShell = !missingShell && !Shell.IsRunning;
 			if (missingShell || deadShell) {
@@ -58,7 +58,7 @@ namespace RunCmd {
 				}
 				Shell = CreateShell(name, context);
 			}
-			_shell.Run(command, _stdOutput);
+			_shell.Run(command, _print);
 		}
 
 		protected override Execution CreateEmptyContextEntry(object context) => null;

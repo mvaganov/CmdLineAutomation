@@ -102,9 +102,9 @@ namespace RunCmd {
 			_command.Parse();
 		}
 
-		public void RunCommands(object context, TextResultCallback stdOutput) {
+		public void RunCommands(object context, PrintCallback print) {
 			CommandExecution e = GetExecutionData(context);
-			e.stdOutput = stdOutput;
+			e.print = print;
 			Initialize();
 			e.StartRunningEachCommandInSequence();
 		}
@@ -114,8 +114,8 @@ namespace RunCmd {
 			e.InsertNextCommandToExecute(command);
 		}
 
-		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
-			GetExecutionData(context).StartCooperativeFunction(command, stdOutput);
+		public override void StartCooperativeFunction(object context, string command, PrintCallback print) {
+			GetExecutionData(context).StartCooperativeFunction(command, print);
 		}
 
 		public override bool IsExecutionFinished(object context) => GetExecutionData(context).IsExecutionFinished();

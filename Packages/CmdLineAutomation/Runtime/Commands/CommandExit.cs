@@ -4,7 +4,7 @@ namespace RunCmd {
 	[CreateAssetMenu(fileName = "exit", menuName = "ScriptableObjects/Commands/exit")]
 	public class CommandExit : ScriptableObject, INamedCommand {
 		public string CommandToken => this.name;
-		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
+		public void StartCooperativeFunction(object context, string command, PrintCallback print) {
 			if (context is CommandAutomation automation) {
 				automation.CancelProcess(context);
 			}

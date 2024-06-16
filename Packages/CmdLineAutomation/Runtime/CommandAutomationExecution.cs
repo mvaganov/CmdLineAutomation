@@ -32,7 +32,7 @@ namespace RunCmd {
 			/// <summary>
 			/// Function to pass all lines from standard output to
 			/// </summary>
-			public TextResultCallback stdOutput;
+			public PrintCallback print;
 			/// <summary>
 			/// used when getchoice or some other command needs to adjust the commands as they are being executed
 			/// </summary>
@@ -58,7 +58,7 @@ namespace RunCmd {
 
 			private void OutputAnalysis(string fromProcess) {
 				outputToScan.AppendLine(fromProcess);
-				stdOutput?.Invoke(fromProcess);
+				print?.Invoke(fromProcess);
 				foreach (var kvp in _regexSearches) {
 					string value = kvp.Value.Process(fromProcess);
 					if (value != null) {
@@ -172,7 +172,7 @@ namespace RunCmd {
 					if (!CommandsToDo[commandExecutingIndex].Ignore) {
 						filterIndex = 0;
 						//Debug.Log("execute " + _commandExecutingIndex+" "+ textToDo);
-						StartCooperativeFunction(textToDo, stdOutput);
+						StartCooperativeFunction(textToDo, print);
 						if (IsCancelled()) {
 							//Debug.Log("----------CANCELLED");
 							EndCurrentCommand();
@@ -200,8 +200,8 @@ namespace RunCmd {
 			}
 
 			/// <inheritdoc/>
-			public void StartCooperativeFunction(string command, TextResultCallback stdOutput) {
-				this.stdOutput = stdOutput;
+			public void StartCooperativeFunction(string command, PrintCallback print) {
+				this.print = print;
 				currentCommandText = command;
 				currentCommandResult = command;
 				filterIndex = 0;

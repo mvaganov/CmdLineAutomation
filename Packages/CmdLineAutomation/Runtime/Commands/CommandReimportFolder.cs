@@ -6,7 +6,7 @@ namespace RunCmd {
 		public string CommandToken => this.name;
 		protected override string CreateEmptyContextEntry(object context) => null;
 
-		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
+		public override void StartCooperativeFunction(object context, string command, PrintCallback print) {
 			string[] args = command.Split();
 			if (args.Length > 1) {
 				SetExecutionData(context, args[1]);

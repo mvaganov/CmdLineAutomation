@@ -12,15 +12,15 @@ namespace RunCmd {
 			public Data(int start, int end) { started = start; finished = end; }
 		}
 
-		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
+		public override void StartCooperativeFunction(object context, string command, PrintCallback print) {
 			int now = Environment.TickCount;
 			SetExecutionData(context, new Data(now,now));
 			string[] args = command.Split();
 			if (args.Length > 1) {
 				if (float.TryParse(args[1], out float seconds)) {
 					SetExecutionData(context, new Data(now, now + (int)(seconds * 1000)));
-					stdOutput.Invoke($"~~~waiting {seconds} seconds~~~");
-					//Debug.LogWarning($"waiting '{args[1]}' seconds!!!!!!!! [{stdOutput.Method}]");
+					print.Invoke($"~~~waiting {seconds} seconds~~~");
+					//Debug.LogWarning($"waiting '{args[1]}' seconds!!!!!!!! [{print.Method}]");
 				} else {
 					Debug.LogWarning($"unable to wait '{args[1]}' seconds");
 				}

@@ -38,7 +38,7 @@ namespace RunCmd {
 				}
 			}
 
-			public void StartCooperativeFunction(string command, TextResultCallback stdOutput) {
+			public void StartCooperativeFunction(string command, PrintCallback print) {
 				currentCommandText = command;
 				currentCommandFilterResult = command;
 				//Debug.Log("....... " + command);
@@ -46,7 +46,7 @@ namespace RunCmd {
 					Debug.Log($"still processing {currentCommand}");
 					return;
 				}
-				if (IsExecutionStoppedByNamedFunction(currentCommandText, stdOutput)) {
+				if (IsExecutionStoppedByNamedFunction(currentCommandText, print)) {
 					return;
 				}
 				currentCommand = null;
@@ -57,14 +57,14 @@ namespace RunCmd {
 				return index < 0 ? command : command.Substring(0, index);
 			}
 
-			private bool IsExecutionStoppedByNamedFunction(string command, TextResultCallback stdOutput) {
+			private bool IsExecutionStoppedByNamedFunction(string command, PrintCallback print) {
 				string token = GetFirstToken(command);
 				//Debug.Log("=============" + command);
 				currentCommand = source.GetNamedCommand(token);
 				if (currentCommand == null) {
 					return false;
 				}
-				currentCommand.StartCooperativeFunction(context, command, stdOutput);
+				currentCommand.StartCooperativeFunction(context, command, print);
 				if (!currentCommand.IsExecutionFinished(context)) {
 					//Debug.Log("~~~~~~~~~~~~~~~~~~~~~"+_currentCommand + " still running");
 					return true;
@@ -107,8 +107,8 @@ namespace RunCmd {
 
 		public string FunctionResult(object context) => GetExecutionData(context).FunctionResult();
 
-		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
-			GetExecutionData(context).StartCooperativeFunction(command, stdOutput);
+		public override void StartCooperativeFunction(object context, string command, PrintCallback print) {
+			GetExecutionData(context).StartCooperativeFunction(command, print);
 		}
 
 		public INamedCommand GetNamedCommand(string token) {

@@ -5,7 +5,7 @@ namespace RunCmd {
 	[CreateAssetMenu(fileName = "cls", menuName = "ScriptableObjects/Commands/cls")]
 	public class CommandCls : ScriptableObject, INamedCommand {
 		public string CommandToken => this.name;
-		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
+		public void StartCooperativeFunction(object context, string command, PrintCallback print) {
 			if (context is CommandAutomation automation) {
 				// clear the screen just after this command is processed
 				CommandAutomation.DelayCall(ClearOnNextUpdate);

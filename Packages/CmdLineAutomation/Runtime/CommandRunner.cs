@@ -32,7 +32,7 @@ namespace RunCmd {
 	public abstract class CommandRunnerBase : ScriptableObject, ICommandProcessor {
 		abstract public float Progress(object context);
 		abstract public bool IsExecutionFinished(object context);
-		abstract public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput);
+		abstract public void StartCooperativeFunction(object context, string command, PrintCallback print);
 		abstract public void RemoveExecutionData(object context);
 	}
 }

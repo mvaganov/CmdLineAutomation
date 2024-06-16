@@ -12,7 +12,7 @@ namespace RunCmd {
 		[SerializeField] protected bool _consumeCommand = false;
 		[SerializeField] protected LogType _logType = LogType.DebugLog_Log;
 		[SerializeField] protected string _linePrefix = "", _lineSuffix = "";
-		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
+		public override void StartCooperativeFunction(object context, string command, PrintCallback print) {
 			SetExecutionData(context, _consumeCommand ? null : command);
 			if (!_enabled) {
 				return;
@@ -21,7 +21,7 @@ namespace RunCmd {
 				command = _linePrefix + command + _lineSuffix;
 			}
 			switch (_logType) {
-				case LogType.StdOutput: stdOutput.Invoke(command); break;
+				case LogType.StdOutput: print.Invoke(command); break;
 				case LogType.DebugLog_Error: Debug.LogError(command); break;
 				case LogType.DebugLog_Assert: Debug.LogAssertion(command); break;
 				case LogType.DebugLog_Warning: Debug.LogWarning(command); break;

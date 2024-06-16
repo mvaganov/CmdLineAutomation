@@ -10,11 +10,11 @@ namespace RunCmd {
 		/// </summary>
 		/// <param name="context">What is executing this command</param>
 		/// <param name="command">The command being executed</param>
-		/// <param name="stdOutput">Where the results of this command will go, one line at a time</param>
-		public void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput);
+		/// <param name="print">Where the results of this command will go, one line at a time</param>
+		public void StartCooperativeFunction(object context, string command, PrintCallback print);
 
 		/// <summary>
-		/// Poll after <see cref="StartCooperativeFunction(object, string, TextResultCallback)"/> to
+		/// Poll after <see cref="StartCooperativeFunction(object, string, PrintCallback)"/> to
 		/// determine if this command is finished processing.
 		/// </summary>
 		/// <returns>true when the command is finished</returns>
@@ -30,5 +30,5 @@ namespace RunCmd {
 	/// Callback for receiving command output
 	/// </summary>
 	/// <param name="text">standard output in text form</param>
-	public delegate void TextResultCallback(string text);
+	public delegate void PrintCallback(string text);
 }

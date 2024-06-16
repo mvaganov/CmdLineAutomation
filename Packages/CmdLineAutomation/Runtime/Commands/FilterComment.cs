@@ -11,7 +11,7 @@ namespace RunCmd {
 		[SerializeField] protected string _suffix = "";
 		private bool _eatMessages;
 
-		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
+		public override void StartCooperativeFunction(object context, string command, PrintCallback print) {
 			if (!_enabled) {
 				SetExecutionData(context, command);
 				return;

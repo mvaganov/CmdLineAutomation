@@ -55,13 +55,13 @@ namespace RunCmd {
 
 		public string CommandToken => this.name;
 
-		public override void StartCooperativeFunction(object context, string command, TextResultCallback stdOutput) {
+		public override void StartCooperativeFunction(object context, string command, PrintCallback print) {
 			UpdateMousePosition();
 			object parsed = Parse.ParseText($"[{command}]", out Parse.ParseResult err);
 			if (err.IsError) {
 				string errorMessage = $"error @{err.TextIndex}: {err.ResultKind}";
 				Debug.LogError(errorMessage);
-				stdOutput.Invoke(errorMessage);
+				print.Invoke(errorMessage);
 				return;
 			}
 			IList arguments = parsed as IList;
