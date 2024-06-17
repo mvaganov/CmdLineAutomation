@@ -222,7 +222,8 @@ namespace RunCmd {
 				return null;
 			}
 			GUILayout.BeginHorizontal();
-			GUILayout.Label(Shell.GetCurrentLine(), style, GUILayout.ExpandWidth(false));
+			string prompt = Shell.WorkingDirectory;
+			GUILayout.Label(prompt, style, GUILayout.ExpandWidth(false));
 			try {
 				_inspectorCommandInput = GUILayout.TextField(_inspectorCommandInput, style, GUILayout.ExpandWidth(true));
 			} catch { }

@@ -18,9 +18,9 @@ namespace RunCmd {
 		private System.Diagnostics.Process _process;
 		private System.Threading.Thread _thread;
 		private StreamReader _output;
-		//private string _lineBuffer = "";
 		private StringBuilder _lineBuffer = new StringBuilder();
 		private bool _running = false;
+		char[] _readBuffer = new char[1024];
 		public PrintCallback Print = delegate { };
 		/// <summary>
 		/// Condition to end this command shell thread
@@ -40,6 +40,8 @@ namespace RunCmd {
 
 		public static OperatingSystemCommandShell CreateUnityEditorShell(object context) =>
 			new OperatingSystemCommandShell(context, "cmd.exe", Path.Combine(Application.dataPath, ".."));
+
+		public string WorkingDirectory => GetVariableValue(1);
 
 		public string Name { get => _name; set => _name = value; }
 
@@ -108,28 +110,15 @@ namespace RunCmd {
 			_running = false;
 		}
 
-		char[] buffer = new char[1024];
 		private bool Reading() {
-			int c = _output.Read();
-			string line = null;
-			//int read = _output.Read(buffer, 0, buffer.Length);
-			if (c <= 0) {
-				return false;
-			} else if (c == '\n') {
-				line = GetCurrentLine() + '\n';
-				_lineBuffer.Clear();
-				//_lineBuffer = "";
-			} else if (c != '\r') {
-				_lineBuffer.Append((char)c);
-				//_lineBuffer += ((char)c);
-			}
-			// invoke callbacks outside of the lock
-			//for (int i = 0; i < newLines.Count; ++i) {
-			if (line != null) {
+			int read = _output.Read(_readBuffer, 0, _readBuffer.Length);
+			if (read > 0) {
+				string line = new string(_readBuffer, 0, read);
 				RegexProcessLineFromTerminal(line);
 				Print?.Invoke(line);
+			} else {
+				return false;
 			}
-			//}
 			return true;
 		}
 
@@ -168,23 +157,25 @@ namespace RunCmd {
 			RunCommand("exit");
 		}
 
-		public string VariableName(int index) {
+		public string GetVariableName(int index) {
 			return Shell._variablesFromCommandLineRegexSearch[index].Name;
 		}
 
-		public string VariableValue(int index) {
+		public string GetVariableValue(int index) {
 			return Shell._variablesFromCommandLineRegexSearch[index].RuntimeValue;
 		}
 
 		public void RegexProcessLineFromTerminal(string line) {
+			int countProcessed = 0;
 			for (int i = 0; i < Shell._variablesFromCommandLineRegexSearch.Length; ++i) {
 				NamedRegexSearch regexSearch = Shell._variablesFromCommandLineRegexSearch[i];
 				if (regexSearch.Ignore) { continue; }
-				//string result =
+				string result =
 				regexSearch.Process(line);
-				//if (result != null) {
-				//	Debug.LogWarning(result);
-				//}
+				if (result != null) {
+					Debug.LogWarning(result+"\n"+ regexSearch.Name+":"+regexSearch.RuntimeValue);
+					++countProcessed;
+				}
 			}
 		}
 	}

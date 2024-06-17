@@ -88,7 +88,7 @@ namespace RunCmd {
 			}
 			//Debug.LogWarning($"success {Regex}\n{input}\n{m.Value}");
 			if (GroupsToInclude == null || GroupsToInclude.Length == 0) {
-				return m.Value;
+				return RuntimeValue = m.Value;
 			}
 			StringBuilder sb = new StringBuilder();
 			for (int i = 0; i < GroupsToInclude.Length; ++i) {
