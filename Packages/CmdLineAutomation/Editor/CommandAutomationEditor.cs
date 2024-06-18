@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEditor;
+using System.Collections.Generic;
 
 namespace RunCmd {
 	/// <summary>
@@ -30,6 +31,15 @@ namespace RunCmd {
 		private OperatingSystemCommandShell _shell;
 
 		private object _context;
+
+		// TODO implement
+		/// TODO regular expressions that will turn on and turn off the output (to limit spam from something like logcat)
+		/// TODO create command that ignores output until a specific regex is found.
+		/// TODO create command that ignores output when a specific regex is found.
+		/// TODO create command that stops ignoring output
+		/// TODO create command that clears triggers that would ignore output
+		private enum RegexGroupId { AlwaysPrint, DisableOnRead, EnableOnRead }
+		private List<NamedRegexSearch>[] regexGroup = new List<NamedRegexSearch>[0];
 
 		public CommandAutomation Target => _target != null ? _target
 			: _target = target as CommandAutomation;
@@ -99,7 +109,7 @@ namespace RunCmd {
 		}
 
 		private void RunInternalCommand(string command) {
-			Target.StartCooperativeFunction(_context, command, StdOutput);
+			Target.StartCooperativeFunction(_context, command, Print);
 			waitingForCommand = !Target.IsExecutionFinished(_context);
 			RefreshInspector();
 		}
@@ -191,11 +201,11 @@ namespace RunCmd {
 		}
 
 		private void RunCommands() {
-			Target.RunCommands(_context, StdOutput);
+			Target.RunCommands(_context, Print);
 			RefreshInspector();
 		}
 
-		private void StdOutput(string line) {
+		public void Print(string text) {
 			if (Shell == null) {
 				OperatingSystemCommandShell shell = Target.GetShell(_context);
 				if (shell != null) {
@@ -203,7 +213,7 @@ namespace RunCmd {
 				}
 			}
 			//Debug.Log("PRINT: "+line);
-			Target.CommandOutput += line;// + "\n";
+			Target.CommandOutput += text;// + "\n";
 			RefreshInspector();
 		}
 

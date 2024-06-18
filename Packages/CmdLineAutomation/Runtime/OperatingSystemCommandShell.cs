@@ -26,11 +26,6 @@ namespace RunCmd {
 		/// Condition to end this command shell thread
 		/// </summary>
 		public Func<bool> KeepAlive;
-		/// TODO regular expressions that will turn on and turn off the output (to limit spam from something like logcat)
-		/// TODO create command that ignores output until a specific regex is found.
-		/// TODO create command that ignores output when a specific regex is found.
-		/// TODO create command that stops ignoring output
-		/// TODO create command that clears triggers that would ignore output
 		/// <summary>
 		/// Variables to read from command line input
 		/// </summary>
