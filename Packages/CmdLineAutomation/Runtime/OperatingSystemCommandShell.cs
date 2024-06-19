@@ -172,7 +172,7 @@ namespace RunCmd {
 				string result =
 				regexSearch.Process(line);
 				if (result != null) {
-					Debug.LogWarning(result+"\n"+ regexSearch.Name+":"+regexSearch.RuntimeValue);
+					//Debug.LogWarning(result+"\n"+ regexSearch.Name+":"+regexSearch.RuntimeValue);
 					++countProcessed;
 				}
 			}

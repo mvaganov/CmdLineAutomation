@@ -62,9 +62,10 @@ namespace RunCmd {
 			}
 		}
 
-		public string CommandOutput {
-			get => _inspectorCommandOutput;
-			set => _inspectorCommandOutput = value;
+		public string CommandOutput => _inspectorCommandOutput;
+
+		public void AddToCommandOutput(string value) {
+			_inspectorCommandOutput += value;
 		}
 
 		public override float Progress(object context) => GetExecutionData(context).Progress;
@@ -121,7 +122,7 @@ namespace RunCmd {
 		public override bool IsExecutionFinished(object context) => GetExecutionData(context).IsExecutionFinished();
 
 		public void ClearOutput(object context) {
-			CommandOutput = "";
+			_inspectorCommandOutput = "";
 		}
 
 #if UNITY_EDITOR

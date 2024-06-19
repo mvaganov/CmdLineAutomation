@@ -30,16 +30,21 @@ namespace RunCmd {
 		/// </summary>
 		private OperatingSystemCommandShell _shell;
 
+		private string _currentLine = "";
+		private bool _showOutput = true;
+		private bool _isWaitingForTrigger = false;
+
 		private object _context;
 
-		// TODO implement
+		// TODO move this to another class, and trigger it in CommandAutomation
 		/// TODO regular expressions that will turn on and turn off the output (to limit spam from something like logcat)
 		/// TODO create command that ignores output until a specific regex is found.
 		/// TODO create command that ignores output when a specific regex is found.
 		/// TODO create command that stops ignoring output
 		/// TODO create command that clears triggers that would ignore output
-		private enum RegexGroupId { AlwaysPrint, DisableOnRead, EnableOnRead }
+		private enum RegexGroupId { None, DisableOnRead, EnableOnRead }
 		private List<NamedRegexSearch>[] regexGroup = new List<NamedRegexSearch>[0];
+		private List<RegexGroupId> _triggeredGroup = new List<RegexGroupId>();
 
 		public CommandAutomation Target => _target != null ? _target
 			: _target = target as CommandAutomation;
@@ -54,13 +59,72 @@ namespace RunCmd {
 			set => _shell = value;
 		}
 
+		public bool ShowOutput {
+			get => _showOutput;
+			set => _showOutput = value;
+		}
+
 		public bool IsStarted => Shell != null;
+
+		private bool IsWaitingForTrigger() {
+			for (int groupId = 0; groupId < regexGroup.Length; ++groupId) {
+				List<NamedRegexSearch> regexList = regexGroup[groupId];
+				for (int regexIndex = 0; regexIndex < regexList.Count; ++regexIndex) {
+					if (!regexList[regexIndex].Ignore) {
+						return _isWaitingForTrigger = true;
+					}
+				}
+			}
+			return _isWaitingForTrigger = false;
+		}
+
+		// TODO test this
+		public void AddHideTrigger(string trigger) => regexGroup[(int)RegexGroupId.DisableOnRead].Add(trigger);
+
+		public void AddShowTrigger(string trigger) => regexGroup[(int)RegexGroupId.EnableOnRead].Add(trigger);
+
+		public bool RemoveHideTrigger(string trigger) => Remove(regexGroup[(int)RegexGroupId.DisableOnRead], trigger);
+
+		public bool RemoveShowTrigger(string trigger) => Remove(regexGroup[(int)RegexGroupId.EnableOnRead], trigger);
+
+		private bool Remove(List<NamedRegexSearch> regexSearchList, string trigger) {
+			int index = regexSearchList.FindIndex(namedSearch => namedSearch.RegexString == trigger);
+			if (index >= 0) {
+				regexSearchList.RemoveAt(index);
+				return true;
+			}
+			return false;
+		}
+
+		private void ClearTriggers() {
+			for (int i = 0; i < regexGroup.Length; ++i) {
+				regexGroup[i].Clear();
+			}
+			_isWaitingForTrigger = false;
+		}
+
+		private int CountRegexTriggerGroups(string line, List<RegexGroupId> triggeredGroup) {
+			int count = 0;
+			for (int groupIndex = 0; groupIndex < regexGroup.Length; groupIndex++) {
+				List<NamedRegexSearch> group = regexGroup[groupIndex];
+				for (int i = 0; i < group.Count; ++i) {
+					NamedRegexSearch regexSearch = group[i];
+					if (regexSearch.Process(line) != null) {
+						triggeredGroup?.Add((RegexGroupId)groupIndex);
+						++count;
+						break;
+					}
+				}
+			}
+			return count;
+		}
 
 		private void OnEnable() {
 			if (Shell != null) {
 				EditorApplication.delayCall += RefreshInspector;
 			}
 			_context = Target;
+			IsWaitingForTrigger();
 		}
 
 		public void RefreshInspector() {
@@ -150,7 +214,7 @@ namespace RunCmd {
 			if (!GUILayout.Button("Clear Output")) {
 				return;
 			}
-			Target.CommandOutput = "";
+			Target.ClearOutput(this);
 			RefreshInspector();
 		}
 
@@ -213,8 +277,43 @@ namespace RunCmd {
 				}
 			}
 			//Debug.Log("PRINT: "+line);
-			Target.CommandOutput += text;// + "\n";
+			if (_isWaitingForTrigger) {
+				ProcessAndCheckTextForTriggeringLines(text);
+			} else {
+				Target.AddToCommandOutput(text);// + "\n";
+			}
 			RefreshInspector();
+		}
+
+		private void ProcessAndCheckTextForTriggeringLines(string newTextToCheck) {
+			_currentLine += newTextToCheck;
+			int firstNewlineIndex;
+			do {
+				firstNewlineIndex = _currentLine.IndexOf('\n');
+				if (firstNewlineIndex >= 0) {
+					++firstNewlineIndex;
+					string checkedLine = _currentLine.Substring(0, firstNewlineIndex);
+					_triggeredGroup.Clear();
+					if (CountRegexTriggerGroups(checkedLine, _triggeredGroup) > 0) {
+						_triggeredGroup.ForEach(ActivateRegexTriggeredEffect);
+					}
+					if (ShowOutput) {
+						Target.CommandOutput += checkedLine;
+					}
+					_currentLine = _currentLine.Substring(firstNewlineIndex);
+				}
+			} while (firstNewlineIndex >= 0);
+		}
+
+		private void ActivateRegexTriggeredEffect(RegexGroupId groupId) {
+			switch (groupId) {
+				case RegexGroupId.DisableOnRead:
+					ShowOutput = false;
+					break;
+				case RegexGroupId.EnableOnRead:
+					ShowOutput = true;
+					break;
+			}
 		}
 
 		public void Stop() {
