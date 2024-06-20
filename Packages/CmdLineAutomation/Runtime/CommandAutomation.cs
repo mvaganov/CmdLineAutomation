@@ -10,9 +10,11 @@ namespace RunCmd {
 	///   * does not block the Unity thread
 	///   * tracks state of which command is executing now
 	///   * can be cancelled
+	/// * keeps track of command output, which can be filtered by line with regular expressions
 	/// </summary>
 	[CreateAssetMenu(fileName = "NewCmdLineAutomation", menuName = "ScriptableObjects/CmdLineAutomation", order = 1)]
 	public partial class CommandAutomation : CommandRunner<CommandAutomation.CommandExecution>, ICommandProcessor {
+		private enum RegexGroupId { None = -1, HideNextLine = 0, DisableOnRead, EnableOnRead }
 		/// <summary>
 		/// List of the possible custom commands written as C# <see cref="ICommandProcessor"/>s
 		/// </summary>
@@ -44,6 +46,12 @@ namespace RunCmd {
 		/// </summary>
 		private List<ICommandFilter> _filters;
 
+		private RegexMatrix regexMatrix = new RegexMatrix();
+		private bool _showOutput = true;
+		private bool _hideNextLine = false;
+		private List<(int row, int col)> _triggeredGroup = new List<(int row, int col)>();
+
+
 		public IList<ParsedTextCommand> CommandsToDo => _command.ParsedCommands;
 
 		public IList<ICommandFilter> Filters => _filters;
@@ -64,8 +72,33 @@ namespace RunCmd {
 
 		public string CommandOutput => _inspectorCommandOutput;
 
+		public bool ShowOutput {
+			get => _showOutput;
+			set => _showOutput = value;
+		}
+
+		public bool HideNextLine {
+			get => _hideNextLine;
+			set => _hideNextLine = value;
+		}
+
 		public void AddToCommandOutput(string value) {
-			_inspectorCommandOutput += value;
+			if (regexMatrix.HasRegexTriggers) {
+				regexMatrix.ProcessAndCheckTextForTriggeringLines(value, AddProcessedLineToCommandOutput, _triggeredGroup);
+			} else {
+				AddLineToCommandOutputInternal(value);
+			}
+		}
+
+		private void AddProcessedLineToCommandOutput(string processedLine) {
+			if (ShowOutput && !_hideNextLine) {
+				AddLineToCommandOutputInternal(processedLine);
+			}
+			_hideNextLine = false;
+		}
+
+		private void AddLineToCommandOutputInternal(string line) {
+			_inspectorCommandOutput += line;
 		}
 
 		public override float Progress(object context) => GetExecutionData(context).Progress;
@@ -83,6 +116,40 @@ namespace RunCmd {
 
 		private bool NeedsInitialization() => _filters == null;
 
+		/// <summary>
+		/// If the given regex is triggered, all output will be hidden (until <see cref="AddShowAllTrigger(string)"/>)
+		/// </summary>
+		/// <param name="regexTrigger"></param>
+		public void AddHideAllTrigger(string regexTrigger) => regexMatrix.Add((int)RegexGroupId.DisableOnRead, regexTrigger);
+
+		/// <summary>
+		/// If the given regex is triggered, all output will be shown again
+		/// </summary>
+		/// <param name="regexTrigger"></param>
+		public void AddShowAllTrigger(string regexTrigger) => regexMatrix.Add((int)RegexGroupId.EnableOnRead, regexTrigger);
+		/// <summary>
+		/// Hide lines that contain the given regex trigger
+		/// </summary>
+		/// <param name="regexTrigger"></param>
+		public void AddHideLineTrigger(string regexTrigger) => regexMatrix.Add((int)RegexGroupId.HideNextLine, regexTrigger);
+		/// <summary>
+		/// Remove a regex trigger added by <see cref="AddHideAllTrigger(string)"/>
+		/// </summary>
+		/// <param name="regexTrigger"></param>
+		/// <returns></returns>
+		public bool RemoveHideAllTrigger(string regexTrigger) => regexMatrix.Remove((int)RegexGroupId.DisableOnRead, regexTrigger);
+		/// <summary>
+		/// Remove a regex trigger added by <see cref="AddShowAllTrigger(string)"/>
+		/// </summary>
+		/// <param name="regexTrigger"></param>
+		/// <returns></returns>
+		public bool RemoveShowAllTrigger(string regexTrigger) => regexMatrix.Remove((int)RegexGroupId.EnableOnRead, regexTrigger);
+		/// <summary>
+		/// Remove all regex triggers added by <see cref="AddHideLineTrigger(string)"/>,
+		/// <see cref="AddHideAllTrigger(string)"/>, <see cref="AddShowAllTrigger(string)"/>
+		/// </summary>
+		public void ClearRegexFilterRules() => regexMatrix.ClearRows();
+
 		public void Initialize() {
 			_filters = new List<ICommandFilter>();
 			foreach (UnityEngine.Object obj in _commandFilters) {
@@ -97,7 +164,17 @@ namespace RunCmd {
 				}
 			}
 			ParseCommands();
+			regexMatrix = new RegexMatrix(new RegexMatrix.Row[] {
+				new RegexMatrix.Row(HideNextLineFunc, null),
+				new RegexMatrix.Row(HideAllFunc, null),
+				new RegexMatrix.Row(ShowAllFunc, null),
+			});
+			regexMatrix.IsWaitingForTriggerRecalculate();
 		}
+
+		private void HideNextLineFunc(string trigger) { _hideNextLine = true; }
+		private void HideAllFunc(string trigger) { ShowOutput = false; }
+		private void ShowAllFunc(string trigger) { ShowOutput = true; }
 
 		public void ParseCommands() {
 			_command.Parse();
