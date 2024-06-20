@@ -50,7 +50,7 @@ namespace RunCmd {
 		private bool _showOutput = true;
 		private bool _hideNextLine = false;
 		private List<(int row, int col)> _triggeredGroup = new List<(int row, int col)>();
-
+		private System.Action<string> _onOutputChange;
 
 		public IList<ParsedTextCommand> CommandsToDo => _command.ParsedCommands;
 
@@ -82,6 +82,11 @@ namespace RunCmd {
 			set => _hideNextLine = value;
 		}
 
+		public System.Action<string> OnOutputChange {
+			get { return _onOutputChange; }
+			set { _onOutputChange = value; }
+		}
+
 		public void AddToCommandOutput(string value) {
 			if (regexMatrix.HasRegexTriggers) {
 				regexMatrix.ProcessAndCheckTextForTriggeringLines(value, AddProcessedLineToCommandOutput, _triggeredGroup);
@@ -99,6 +104,7 @@ namespace RunCmd {
 
 		private void AddLineToCommandOutputInternal(string line) {
 			_inspectorCommandOutput += line;
+			OnOutputChange?.Invoke(_inspectorCommandOutput);
 		}
 
 		public override float Progress(object context) => GetExecutionData(context).Progress;
@@ -200,6 +206,11 @@ namespace RunCmd {
 
 		public void ClearOutput(object context) {
 			_inspectorCommandOutput = "";
+		}
+
+		public void ExecuteCommand(string command, object context, PrintCallback printCallback) {
+			CommandExecution e = GetExecutionData(context);
+			e.StartCooperativeFunction(command, printCallback);
 		}
 
 #if UNITY_EDITOR

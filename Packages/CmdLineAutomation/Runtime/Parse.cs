@@ -6,7 +6,8 @@ using System.Text.RegularExpressions;
 
 namespace RunCmd {
 	/// <summary>
-	/// Parse lists and dictionaries into <see cref="IList"/>
+	/// Parse lists and dictionaries into <see cref="IList"/> and <see cref="IDictionary"/>,
+	/// or a raw token <see cref="IList{T}"/> using type  <see cref="Token"/>
 	/// </summary>
 	public static class Parse {
 		public struct Token {
@@ -25,6 +26,9 @@ namespace RunCmd {
 			public override bool Equals(object obj) => obj is Token t && t.TokenKind == TokenKind && t.Text == Text;
 		}
 
+		/// <summary>
+		/// Data structure that turns a string into a combination of IList/IDictionary/Token values
+		/// </summary>
 		private class TokenParsing {
 			private char _readingLiteralToken = '\0';
 			private int _index, _start = 0, _end = -1;
@@ -40,26 +44,24 @@ namespace RunCmd {
 
 			private static Dictionary<char, System.Action<TokenParsing>> InitializeDefaultActions() {
 				var actions = new Dictionary<char, System.Action<TokenParsing>>();
-				foreach (char c in ",:{}[]()") actions[c] = ReadDelimiter;
-				foreach (char c in " \n\t") actions[c] = ReadWhitespace;
-				foreach (char c in "\"\'") actions[c] = ReadLiteralToken;
-				actions['\\'] = ReadEscapeSequence;
+				InitializeActions(",:{}[]()", actions, ReadDelimiter);
+				InitializeActions(" \n\t", actions, ReadWhitespace);
+				InitializeActions("\"\'", actions, ReadLiteralToken);
+				InitializeActions("\\", actions, ReadEscapeSequence);
 				return actions;
 			}
 
 			public TokenParsing(string command, string delimiters, string whitespace, string literalTokens, string escapeSequence) {
 				_command = command;
 				_perCharacterAction = new Dictionary<char, System.Action<TokenParsing>>();
-				InitializeActions(delimiters, ReadDelimiter);
-				InitializeActions(whitespace, ReadWhitespace);
-				InitializeActions(literalTokens, ReadLiteralToken);
-				InitializeActions(escapeSequence, ReadEscapeSequence);
+				InitializeActions(delimiters, _perCharacterAction, ReadDelimiter);
+				InitializeActions(whitespace, _perCharacterAction, ReadWhitespace);
+				InitializeActions(literalTokens, _perCharacterAction, ReadLiteralToken);
+				InitializeActions(escapeSequence, _perCharacterAction, ReadEscapeSequence);
 			}
 
-			private void InitializeActions(string characters, System.Action<TokenParsing> action) {
-				foreach (char c in characters) {
-					_perCharacterAction[c] = action;
-				}
+			private static void InitializeActions(string characters, Dictionary<char, System.Action<TokenParsing>> actionDictionary, System.Action<TokenParsing> action) {
+				foreach (char c in characters) { actionDictionary[c] = action; }
 			}
 
 			public TokenParsing(string command) {
@@ -150,7 +152,6 @@ namespace RunCmd {
 			}
 		}
 
-
 		public struct ParseResult {
 			public enum Kind {
 				None, Success, UnexpectedInitialToken, MissingEndToken, UnexpectedDelimiter, MissingDictionaryKey, MissingDictionaryValue, UnexpectedToken
@@ -191,21 +192,15 @@ namespace RunCmd {
 		public static IList ParseArray(IList<Token> tokens, ref int tokenIndex, out ParseResult error) {
 			Token token = tokens[tokenIndex];
 			error = ParseResult.None;
-			if (!IsExpectedDelimiter(token, "[", ref error)) {
-				return null;
-			}
+			if (!IsExpectedDelimiter(token, "[", ref error)) { return null; }
 			++tokenIndex;
 			List<object> arrayValue = new List<object>();
 			int loopguard = 0;
 			while (tokenIndex < tokens.Count) {
 				token = tokens[tokenIndex];
-				if (++loopguard > 10000) {
-					throw new System.Exception($"Parsing loop exceeded at token {token.TextIndex}!");
-				}
+				if (++loopguard > 10000) { throw new System.Exception($"Parsing loop exceeded at token {token.TextIndex}!"); }
 				ParseArrayElement(arrayValue, tokens, ref tokenIndex, ref error, out bool finished);
-				if (finished) {
-					return arrayValue;
-				}
+				if (finished) { return arrayValue; }
 			}
 			error = new ParseResult(ParseResult.Kind.MissingEndToken, token.TextEndIndex);
 			return arrayValue;
@@ -214,9 +209,7 @@ namespace RunCmd {
 		public static IDictionary ParseDictionary(IList<Token> tokens, ref int tokenIndex, out ParseResult error) {
 			Token token = tokens[tokenIndex];
 			error = ParseResult.None;
-			if (!IsExpectedDelimiter(token, "{", ref error)) {
-				return null;
-			}
+			if (!IsExpectedDelimiter(token, "{", ref error)) { return null; }
 			++tokenIndex;
 			error = ParseResult.None;
 			OrderedDictionary dictionaryValue = new OrderedDictionary();
@@ -224,9 +217,7 @@ namespace RunCmd {
 			int loopguard = 0;
 			while (tokenIndex < tokens.Count) {
 				token = tokens[tokenIndex];
-				if (loopguard++ > 10000) {
-					throw new System.Exception($"Parsing loop exceeded at token {token.TextIndex}!");
-				}
+				if (loopguard++ > 10000) { throw new System.Exception($"Parsing loop exceeded at token {token.TextIndex}!"); }
 				ParseDictionaryKeyValuePair(ref key, ref value, tokens, ref tokenIndex, ref error, out bool finished);
 				if (finished) { return dictionaryValue; }
 				if (key != null && value != null) {
@@ -238,9 +229,7 @@ namespace RunCmd {
 		}
 
 		private static bool IsExpectedDelimiter(Token token, string expected, ref ParseResult error) {
-			if (token.TokenKind == Token.Kind.Delim && token.Text == expected) {
-				return true;
-			}
+			if (token.TokenKind == Token.Kind.Delim && token.Text == expected) { return true; }
 			error = new ParseResult(ParseResult.Kind.UnexpectedDelimiter, token.TextIndex);
 			return false;
 		}

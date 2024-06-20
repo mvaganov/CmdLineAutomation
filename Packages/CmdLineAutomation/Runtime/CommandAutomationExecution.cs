@@ -205,6 +205,9 @@ namespace RunCmd {
 				currentCommandText = command;
 				currentCommandResult = command;
 				filterIndex = 0;
+				if (source.NeedsInitialization()) {
+					source.Initialize();
+				}
 				DoCurrentCommand();
 			}
 
