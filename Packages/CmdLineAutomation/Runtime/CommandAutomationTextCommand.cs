@@ -43,6 +43,8 @@ namespace RunCmd {
 			public ParsedTextCommand(string text) {
 				Text = text;
 			}
+
+			public static implicit operator ParsedTextCommand(string text) => new ParsedTextCommand(text);
 		}
 	}
 }

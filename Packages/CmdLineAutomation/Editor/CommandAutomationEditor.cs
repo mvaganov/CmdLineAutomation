@@ -8,7 +8,7 @@ namespace RunCmd {
 	/// </summary>
 	[CustomEditor(typeof(CommandAutomation))]
 	[CanEditMultipleObjects]
-	public class CommandAutomationEditor : Editor {
+	public class CommandAutomationEditor : Editor, ICommandAutomation {
 		/// <summary>
 		/// The Automation being edited
 		/// </summary>
@@ -31,6 +31,8 @@ namespace RunCmd {
 		private OperatingSystemCommandShell _shell;
 
 		private object _context;
+
+		public CommandAutomation CommandExecutor => Target;
 
 		public CommandAutomation Target => _target != null ? _target
 			: _target = target as CommandAutomation;

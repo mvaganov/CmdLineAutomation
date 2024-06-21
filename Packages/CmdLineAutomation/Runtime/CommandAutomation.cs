@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -13,7 +14,7 @@ namespace RunCmd {
 	/// * keeps track of command output, which can be filtered by line with regular expressions
 	/// </summary>
 	[CreateAssetMenu(fileName = "NewCmdLineAutomation", menuName = "ScriptableObjects/CmdLineAutomation", order = 1)]
-	public partial class CommandAutomation : CommandRunner<CommandAutomation.CommandExecution>, ICommandProcessor {
+	public partial class CommandAutomation : CommandRunner<CommandAutomation.CommandExecution>, ICommandProcessor, ICommandAutomation {
 		private enum RegexGroupId { None = -1, HideNextLine = 0, DisableOnRead, EnableOnRead }
 		/// <summary>
 		/// List of the possible custom commands written as C# <see cref="ICommandProcessor"/>s
@@ -52,7 +53,12 @@ namespace RunCmd {
 		private List<(int row, int col)> _triggeredGroup = new List<(int row, int col)>();
 		private System.Action<string> _onOutputChange;
 
-		public IList<ParsedTextCommand> CommandsToDo => _command.ParsedCommands;
+		public IList<ParsedTextCommand> CommandsToDo {
+			get => _command.ParsedCommands;
+			set => _command.ParsedCommands = new List<ParsedTextCommand>(value);
+		}
+
+		public CommandAutomation CommandExecutor => this;
 
 		public IList<ICommandFilter> Filters => _filters;
 
@@ -186,6 +192,24 @@ namespace RunCmd {
 			_command.Parse();
 		}
 
+		public void RunCommand(string command, PrintCallback print, object context) {
+			RunCommands(new string[] { command }, print, context);
+		}
+
+		public void RunCommands(string[] commands, PrintCallback print, object context) {
+			ParsedTextCommand[] parsedTextCommands = new ParsedTextCommand[commands.Length];
+			for(int i = 0; i < parsedTextCommands.Length; i++) {
+				parsedTextCommands[i] = commands[i];
+			}
+			CommandsToDo = parsedTextCommands;
+			RunCommands(context, print);
+		}
+
+		public void RunCommands(ParsedTextCommand[] commands, PrintCallback print, object context) {
+			CommandsToDo = commands;
+			RunCommands(context, print);
+		}
+
 		public void RunCommands(object context, PrintCallback print) {
 			CommandExecution e = GetExecutionData(context);
 			e.print = print;
@@ -208,18 +232,23 @@ namespace RunCmd {
 			_inspectorCommandOutput = "";
 		}
 
-		public void ExecuteCommand(string command, object context, PrintCallback printCallback) {
-			CommandExecution e = GetExecutionData(context);
-			e.StartCooperativeFunction(command, printCallback);
-		}
+		//public void ExecuteCommand(string command, object context, PrintCallback printCallback) {
+		//	CommandExecution e = GetExecutionData(context);
+		//	e.CommandsToDo
+		//}
 
+		public static void DelayCall(System.Action call) {
 #if UNITY_EDITOR
-		public static void DelayCall(UnityEditor.EditorApplication.CallbackFunction call) {
-			UnityEditor.EditorApplication.delayCall += call;
+			if (!Application.isPlaying) {
+				UnityEditor.EditorApplication.delayCall += () => call();
+			} else
+#endif
+			{
+				DelayCallUsingCoroutine(call);
+			}
 		}
 
-#else
-		public static void DelayCall(Action call) {
+		public static void DelayCallUsingCoroutine(System.Action call) {
 			CoroutineRunner.Instance.StartCoroutine(DelayCall());
 			System.Collections.IEnumerator DelayCall() {
 				yield return null;
@@ -237,6 +266,5 @@ namespace RunCmd {
 				}
 			}
 		}
-#endif
 	}
 }

@@ -2,26 +2,29 @@ using UnityEngine;
 using UnityEngine.Events;
 
 namespace RunCmd {
-	public class CommandAutomationGlue : MonoBehaviour {
-		[System.Serializable] public class UnityEvent_string : UnityEvent<string> { }
+	public class CommandAutomationGlue : MonoBehaviour, ICommandAutomation {
+		[System.Serializable]
+		public class UnityEvent_string : UnityEvent<string> {}
 
 		public CommandAutomation cmdLineAutomation;
 		public UnityEvent_string OnOutputChange = new UnityEvent_string();
 		private string _outputText;
 		private bool _outputTextChanged;
-		
+
+		public CommandAutomation CommandExecutor => cmdLineAutomation;
+
 		void Start() {
-			cmdLineAutomation.OnOutputChange += DoOnOutputChange;
+			cmdLineAutomation.OnOutputChange += PrintCallback;
 		}
 
-		public void DoOnOutputChange(string newText) {
-			_outputText = newText;
+		public void PrintCallback(string newText) {
+			_outputText += newText;
 			_outputTextChanged = true;
 		}
 
 		public void ExecuteCommand(string command) {
 			Debug.Log($"invoking {cmdLineAutomation.name} '{command}'");
-			cmdLineAutomation.ExecuteCommand(command, this, DoOnOutputChange);
+			cmdLineAutomation.RunCommand(command, PrintCallback, this);
 		}
 
 		private void Update() {

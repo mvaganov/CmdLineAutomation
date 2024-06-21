@@ -86,8 +86,8 @@ namespace RunCmd {
 				int index = entryIndex;
 				argsActions.Add(() => {
 					onChoiceMade?.Invoke(index);
-					CommandAutomation commandAutomation = context as CommandAutomation;
-					commandAutomation.InsertNextCommandToExecute(context, value.Text);
+					ICommandAutomation commandAutomation = context as ICommandAutomation;
+					commandAutomation.CommandExecutor.InsertNextCommandToExecute(context, value.Text);
 				});
 				++entryIndex;
 			}
