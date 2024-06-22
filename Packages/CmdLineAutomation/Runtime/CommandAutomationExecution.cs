@@ -20,7 +20,7 @@ namespace RunCmd {
 			/// <summary>
 			/// Which cooperative function is being executed right now
 			/// </summary>
-			public ICommandFilter currentCommand;
+			private ICommandFilter currentCommand;
 			/// <summary>
 			/// Result of the last finished cooperative function
 			/// </summary>
@@ -28,7 +28,7 @@ namespace RunCmd {
 			/// <summary>
 			/// Which <see cref="_commandFilters"/> is being cooperatively processed right now
 			/// </summary>
-			public int filterIndex = 0;
+			private int filterIndex = 0;
 			/// <summary>
 			/// Function to pass all lines from standard output to
 			/// </summary>
@@ -49,15 +49,10 @@ namespace RunCmd {
 			/// Explicit process cancel
 			/// </summary>
 			private bool cancelled = false;
-			/// <summary>
-			/// records output
-			/// </summary>
-			private StringBuilder outputToScan = new StringBuilder();
 
 			private Dictionary<string, NamedRegexSearch> _regexSearches = new Dictionary<string, NamedRegexSearch>();
 
 			private void OutputAnalysis(string fromProcess) {
-				outputToScan.AppendLine(fromProcess);
 				source.AddToCommandOutput(fromProcess); // this is where the printing happens.
 				print?.Invoke(fromProcess);
 				foreach (var kvp in _regexSearches) {
@@ -105,6 +100,11 @@ namespace RunCmd {
 			public OperatingSystemCommandShell Shell { get => _shell; }
 
 			public bool HaveCommandToDo() => currentCommand != null;
+
+			public int CommandIndex {
+				get => commandExecutingIndex;
+				set => commandExecutingIndex = value;
+			}
 
 			public bool IsCancelled() => cancelled || commandExecutingIndex < 0;
 
@@ -194,9 +194,6 @@ namespace RunCmd {
 					DelayCall(RunEachCommandInSequence);
 				} else {
 					commandExecutingIndex = 0;
-					if (source._recapOutputAtEnd) {
-						Debug.Log(outputToScan);
-					}
 				}
 			}
 

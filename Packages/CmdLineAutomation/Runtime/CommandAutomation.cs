@@ -35,8 +35,6 @@ namespace RunCmd {
 		[ContextMenuItem(nameof(ParseCommands),nameof(ParseCommands))]
 		[SerializeField] protected TextCommand _command;
 
-		public bool _recapOutputAtEnd;
-
 		/// <summary>
 		/// Command being typed into the command prompt by the Unity Editor user
 		/// </summary>
@@ -47,7 +45,7 @@ namespace RunCmd {
 		/// </summary>
 		private List<ICommandFilter> _filters;
 
-		private RegexMatrix regexMatrix = new RegexMatrix();
+		private RegexMatrix _censorshipRules = new RegexMatrix();
 		private bool _showOutput = true;
 		private bool _hideNextLine = false;
 		private List<(int row, int col)> _triggeredGroup = new List<(int row, int col)>();
@@ -94,8 +92,8 @@ namespace RunCmd {
 		}
 
 		public void AddToCommandOutput(string value) {
-			if (regexMatrix.HasRegexTriggers) {
-				regexMatrix.ProcessAndCheckTextForTriggeringLines(value, AddProcessedLineToCommandOutput, _triggeredGroup);
+			if (_censorshipRules.HasRegexTriggers) {
+				_censorshipRules.ProcessAndCheckTextForTriggeringLines(value, AddProcessedLineToCommandOutput, _triggeredGroup);
 			} else {
 				AddLineToCommandOutputInternal(value);
 			}
@@ -129,38 +127,42 @@ namespace RunCmd {
 		private bool NeedsInitialization() => _filters == null;
 
 		/// <summary>
-		/// If the given regex is triggered, all output will be hidden (until <see cref="AddShowAllTrigger(string)"/>)
+		/// If the given regex is triggered, all output will be hidden (until <see cref="AddUncensorshipTrigger(string)"/>)
 		/// </summary>
 		/// <param name="regexTrigger"></param>
-		public void AddHideAllTrigger(string regexTrigger) => regexMatrix.Add((int)RegexGroupId.DisableOnRead, regexTrigger);
+		public void AddCensorshipTrigger(string regexTrigger) => _censorshipRules.Add((int)RegexGroupId.DisableOnRead, regexTrigger);
 
 		/// <summary>
 		/// If the given regex is triggered, all output will be shown again
 		/// </summary>
 		/// <param name="regexTrigger"></param>
-		public void AddShowAllTrigger(string regexTrigger) => regexMatrix.Add((int)RegexGroupId.EnableOnRead, regexTrigger);
+		public void AddUncensorshipTrigger(string regexTrigger) => _censorshipRules.Add((int)RegexGroupId.EnableOnRead, regexTrigger);
+
 		/// <summary>
 		/// Hide lines that contain the given regex trigger
 		/// </summary>
 		/// <param name="regexTrigger"></param>
-		public void AddHideLineTrigger(string regexTrigger) => regexMatrix.Add((int)RegexGroupId.HideNextLine, regexTrigger);
+		public void AddCensorLineTrigger(string regexTrigger) => _censorshipRules.Add((int)RegexGroupId.HideNextLine, regexTrigger);
+
 		/// <summary>
-		/// Remove a regex trigger added by <see cref="AddHideAllTrigger(string)"/>
+		/// Remove a regex trigger added by <see cref="AddCensorshipTrigger(string)"/>
 		/// </summary>
 		/// <param name="regexTrigger"></param>
 		/// <returns></returns>
-		public bool RemoveHideAllTrigger(string regexTrigger) => regexMatrix.Remove((int)RegexGroupId.DisableOnRead, regexTrigger);
+		public bool RemoveCensorshipTrigger(string regexTrigger) => _censorshipRules.Remove((int)RegexGroupId.DisableOnRead, regexTrigger);
+
 		/// <summary>
-		/// Remove a regex trigger added by <see cref="AddShowAllTrigger(string)"/>
+		/// Remove a regex trigger added by <see cref="AddUncensorshipTrigger(string)"/>
 		/// </summary>
 		/// <param name="regexTrigger"></param>
 		/// <returns></returns>
-		public bool RemoveShowAllTrigger(string regexTrigger) => regexMatrix.Remove((int)RegexGroupId.EnableOnRead, regexTrigger);
+		public bool RemoveUncensorshipTrigger(string regexTrigger) => _censorshipRules.Remove((int)RegexGroupId.EnableOnRead, regexTrigger);
+
 		/// <summary>
-		/// Remove all regex triggers added by <see cref="AddHideLineTrigger(string)"/>,
-		/// <see cref="AddHideAllTrigger(string)"/>, <see cref="AddShowAllTrigger(string)"/>
+		/// Remove all regex triggers added by <see cref="AddCensorLineTrigger(string)"/>,
+		/// <see cref="AddCensorshipTrigger(string)"/>, <see cref="AddUncensorshipTrigger(string)"/>
 		/// </summary>
-		public void ClearRegexFilterRules() => regexMatrix.ClearRows();
+		public void ClearCensorshipRules() => _censorshipRules.ClearRows();
 
 		public void Initialize() {
 			_filters = new List<ICommandFilter>();
@@ -178,12 +180,12 @@ namespace RunCmd {
 			if (CommandsToDo == null) {
 				ParseCommands();
 			}
-			regexMatrix = new RegexMatrix(new RegexMatrix.Row[] {
+			_censorshipRules = new RegexMatrix(new RegexMatrix.Row[] {
 				new RegexMatrix.Row(HideNextLineFunc, null),
 				new RegexMatrix.Row(HideAllFunc, null),
 				new RegexMatrix.Row(ShowAllFunc, null),
 			});
-			regexMatrix.IsWaitingForTriggerRecalculate();
+			_censorshipRules.IsWaitingForTriggerRecalculate();
 		}
 
 		private void HideNextLineFunc(string trigger) { _hideNextLine = true; }
