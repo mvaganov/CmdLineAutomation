@@ -175,7 +175,9 @@ namespace RunCmd {
 						break;
 				}
 			}
-			ParseCommands();
+			if (CommandsToDo == null) {
+				ParseCommands();
+			}
 			regexMatrix = new RegexMatrix(new RegexMatrix.Row[] {
 				new RegexMatrix.Row(HideNextLineFunc, null),
 				new RegexMatrix.Row(HideAllFunc, null),
@@ -230,6 +232,7 @@ namespace RunCmd {
 
 		public void ClearOutput(object context) {
 			_inspectorCommandOutput = "";
+			OnOutputChange?.Invoke(_inspectorCommandOutput);
 		}
 
 		//public void ExecuteCommand(string command, object context, PrintCallback printCallback) {

@@ -58,6 +58,7 @@ namespace RunCmd {
 
 			private void OutputAnalysis(string fromProcess) {
 				outputToScan.AppendLine(fromProcess);
+				source.AddToCommandOutput(fromProcess); // this is where the printing happens.
 				print?.Invoke(fromProcess);
 				foreach (var kvp in _regexSearches) {
 					string value = kvp.Value.Process(fromProcess);

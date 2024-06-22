@@ -205,8 +205,6 @@ namespace RunCmd {
 					PopulateShell(shell);
 				}
 			}
-			//Debug.Log("PRINT: "+line);
-			Target.AddToCommandOutput(text);// + "\n";
 			RefreshInspector();
 		}
 

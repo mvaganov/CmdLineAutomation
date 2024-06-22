@@ -6,11 +6,11 @@ namespace RunCmd {
 	public class CommandCls : ScriptableObject, INamedCommand {
 		public string CommandToken => this.name;
 		public void StartCooperativeFunction(object context, string command, PrintCallback print) {
-			if (context is CommandAutomation automation) {
+			if (context is ICommandAutomation automation) {
 				// clear the screen just after this command is processed
 				CommandAutomation.DelayCall(ClearOnNextUpdate);
 				void ClearOnNextUpdate() {
-					automation.ClearOutput(automation);
+					automation.CommandExecutor.ClearOutput(automation);
 				}
 			} else {
 				Debug.LogWarning($"{name} unable to clear {context}");

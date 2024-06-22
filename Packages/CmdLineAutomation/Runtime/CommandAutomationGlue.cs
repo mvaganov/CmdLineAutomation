@@ -18,7 +18,7 @@ namespace RunCmd {
 		}
 
 		public void PrintCallback(string newText) {
-			_outputText += newText;
+			_outputText = CommandExecutor.CommandOutput;
 			_outputTextChanged = true;
 		}
 
