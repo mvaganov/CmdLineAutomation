@@ -4,14 +4,26 @@ using UnityEngine;
 
 namespace RunCmd {
 	/// <summary>
-	/// * Metadata about why this object exists
+	/// TODO refactor:
+
+	/// CommandLineSettings: has all of the settings of a command line, like what commands it accepts and what variables it looks for
+	/// * Metadata/description about why this object exists
 	/// * A list of command filters (including the specific named command listing in a sub-asset)
-	/// * A list of commands to execute
+	/// * 
+
+	/// CommandLineExecutor: has the runtime variables of a command line, like the parsed commands to execute, the command execution stack, specific found variable data. Executes commands for a command line defined by CommandLineSettings.
 	/// * Logic to process commands as a cooperative process
 	///   * does not block the Unity thread
 	///   * tracks state of which command is executing now
 	///   * can be cancelled
+	/// * A list of commands to execute
 	/// * keeps track of command output, which can be filtered by line with regular expressions
+	/// * can be fed commands in the Unity Editor, or from runtime methods
+
+	/// CommandLineAutomation: has a specific command line instruction to execute, which it uses to populate a CommandLineExecutor
+	/// * Metadata/description about why this instruction set exists
+	/// * the instruction set
+
 	/// </summary>
 	[CreateAssetMenu(fileName = "NewCmdLineAutomation", menuName = "ScriptableObjects/CmdLineAutomation", order = 1)]
 	public partial class CommandAutomation : CommandRunner<CommandAutomation.CommandExecution>, ICommandProcessor, ICommandAutomation {
@@ -20,6 +32,11 @@ namespace RunCmd {
 		/// List of the possible custom commands written as C# <see cref="ICommandProcessor"/>s
 		/// </summary>
 		[SerializeField] protected UnityEngine.Object[] _commandFilters;
+
+		/// <summary>
+		/// List if filtering functions for input, which may or may not consume a command. This is the type disambiguated version of <see cref="_commandFilters"/>
+		/// </summary>
+		private List<ICommandFilter> _filters;
 
 		/// <summary>
 		/// Variables to read from command line input
@@ -39,11 +56,6 @@ namespace RunCmd {
 		/// Command being typed into the command prompt by the Unity Editor user
 		/// </summary>
 		private string _inspectorCommandOutput;
-
-		/// <summary>
-		/// List if filtering functions for input, which may or may not consume a command
-		/// </summary>
-		private List<ICommandFilter> _filters;
 
 		private RegexMatrix _censorshipRules = new RegexMatrix();
 		private bool _showOutput = true;
@@ -177,15 +189,15 @@ namespace RunCmd {
 						break;
 				}
 			}
-			if (CommandsToDo == null) {
-				ParseCommands();
-			}
 			_censorshipRules = new RegexMatrix(new RegexMatrix.Row[] {
 				new RegexMatrix.Row(HideNextLineFunc, null),
 				new RegexMatrix.Row(HideAllFunc, null),
 				new RegexMatrix.Row(ShowAllFunc, null),
 			});
 			_censorshipRules.IsWaitingForTriggerRecalculate();
+			if (CommandsToDo == null) {
+				ParseCommands();
+			}
 		}
 
 		private void HideNextLineFunc(string trigger) { _hideNextLine = true; }
