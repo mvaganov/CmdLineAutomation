@@ -26,7 +26,7 @@ namespace RunCmd {
 
 	/// </summary>
 	[CreateAssetMenu(fileName = "NewCmdLineAutomation", menuName = "ScriptableObjects/CmdLineAutomation", order = 1)]
-	public partial class CommandAutomation : CommandRunner<CommandAutomation.CommandExecution>, ICommandProcessor, ICommandAutomation {
+	public partial class CommandAutomation : CommandRunner<CommandExecution>, ICommandProcessor, ICommandAutomation {
 		private enum RegexGroupId { None = -1, HideNextLine = 0, DisableOnRead, EnableOnRead }
 		/// <summary>
 		/// List of the possible custom commands written as C# <see cref="ICommandProcessor"/>s
@@ -136,7 +136,7 @@ namespace RunCmd {
 
 		public OperatingSystemCommandShell GetShell(object context) => GetExecutionData(context).Shell;
 
-		private bool NeedsInitialization() => _filters == null;
+		internal bool NeedsInitialization() => _filters == null;
 
 		/// <summary>
 		/// If the given regex is triggered, all output will be hidden (until <see cref="AddUncensorshipTrigger(string)"/>)

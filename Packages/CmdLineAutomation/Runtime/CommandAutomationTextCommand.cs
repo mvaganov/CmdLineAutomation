@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace RunCmd {
-	public partial class CommandAutomation {
+	//public partial class CommandAutomation {
 		/// <summary>
 		/// Exposed information about what commands to automate
 		/// </summary>
@@ -34,17 +34,17 @@ namespace RunCmd {
 
 			public object Clone() => CloneSelf();
 		}
+	//}
 
-		[Serializable]
-		public class ParsedTextCommand {
-			public string Text;
-			public bool Ignore;
+	[Serializable]
+	public class ParsedTextCommand {
+		public string Text;
+		public bool Ignore;
 
-			public ParsedTextCommand(string text) {
-				Text = text;
-			}
-
-			public static implicit operator ParsedTextCommand(string text) => new ParsedTextCommand(text);
+		public ParsedTextCommand(string text) {
+			Text = text;
 		}
+
+		public static implicit operator ParsedTextCommand(string text) => new ParsedTextCommand(text);
 	}
 }

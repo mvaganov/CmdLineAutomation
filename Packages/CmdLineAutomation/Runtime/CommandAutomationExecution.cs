@@ -3,7 +3,7 @@ using System.Text;
 using UnityEngine;
 
 namespace RunCmd {
-	public partial class CommandAutomation {
+	//public partial class CommandAutomation {
 		public class CommandExecution {
 			/// <summary>
 			/// What object counts as the owner of this command
@@ -159,7 +159,7 @@ namespace RunCmd {
 						EndCurrentCommand();
 						++commandExecutingIndex;
 					} else {
-						DelayCall(RunEachCommandInSequence);
+					CommandLineSettings.DelayCall(RunEachCommandInSequence);
 						return;
 					}
 				}
@@ -191,7 +191,7 @@ namespace RunCmd {
 					}
 				}
 				if (commandExecutingIndex >= 0 && commandExecutingIndex < CommandsToDo.Count) {
-					DelayCall(RunEachCommandInSequence);
+					CommandLineSettings.DelayCall(RunEachCommandInSequence);
 				} else {
 					commandExecutingIndex = 0;
 				}
@@ -266,5 +266,5 @@ namespace RunCmd {
 				commandExecutingIndex = 0;
 			}
 		}
-	}
+	//}
 }
