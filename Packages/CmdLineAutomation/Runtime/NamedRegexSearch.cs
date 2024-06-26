@@ -100,6 +100,16 @@ namespace RunCmd {
 			}
 			return RuntimeValue = sb.ToString();
 		}
+
+		public NamedRegexSearch Clone() {
+			return new NamedRegexSearch(Name, _regex) {
+				Ignore = Ignore,
+				GroupsToInclude = GroupsToInclude,
+				readLogic = readLogic,
+				Events = Events // TODO make a proper clone of the UnityEvents? https://gist.github.com/wesleywh/1c56d880c0289371ea2dc47661a0cdaf
+			};
+		}
+
 		public static implicit operator NamedRegexSearch(string regex) => new NamedRegexSearch("", regex);
 	}
 }

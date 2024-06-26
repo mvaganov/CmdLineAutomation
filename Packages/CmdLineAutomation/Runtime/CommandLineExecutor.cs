@@ -21,7 +21,7 @@
 
 //	/// </summary>
 //	[CreateAssetMenu(fileName = "CmdLineExecutor", menuName = "ScriptableObjects/CmdLineExecutor", order = 1)]
-//	public partial class CommandLineExecutor : CommandRunner<CommandAutomation.CommandExecution>, ICommandProcessor, ICommandAutomation {
+//	public partial class CommandLineExecutor : CommandRunner<CommandExecution>, ICommandProcessor, ICommandAutomation {
 //		[SerializeField] protected CommandLineSettings _settings;
 
 //		/// <summary>
@@ -35,13 +35,14 @@
 //		private System.Action<string> _onOutputChange;
 
 //		IList<ParsedTextCommand> _commandsToDo;
-//		/// <summary>
-//		/// Variables to read from command line input
-//		/// </summary>
-//		[SerializeField]
-//		protected NamedRegexSearch[] _variablesFromCommandLineRegexSearch = new NamedRegexSearch[] {
-//			// TODO copy from _settings
-//		};
+
+//		///// <summary>
+//		///// Variables to read from command line input
+//		///// </summary>
+//		//[SerializeField]
+//		//protected NamedRegexSearch[] _variablesFromCommandLineRegexSearch = new NamedRegexSearch[] {
+//		//	// TODO copy from _settings
+//		//};
 
 //		public IList<ParsedTextCommand> CommandsToDo {
 //			get => _commandsToDo;
@@ -50,8 +51,10 @@
 
 //		public CommandLineExecutor CommandExecutor => this;
 
-//		public IList<NamedRegexSearch> VariablesFromCommandLineRegexSearch => _variablesFromCommandLineRegexSearch;
+//		public IList<NamedRegexSearch> VariablesFromCommandLineRegexSearch => _settings.VariablesFromCommandLineRegexSearch;// _variablesFromCommandLineRegexSearch;
 
+//		public RegexMatrix CensorshipRules => _settings.CensorshipRules;
+		
 //		public string CommandOutput => _inspectorCommandOutput;
 
 //		public bool ShowOutput {
@@ -96,51 +99,32 @@
 //		public string CurrentCommandText(object context) => GetExecutionData(context).CurrentCommandText();
 
 //		public ICommandProcessor CurrentCommand(object context) => GetExecutionData(context).CurrentCommand();
-//		/*
+
 //		protected override CommandExecution CreateEmptyContextEntry(object context)
 //			=> new CommandExecution(context, this);
 
 //		public OperatingSystemCommandShell GetShell(object context) => GetExecutionData(context).Shell;
 
-//		/// <summary>
-//		/// If the given regex is triggered, all output will be hidden (until <see cref="AddUncensorshipTrigger(string)"/>)
-//		/// </summary>
-//		/// <param name="regexTrigger"></param>
-//		public void AddCensorshipTrigger(string regexTrigger) => _censorshipRules.Add((int)RegexGroupId.DisableOnRead, regexTrigger);
+//		/// <inheritdoc cref="CommandLineSettings.AddCensorshipTrigger(string)"/>
+//		public void AddCensorshipTrigger(string regexTrigger) => _settings.AddCensorshipTrigger(regexTrigger);
 
-//		/// <summary>
-//		/// If the given regex is triggered, all output will be shown again
-//		/// </summary>
-//		/// <param name="regexTrigger"></param>
-//		public void AddUncensorshipTrigger(string regexTrigger) => _censorshipRules.Add((int)RegexGroupId.EnableOnRead, regexTrigger);
+//		/// <inheritdoc cref="CommandLineSettings.AddUncensorshipTrigger(string)"/>
+//		public void AddUncensorshipTrigger(string regexTrigger) => _settings.AddUncensorshipTrigger(regexTrigger);
 
-//		/// <summary>
-//		/// Hide lines that contain the given regex trigger
-//		/// </summary>
-//		/// <param name="regexTrigger"></param>
-//		public void AddCensorLineTrigger(string regexTrigger) => _censorshipRules.Add((int)RegexGroupId.HideNextLine, regexTrigger);
+//		/// <inheritdoc cref="CommandLineSettings.AddCensorLineTrigger(string)"/>
+//		public void AddCensorLineTrigger(string regexTrigger) => _settings.AddCensorLineTrigger(regexTrigger);
 
-//		/// <summary>
-//		/// Remove a regex trigger added by <see cref="AddCensorshipTrigger(string)"/>
-//		/// </summary>
-//		/// <param name="regexTrigger"></param>
-//		/// <returns></returns>
-//		public bool RemoveCensorshipTrigger(string regexTrigger) => _censorshipRules.Remove((int)RegexGroupId.DisableOnRead, regexTrigger);
+//		/// <inheritdoc cref="CommandLineSettings.RemoveCensorshipTrigger(string)"/>
+//		public bool RemoveCensorshipTrigger(string regexTrigger) => _settings.RemoveCensorshipTrigger(regexTrigger);
 
-//		/// <summary>
-//		/// Remove a regex trigger added by <see cref="AddUncensorshipTrigger(string)"/>
-//		/// </summary>
-//		/// <param name="regexTrigger"></param>
-//		/// <returns></returns>
-//		public bool RemoveUncensorshipTrigger(string regexTrigger) => _censorshipRules.Remove((int)RegexGroupId.EnableOnRead, regexTrigger);
+//		/// <inheritdoc cref="CommandLineSettings.RemoveUncensorshipTrigger(string)"/>
+//		public bool RemoveUncensorshipTrigger(string regexTrigger) => _settings.RemoveUncensorshipTrigger(regexTrigger);
 
-//		/// <summary>
-//		/// Remove all regex triggers added by <see cref="AddCensorLineTrigger(string)"/>,
-//		/// <see cref="AddCensorshipTrigger(string)"/>, <see cref="AddUncensorshipTrigger(string)"/>
-//		/// </summary>
-//		public void ClearCensorshipRules() => _censorshipRules.ClearRows();
+//		/// <inheritdoc cref="CommandLineSettings.ClearCensorshipRules()"/>
+//		public void ClearCensorshipRules() => _settings.ClearCensorshipRules();
 
 //		public void Initialize() {
+//			// TODO make a mutable copy of _settings
 //			_filters = new List<ICommandFilter>();
 //			foreach (UnityEngine.Object obj in _commandFilters) {
 //				switch (obj) {
@@ -205,7 +189,7 @@
 //		public override void StartCooperativeFunction(object context, string command, PrintCallback print) {
 //			GetExecutionData(context).StartCooperativeFunction(command, print);
 //		}
-//		*/
+
 //		public override bool IsExecutionFinished(object context) => GetExecutionData(context).IsExecutionFinished();
 
 //		public void ClearOutput(object context) {

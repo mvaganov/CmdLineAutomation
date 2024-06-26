@@ -260,8 +260,8 @@ namespace RunCmd {
 
 			public string FunctionResult() => currentCommand != null ? currentCommand.FunctionResult(context) : currentCommandResult;
 
-			public CommandExecution(object context, CommandAutomation commandAutomation) {
-				source = commandAutomation;
+			public CommandExecution(object context, ICommandAutomation commandAutomation) {
+				source = commandAutomation.CommandExecutor;
 				this.context = context;
 				commandExecutingIndex = 0;
 			}

@@ -12,7 +12,7 @@ namespace RunCmd {
 		public class Row {
 			public string purpose;
 			public List<NamedRegexSearch> list = new List<NamedRegexSearch>();
-			public UnityEvent_string OnTrigger = new UnityEvent_string();
+			public UnityEvent_string OnTrigger = new UnityEvent_string(); // TODO replace with Action<string>?
 			public Row(Action<string> regexCallback, string[] expressions) {
 				if (expressions != null) {
 					for (int i = 0; i < expressions.Length; ++i) {
@@ -23,6 +23,11 @@ namespace RunCmd {
 					UnityAction<string> unityAction = new UnityAction<string>(regexCallback);
 					OnTrigger.AddListener(unityAction);
 				}
+			}
+
+			public Row Clone() {
+				Row clone = null;// new Row(); // TODO 
+				return clone;
 			}
 		}
 
@@ -98,6 +103,15 @@ namespace RunCmd {
 				}
 			}
 			return count;
+		}
+
+		public RegexMatrix Clone() {
+			RegexMatrix clone = new RegexMatrix();
+			clone._regexMatrix = new Row[_regexMatrix.Length];
+			for(int i = 0; i < _regexMatrix.Length; ++i) {
+				clone._regexMatrix[i] = _regexMatrix[i].Clone();
+			}
+			return clone;
 		}
 
 		public void Add(int row, string trigger) {
