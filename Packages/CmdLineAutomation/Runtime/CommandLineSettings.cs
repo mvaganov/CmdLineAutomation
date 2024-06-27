@@ -57,6 +57,7 @@ namespace RunCmd {
 				for(int i = 0; i < clone._variablesFromCommandLineRegexSearch.Length; ++i) {
 					clone._variablesFromCommandLineRegexSearch[i] = _variablesFromCommandLineRegexSearch[i].Clone();
 				}
+				clone._censorshipRules = _censorshipRules.Clone();
 				return clone;
 			}
 		}

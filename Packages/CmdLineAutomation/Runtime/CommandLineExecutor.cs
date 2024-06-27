@@ -54,7 +54,7 @@
 //		public IList<NamedRegexSearch> VariablesFromCommandLineRegexSearch => _settings.VariablesFromCommandLineRegexSearch;// _variablesFromCommandLineRegexSearch;
 
 //		public RegexMatrix CensorshipRules => _settings.CensorshipRules;
-		
+
 //		public string CommandOutput => _inspectorCommandOutput;
 
 //		public bool ShowOutput {
