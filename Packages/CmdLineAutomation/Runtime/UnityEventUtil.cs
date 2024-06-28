@@ -35,9 +35,10 @@ public static class UnityEventUtil
           }
         }
         ParameterInfo[] parameters = method.GetParameters();
+        SerializedProperty argumentProperty = persistentCalls.GetArrayElementAtIndex(i);
         switch (parameters[0].ParameterType.Name) {
           case nameof(System.Boolean):
-            bool bool_value = persistentCalls.GetArrayElementAtIndex(i).FindPropertyRelative("m_Arguments.m_BoolArgument").boolValue;
+            bool bool_value = argumentProperty.FindPropertyRelative("m_Arguments.m_BoolArgument").boolValue;
             var bool_execute = System.Delegate.CreateDelegate(typeof(UnityAction<bool>), target, methodName) as UnityAction<bool>;
             UnityEventTools.AddBoolPersistentListener(
                 dest as UnityEventBase,
@@ -46,7 +47,7 @@ public static class UnityEventUtil
             );
             break;
           case nameof(System.Int32):
-            int int_value = persistentCalls.GetArrayElementAtIndex(i).FindPropertyRelative("m_Arguments.m_IntArgument").intValue;
+            int int_value = argumentProperty.FindPropertyRelative("m_Arguments.m_IntArgument").intValue;
             var int_execute = System.Delegate.CreateDelegate(typeof(UnityAction<int>), target, methodName) as UnityAction<int>;
             UnityEventTools.AddIntPersistentListener(
                 dest as UnityEventBase,
@@ -55,7 +56,7 @@ public static class UnityEventUtil
             );
             break;
           case nameof(System.Single):
-            float float_value = persistentCalls.GetArrayElementAtIndex(i).FindPropertyRelative("m_Arguments.m_FloatArgument").floatValue;
+            float float_value = argumentProperty.FindPropertyRelative("m_Arguments.m_FloatArgument").floatValue;
             var float_execute = System.Delegate.CreateDelegate(typeof(UnityAction<float>), target, methodName) as UnityAction<float>;
             UnityEventTools.AddFloatPersistentListener(
                 dest as UnityEventBase,
@@ -64,7 +65,7 @@ public static class UnityEventUtil
             );
             break;
           case nameof(System.String):
-            string str_value = persistentCalls.GetArrayElementAtIndex(i).FindPropertyRelative("m_Arguments.m_StringArgument").stringValue;
+            string str_value = argumentProperty.FindPropertyRelative("m_Arguments.m_StringArgument").stringValue;
             var str_execute = System.Delegate.CreateDelegate(typeof(UnityAction<string>), target, methodName) as UnityAction<string>;
             UnityEventTools.AddStringPersistentListener(
                 dest as UnityEventBase,
@@ -73,7 +74,7 @@ public static class UnityEventUtil
             );
             break;
           case nameof(System.Object):
-            Object obj_value = persistentCalls.GetArrayElementAtIndex(i).FindPropertyRelative("m_Arguments.m_ObjectArgument").objectReferenceValue;
+            Object obj_value = argumentProperty.FindPropertyRelative("m_Arguments.m_ObjectArgument").objectReferenceValue;
             var obj_execute = System.Delegate.CreateDelegate(typeof(UnityAction<Object>), target, methodName) as UnityAction<Object>;
             UnityEventTools.AddObjectPersistentListener(
                 dest as UnityEventBase,
@@ -81,14 +82,24 @@ public static class UnityEventUtil
                 obj_value
             );
             break;
+          //case nameof(Transform): {
+          //    Object obj_value1 = persistentCalls.GetArrayElementAtIndex(i).FindPropertyRelative("m_Arguments");
+          //    var obj_execute1 = System.Delegate.CreateDelegate(typeof(UnityAction<Transform>), target, methodName) as UnityAction<Object>;
+          //    UnityEventTools.AddObjectPersistentListener(
+          //        dest as UnityEventBase,
+          //        obj_execute1,
+          //        obj_value1
+          //    );
+          //  }
+          //  break;
           default:
             Debug.Log(method.Name+" : "+parameters[0].ParameterType.Name);
-            foreach(var a in persistentCalls.GetArrayElementAtIndex(i)) {
-              SerializedProperty sp = a as SerializedProperty;
-              Debug.Log(sp.type+ " '" + sp.displayName + "' : " + sp.hasChildren + " " + sp.name);
+            SerializedProperty prop = argumentProperty.FindPropertyRelative("m_Arguments.m_ObjectArgument");
+						foreach (var a in prop) {
+							SerializedProperty sp = a as SerializedProperty;
+							Debug.Log(sp.type + " '" + sp.displayName + "' : " + sp.hasChildren + " " + sp.name);
 						}
-            //Object obj = persistentCalls.GetArrayElementAtIndex(i).//.FindPropertyRelative("m_Arguments").objectReferenceValue;
-            var void_execute = System.Delegate.CreateDelegate(typeof(UnityAction), target, methodName) as UnityAction;
+						var void_execute = System.Delegate.CreateDelegate(typeof(UnityAction), target, methodName) as UnityAction;
             UnityEventTools.AddPersistentListener(
                 dest as UnityEvent,
                 void_execute
@@ -96,6 +107,16 @@ public static class UnityEventUtil
             break;
         }
       }
+
     }
+  }
+  private static void DoThing<ArgType>(SerializedProperty persistentCalls, int i, Object target, string methodName, object dest) {
+    Object obj_value = persistentCalls.GetArrayElementAtIndex(i).FindPropertyRelative("m_Arguments.m_ObjectArgument").objectReferenceValue;
+    var obj_execute = System.Delegate.CreateDelegate(typeof(UnityAction<ArgType>), target, methodName) as UnityAction<Object>;
+    UnityEventTools.AddObjectPersistentListener(
+        dest as UnityEventBase,
+        obj_execute,
+        obj_value
+    );
   }
 }
