@@ -38,18 +38,23 @@ namespace RunCmd {
 		/// </summary>
 		private List<ICommandFilter> _filters;
 
-		[SerializeField]
+		[System.Serializable]
 		public class MutableValues {
 			/// <summary>
 			/// Variables to read from command line input
 			/// </summary>
 			[SerializeField]
 			public NamedRegexSearch[] _variablesFromCommandLineRegexSearch = new NamedRegexSearch[] {
-				new NamedRegexSearch("WindowsTerminalVersion", @"Microsoft Windows \[Version ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\]", new int[] { 1 }, true),
-				new NamedRegexSearch("dir", NamedRegexSearch.CommandPromptRegexWindows, null, true)
+				new NamedRegexSearch("WindowsTerminalVersion", @"Microsoft Windows \[Version ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\]", new int[] { 1 }, true, NamedRegexSearch.SpecialReadLogic.IgnoreAfterFirstValue),
+				new NamedRegexSearch("dir", NamedRegexSearch.CommandPromptRegexWindows, null, true, NamedRegexSearch.SpecialReadLogic.None)
 			};
 
-			public RegexMatrix _censorshipRules = new RegexMatrix();
+			[SerializeField]
+			public RegexMatrix _censorshipRules = new RegexMatrix(new RegexMatrix.Row[] {
+				new RegexMatrix.Row(RegexGroupId.HideNextLine.ToString()),
+				new RegexMatrix.Row(RegexGroupId.DisableOnRead.ToString()),
+				new RegexMatrix.Row(RegexGroupId.EnableOnRead.ToString()),
+			});
 
 			public MutableValues Clone() {
 				MutableValues clone = new MutableValues();
@@ -62,6 +67,9 @@ namespace RunCmd {
 			}
 		}
 
+		private void ResetRuntimeSettings() { _runtimeSettings = new MutableValues(); }
+
+		[ContextMenuItem(nameof(ResetRuntimeSettings), nameof(ResetRuntimeSettings))]
 		public MutableValues _runtimeSettings = new MutableValues();
 
 		public IList<ICommandFilter> Filters => _filters;

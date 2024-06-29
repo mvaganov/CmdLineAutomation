@@ -37,7 +37,7 @@ namespace RunCmd {
 		/// <summary>
 		/// Processing optimizations, to prevent regex from running if it doesn't make sense
 		/// </summary>
-		public SpecialReadLogic readLogic = SpecialReadLogic.None;
+		public SpecialReadLogic ReadLogic = SpecialReadLogic.None;
 
 		public string RegexString {
 			get => _regex;
@@ -47,16 +47,17 @@ namespace RunCmd {
 			}
 		}
 
-		public NamedRegexSearch(string name, string regex) : this(name, regex, null, false) { }
-		public NamedRegexSearch(string name, string regex, int[] groupsToInclude, bool ignore) {
+		public NamedRegexSearch(string name, string regex) : this(name, regex, null, false, SpecialReadLogic.None) { }
+		public NamedRegexSearch(string name, string regex, int[] groupsToInclude, bool ignore, SpecialReadLogic readLogic) {
 			Name = name;
 			RegexString = regex;
 			GroupsToInclude = groupsToInclude;
 			Ignore = ignore;
+			ReadLogic = readLogic;
 		}
 
 		public string Process(string input, bool isLastLine) {
-			switch (readLogic) {
+			switch (ReadLogic) {
 				case SpecialReadLogic.OnlyCheckLastOutput: if (!isLastLine) {
 						return null;
 					}
@@ -82,21 +83,14 @@ namespace RunCmd {
 			for (int i = 0; i < GroupsToInclude.Length; ++i) {
 				sb.Append(m.Groups[GroupsToInclude[i]]);
 			}
-			switch (readLogic) {
+			switch (ReadLogic) {
 				case SpecialReadLogic.IgnoreAfterFirstValue: Ignore = true; break;
 			}
 			return RuntimeValue = sb.ToString();
 		}
 
-		public NamedRegexSearch Clone() {
-			NamedRegexSearch result = new NamedRegexSearch(Name, _regex) {
-				Ignore = Ignore,
-				GroupsToInclude = GroupsToInclude,
-				readLogic = readLogic,
-			};
-
-			return result;
-		}
+		public NamedRegexSearch Clone() =>
+			new NamedRegexSearch(Name, _regex, GroupsToInclude, Ignore, ReadLogic);
 
 		public static implicit operator NamedRegexSearch(string regex) => new NamedRegexSearch("", regex);
 	}

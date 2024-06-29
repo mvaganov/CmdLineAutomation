@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.Events;
 
 namespace RunCmd {
@@ -10,9 +11,10 @@ namespace RunCmd {
 
 		[System.Serializable]
 		public class Row {
-			public string purpose;
+			public string Purpose;
 			public List<NamedRegexSearch> list = new List<NamedRegexSearch>();
-			public UnityEvent_string OnTrigger = new UnityEvent_string(); // TODO replace with Action<string>?
+			public Action<string> OnTrigger = delegate { };
+			//public UnityEvent_string OnTrigger = new UnityEvent_string(); // TODO replace with Action<string>?
 			public Row(Action<string> regexCallback, string[] expressions) {
 				if (expressions != null) {
 					for (int i = 0; i < expressions.Length; ++i) {
@@ -20,22 +22,29 @@ namespace RunCmd {
 					}
 				}
 				if (regexCallback != null) {
-					UnityAction<string> unityAction = new UnityAction<string>(regexCallback);
-					OnTrigger.AddListener(unityAction);
+					OnTrigger += regexCallback;
 				}
+			}
+			public Row() { }
+			public Row(string purpose) {
+				Purpose = purpose;
 			}
 
 			public Row Clone() {
-				Row clone = null;// new Row(); // TODO 
+				Row clone = new Row(Purpose);
+				for (int i = 0; i < list.Count; ++i) {
+					clone.list.Add(list[i].Clone());
+				}
+				clone.OnTrigger = OnTrigger.Clone() as Action<string>;
 				return clone;
 			}
 		}
 
-		private Row[] _regexMatrix = new Row[0];
+		[SerializeField] private Row[] _regexTriggers = new Row[0];
 		private bool _isWaitingForTrigger = false;
 		private string _currentLine = "";
 
-		public Row[] Rows => _regexMatrix;
+		public Row[] Rows => _regexTriggers;
 
 		public bool HasRegexTriggers => _isWaitingForTrigger;
 
@@ -45,13 +54,13 @@ namespace RunCmd {
 			if (matrix == null) {
 				return;
 			}
-			_regexMatrix = matrix;
+			_regexTriggers = matrix;
 			IsWaitingForTriggerRecalculate();
 		}
 
 		public bool IsWaitingForTriggerRecalculate() {
-			for (int groupId = 0; groupId < _regexMatrix.Length; ++groupId) {
-				List<NamedRegexSearch> regexList = _regexMatrix[groupId].list;
+			for (int groupId = 0; groupId < _regexTriggers.Length; ++groupId) {
+				List<NamedRegexSearch> regexList = _regexTriggers[groupId].list;
 				for (int regexIndex = 0; regexIndex < regexList.Count; ++regexIndex) {
 					if (!regexList[regexIndex].Ignore) {
 						return _isWaitingForTrigger = true;
@@ -62,8 +71,8 @@ namespace RunCmd {
 		}
 
 		public void ClearRows() {
-			for (int i = 0; i < _regexMatrix.Length; ++i) {
-				_regexMatrix[i].list.Clear();
+			for (int i = 0; i < _regexTriggers.Length; ++i) {
+				_regexTriggers[i].list.Clear();
 			}
 			_isWaitingForTrigger = false;
 		}
@@ -81,7 +90,7 @@ namespace RunCmd {
 				_triggeredGroup.Clear();
 				if (CountTriggeringExpressions(checkedLine, _triggeredGroup) > 0) {
 					_triggeredGroup.ForEach(coord => {
-						_regexMatrix[coord.row].OnTrigger.Invoke(_regexMatrix[coord.row].list[coord.col].RuntimeValue);
+						_regexTriggers[coord.row].OnTrigger.Invoke(_regexTriggers[coord.row].list[coord.col].RuntimeValue);
 					});
 				}
 				printLine(checkedLine);
@@ -92,8 +101,8 @@ namespace RunCmd {
 		public int CountTriggeringExpressions(string line, List<(int row, int col)> triggeringExpressions) {
 			int count = 0;
 			triggeringExpressions?.Clear();
-			for (int row = 0; row < _regexMatrix.Length; row++) {
-				List<NamedRegexSearch> group = _regexMatrix[row].list;
+			for (int row = 0; row < _regexTriggers.Length; row++) {
+				List<NamedRegexSearch> group = _regexTriggers[row].list;
 				for (int col = 0; col < group.Count; ++col) {
 					NamedRegexSearch regexSearch = group[col];
 					if (regexSearch.Process(line) != null) {
@@ -107,9 +116,9 @@ namespace RunCmd {
 
 		public RegexMatrix Clone() {
 			RegexMatrix clone = new RegexMatrix();
-			clone._regexMatrix = new Row[_regexMatrix.Length];
-			for(int i = 0; i < _regexMatrix.Length; ++i) {
-				clone._regexMatrix[i] = _regexMatrix[i].Clone();
+			clone._regexTriggers = new Row[_regexTriggers.Length];
+			for(int i = 0; i < _regexTriggers.Length; ++i) {
+				clone._regexTriggers[i] = _regexTriggers[i].Clone();
 			}
 			return clone;
 		}

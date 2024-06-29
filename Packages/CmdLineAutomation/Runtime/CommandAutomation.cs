@@ -42,8 +42,8 @@ namespace RunCmd {
 		/// Variables to read from command line input
 		/// </summary>
 		[SerializeField] protected NamedRegexSearch[] _variablesFromCommandLineRegexSearch = new NamedRegexSearch[] {
-			new NamedRegexSearch("WindowsTerminalVersion", @"Microsoft Windows \[Version ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\]", new int[] { 1 }, true),
-			new NamedRegexSearch("dir", NamedRegexSearch.CommandPromptRegexWindows, null, true)
+			new NamedRegexSearch("WindowsTerminalVersion", @"Microsoft Windows \[Version ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\]", new int[] { 1 }, true, NamedRegexSearch.SpecialReadLogic.IgnoreAfterFirstValue),
+			new NamedRegexSearch("dir", NamedRegexSearch.CommandPromptRegexWindows, null, true, NamedRegexSearch.SpecialReadLogic.None)
 		};
 
 		/// <summary>
