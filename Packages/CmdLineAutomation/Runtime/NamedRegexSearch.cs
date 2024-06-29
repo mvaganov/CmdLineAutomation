@@ -1,20 +1,12 @@
 using System;
 using System.Text;
 using System.Text.RegularExpressions;
-using UnityEngine.Events;
 
 namespace RunCmd {
 	[Serializable]
 	public class NamedRegexSearch {
 		public const string CommandPromptRegexWindows =
 			"^[A-Z]:\\\\(?:[^\\\\/:*?\" <>|\\r\\n]+\\\\)*[^\\\\/:*? \"<>|\\r\\n]*>";
-
-		[Serializable]
-		public class UnityEvent_string : UnityEvent<string> { }
-		[Serializable]
-		public struct UnityEvents {
-			public UnityEvent_string onValueProcessed;
-		}
 
 		/// <summary>
 		/// Name for the variable from the regex search
@@ -41,10 +33,6 @@ namespace RunCmd {
 		/// Populated at runtime
 		/// </summary>
 		public string RuntimeValue;
-		/// <summary>
-		/// Called when the value is set by <see cref="Process(string)"/>
-		/// </summary>
-		public UnityEvents Events;
 		public enum SpecialReadLogic { None, IgnoreAfterFirstValue, OnlyCheckLastOutput }
 		/// <summary>
 		/// Processing optimizations, to prevent regex from running if it doesn't make sense
@@ -94,7 +82,6 @@ namespace RunCmd {
 			for (int i = 0; i < GroupsToInclude.Length; ++i) {
 				sb.Append(m.Groups[GroupsToInclude[i]]);
 			}
-			Events.onValueProcessed?.Invoke(RuntimeValue);
 			switch (readLogic) {
 				case SpecialReadLogic.IgnoreAfterFirstValue: Ignore = true; break;
 			}
@@ -102,12 +89,13 @@ namespace RunCmd {
 		}
 
 		public NamedRegexSearch Clone() {
-			return new NamedRegexSearch(Name, _regex) {
+			NamedRegexSearch result = new NamedRegexSearch(Name, _regex) {
 				Ignore = Ignore,
 				GroupsToInclude = GroupsToInclude,
 				readLogic = readLogic,
-				Events = Events // TODO make a proper clone of the UnityEvents? https://gist.github.com/wesleywh/1c56d880c0289371ea2dc47661a0cdaf
 			};
+
+			return result;
 		}
 
 		public static implicit operator NamedRegexSearch(string regex) => new NamedRegexSearch("", regex);

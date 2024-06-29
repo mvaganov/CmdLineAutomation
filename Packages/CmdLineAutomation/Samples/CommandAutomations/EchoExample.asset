@@ -24,20 +24,12 @@ MonoBehaviour:
     _regex: Microsoft Windows \[Version ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\]
     GroupsToInclude: 01000000
     RuntimeValue: 10.0.19045.4412
-    Events:
-      onValueProcessed:
-        m_PersistentCalls:
-          m_Calls: []
     readLogic: 0
   - Name: dir
     Ignore: 1
     _regex: ^[A-Z]:\\(?:[^\\/:*?" <>|\r\n]+\\)*[^\\/:*? "<>|\r\n]*>
     GroupsToInclude: 
     RuntimeValue: C:\Users\mvaga\Developer\CmdLineAutomation>
-    Events:
-      onValueProcessed:
-        m_PersistentCalls:
-          m_Calls: []
     readLogic: 0
   _command:
     Description: "Create a new directory, run `dir` from inside, then delete the
