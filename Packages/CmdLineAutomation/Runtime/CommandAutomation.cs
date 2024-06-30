@@ -26,7 +26,7 @@ namespace RunCmd {
 
 	/// </summary>
 	[CreateAssetMenu(fileName = "NewCmdLineAutomation", menuName = "ScriptableObjects/CmdLineAutomation", order = 1)]
-	public partial class CommandAutomation : CommandRunner<CommandExecution>, ICommandProcessor, ICommandAutomation {
+	public partial class CommandAutomation : CommandRunner<CommandExecution>, ICommandProcessor, ICommandAutomation, ICommandExecutor {
 		private enum RegexGroupId { None = -1, HideNextLine = 0, DisableOnRead, EnableOnRead }
 		/// <summary>
 		/// List of the possible custom commands written as C# <see cref="ICommandProcessor"/>s
@@ -68,7 +68,7 @@ namespace RunCmd {
 			set => _command.ParsedCommands = new List<ParsedTextCommand>(value);
 		}
 
-		public CommandAutomation CommandExecutor => this;
+		public ICommandExecutor CommandExecutor => this;
 
 		public IList<ICommandFilter> Filters => _filters;
 
@@ -86,7 +86,13 @@ namespace RunCmd {
 			}
 		}
 
-		public string CommandOutput => _inspectorCommandOutput;
+		public string CommandOutput {
+			get => _inspectorCommandOutput;
+			set {
+					_inspectorCommandOutput = value;
+					OnOutputChange?.Invoke(_inspectorCommandOutput);
+			}
+		}
 
 		public bool ShowOutput {
 			get => _showOutput;
@@ -243,11 +249,6 @@ namespace RunCmd {
 		}
 
 		public override bool IsExecutionFinished(object context) => GetExecutionData(context).IsExecutionFinished();
-
-		public void ClearOutput(object context) {
-			_inspectorCommandOutput = "";
-			OnOutputChange?.Invoke(_inspectorCommandOutput);
-		}
 
 		//public void ExecuteCommand(string command, object context, PrintCallback printCallback) {
 		//	CommandExecution e = GetExecutionData(context);

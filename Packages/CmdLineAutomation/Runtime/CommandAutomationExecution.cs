@@ -39,6 +39,7 @@ namespace RunCmd {
 			private TextCommand modifiedTextCommand;
 			/// <summary>
 			/// The list of commands and filters this automation is executing
+			/// TODO replace this with ICommandExecutor
 			/// </summary>
 			private CommandAutomation source;
 			/// <summary>
@@ -261,7 +262,7 @@ namespace RunCmd {
 			public string FunctionResult() => currentCommand != null ? currentCommand.FunctionResult(context) : currentCommandResult;
 
 			public CommandExecution(object context, ICommandAutomation commandAutomation) {
-				source = commandAutomation.CommandExecutor;
+				source = commandAutomation.CommandExecutor as CommandAutomation;
 				this.context = context;
 				commandExecutingIndex = 0;
 			}

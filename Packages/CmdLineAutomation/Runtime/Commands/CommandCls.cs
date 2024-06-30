@@ -10,7 +10,7 @@ namespace RunCmd {
 				// clear the screen just after this command is processed
 				CommandAutomation.DelayCall(ClearOnNextUpdate);
 				void ClearOnNextUpdate() {
-					automation.CommandExecutor.ClearOutput(automation);
+					automation.CommandExecutor.CommandOutput = "";
 				}
 			} else {
 				Debug.LogWarning($"{name} unable to clear {context}");

@@ -11,7 +11,7 @@ namespace RunCmd {
 		private string _outputText;
 		private bool _outputTextChanged;
 
-		public CommandAutomation CommandExecutor => cmdLineAutomation;
+		public ICommandExecutor CommandExecutor => cmdLineAutomation;
 
 		void Start() {
 			cmdLineAutomation.OnOutputChange += PrintCallback;

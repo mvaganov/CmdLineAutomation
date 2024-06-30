@@ -32,7 +32,7 @@ namespace RunCmd {
 
 		private object _context;
 
-		public CommandAutomation CommandExecutor => Target;
+		public ICommandExecutor CommandExecutor => Target;
 
 		public CommandAutomation Target => _target != null ? _target
 			: _target = target as CommandAutomation;
@@ -143,7 +143,7 @@ namespace RunCmd {
 			if (!GUILayout.Button("Clear Output")) {
 				return;
 			}
-			Target.ClearOutput(this);
+			Target.CommandOutput = "";// ClearOutput(this);
 			RefreshInspector();
 		}
 
