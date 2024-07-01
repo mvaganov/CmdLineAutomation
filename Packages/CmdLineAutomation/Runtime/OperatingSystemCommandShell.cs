@@ -30,8 +30,11 @@ namespace RunCmd {
 		/// Variables to read from command line input
 		/// </summary>
 		private NamedRegexSearch[] _variablesFromCommandLineRegexSearch = new NamedRegexSearch[] {
-			new NamedRegexSearch("WindowsTerminalVersion", @"Microsoft Windows \[Version ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\]", new int[] { 1 }, false, NamedRegexSearch.SpecialReadLogic.IgnoreAfterFirstValue),
-			new NamedRegexSearch("dir", NamedRegexSearch.CommandPromptRegexWindows, null, false, NamedRegexSearch.SpecialReadLogic.None)
+			new NamedRegexSearch("WindowsTerminalVersion",
+				@"Microsoft Windows \[Version ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\]",
+				new int[] { 1 }, false, NamedRegexSearch.SpecialReadLogic.IgnoreAfterFirstValue),
+			new NamedRegexSearch("dir", NamedRegexSearch.CommandPromptRegexWindows, null, false,
+				NamedRegexSearch.SpecialReadLogic.None)
 		};
 
 		public static Dictionary<object, OperatingSystemCommandShell> RunningShells
@@ -79,7 +82,6 @@ namespace RunCmd {
 			if (RunningShells.TryGetValue(context, out var shell)) {
 				Debug.LogWarning($"replacing shell for {context}");
 			}
-			//Debug.Log($"!!!!!!!!!!!!!!!!!!!!!!! Creating shell \"{Name}\" for '{_context}'");
 			RunningShells[_context] = this;
 		}
 

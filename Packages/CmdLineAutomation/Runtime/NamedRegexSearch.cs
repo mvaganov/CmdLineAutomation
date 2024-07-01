@@ -18,7 +18,7 @@ namespace RunCmd {
 		public bool Ignore;
 		/// <summary>
 		/// How the variable is discovered, using regular expression.
-		/// Need help writing a regular expression? Ask ChatGPT! (I wonder how well this comment will age)
+		/// Need help writing a regular expression? Ask ChatGPT!
 		/// </summary>
 		public string _regex;
 		/// <summary>
@@ -47,8 +47,10 @@ namespace RunCmd {
 			}
 		}
 
-		public NamedRegexSearch(string name, string regex) : this(name, regex, null, false, SpecialReadLogic.None) { }
-		public NamedRegexSearch(string name, string regex, int[] groupsToInclude, bool ignore, SpecialReadLogic readLogic) {
+		public NamedRegexSearch(string name, string regex) : this(name, regex, null, false,
+			SpecialReadLogic.None) { }
+		public NamedRegexSearch(string name, string regex, int[] groupsToInclude, bool ignore,
+		SpecialReadLogic readLogic) {
 			Name = name;
 			RegexString = regex;
 			GroupsToInclude = groupsToInclude;
@@ -75,7 +77,6 @@ namespace RunCmd {
 			if (!m.Success) {
 				return null;
 			}
-			//Debug.LogWarning($"success {Regex}\n{input}\n{m.Value}");
 			if (GroupsToInclude == null || GroupsToInclude.Length == 0) {
 				return RuntimeValue = m.Value;
 			}
@@ -92,6 +93,7 @@ namespace RunCmd {
 		public NamedRegexSearch Clone() =>
 			new NamedRegexSearch(Name, _regex, GroupsToInclude, Ignore, ReadLogic);
 
-		public static implicit operator NamedRegexSearch(string regex) => new NamedRegexSearch("", regex);
+		public static implicit operator NamedRegexSearch(string regex) =>
+			new NamedRegexSearch("", regex);
 	}
 }
