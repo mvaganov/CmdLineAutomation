@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace RunCmd {
@@ -6,7 +7,7 @@ namespace RunCmd {
 	/// Passes commands to a seperate thread running the local command terminal shell
 	/// </summary>
 	[CreateAssetMenu(fileName = "OperatingSystemCommandShell", menuName = "ScriptableObjects/Filters/OperatingSystemCommandShell")]
-	public class FilterOperatingSystemCommandShell : CommandRunner<FilterOperatingSystemCommandShell.Execution>, ICommandFilter {
+	public class FilterOperatingSystemCommandShell : ScriptableObject, CommandRunner<FilterOperatingSystemCommandShell.Execution>, ICommandFilter {
 		private enum RegexVariable { TerminalVersion, WorkingDirecory }
 		/// <summary>
 		/// If true, does not pass command to others in the filter chain
@@ -38,14 +39,17 @@ namespace RunCmd {
 			}
 		}
 
-		public string FunctionResult(object context) => _consumeCommand ? null : GetExecutionData(context).CurrentResult;
+		private Dictionary<object, Execution> _executionData = new Dictionary<object, Execution>();
+		public Dictionary<object, Execution> ExecutionDataAccess { get => _executionData; set => _executionData = value; }
 
-		public override bool IsExecutionFinished(object context) => true;
+		public string FunctionResult(object context) => _consumeCommand ? null : this.GetExecutionData(context).CurrentResult;
 
-		public override void StartCooperativeFunction(object context, string command, PrintCallback print) {
-			Execution e = GetExecutionData(context);
+		public bool IsExecutionFinished(object context) => true;
+
+		public void StartCooperativeFunction(object context, string command, PrintCallback print) {
+			Execution e = this.GetExecutionData(context);
 			if (e == null) {
-				SetExecutionData(context, e = new Execution());
+				this.SetExecutionData(context, e = new Execution());
 			}
 			e.CurrentResult = e.CurrentCommand = command;
 			_print = print;
@@ -61,7 +65,7 @@ namespace RunCmd {
 			_shell.Run(command, _print);
 		}
 
-		protected override Execution CreateEmptyContextEntry(object context) => null;
+		public Execution CreateEmptyContextEntry(object context) => null;
 
 		private OperatingSystemCommandShell CreateShell(string name, object context) {
 			OperatingSystemCommandShell thisShell = OperatingSystemCommandShell.CreateUnityEditorShell(context);
@@ -79,6 +83,8 @@ namespace RunCmd {
 			return thisShell;
 		}
 
-		public override float Progress(object context) => 0;
+		public float Progress(object context) => 0;
+
+		public void RemoveExecutionData(object context) => CommandRunnerExtension.RemoveExecutionData(this, context);
 	}
 }

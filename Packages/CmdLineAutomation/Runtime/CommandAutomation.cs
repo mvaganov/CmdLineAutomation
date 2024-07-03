@@ -26,7 +26,7 @@ namespace RunCmd {
 
 	/// </summary>
 	[CreateAssetMenu(fileName = "NewCmdLineAutomation", menuName = "ScriptableObjects/CmdLineAutomation", order = 1)]
-	public partial class CommandAutomation : CommandRunner<CommandExecution>, ICommandProcessor, ICommandAutomation, ICommandExecutor {
+	public partial class CommandAutomation : ScriptableObject, CommandRunner<CommandExecution>, ICommandProcessor, ICommandAutomation, ICommandExecutor {
 		private enum RegexGroupId { None = -1, HideNextLine = 0, DisableOnRead, EnableOnRead }
 		/// <summary>
 		/// List of the possible custom commands written as C# <see cref="ICommandProcessor"/>s
@@ -109,6 +109,9 @@ namespace RunCmd {
 			set { _onOutputChange = value; }
 		}
 
+		private Dictionary<object, CommandExecution> _executionData = new Dictionary<object, CommandExecution>();
+		public Dictionary<object, CommandExecution> ExecutionDataAccess { get => _executionData; set => _executionData = value; }
+
 		public void AddToCommandOutput(string value) {
 			if (_censorshipRules.HasRegexTriggers) {
 				_censorshipRules.ProcessAndCheckTextForTriggeringLines(value, AddProcessedLineToCommandOutput, _triggeredGroup);
@@ -129,18 +132,18 @@ namespace RunCmd {
 			OnOutputChange?.Invoke(_inspectorCommandOutput);
 		}
 
-		public override float Progress(object context) => GetExecutionData(context).Progress;
+		public float Progress(object context) => this.GetExecutionData(context).Progress;
 
-		public void CancelProcess(object context) => GetExecutionData(context).CancelExecution();
+		public void CancelProcess(object context) => this.GetExecutionData(context).CancelExecution();
 		
-		public string CurrentCommandText(object context) => GetExecutionData(context).CurrentCommandText();
+		public string CurrentCommandText(object context) => this.GetExecutionData(context).CurrentCommandText();
 		
-		public ICommandProcessor CurrentCommand(object context) => GetExecutionData(context).CurrentCommand();
+		public ICommandProcessor CurrentCommand(object context) => this.GetExecutionData(context).CurrentCommand();
 		
-		protected override CommandExecution CreateEmptyContextEntry(object context)
+		public CommandExecution CreateEmptyContextEntry(object context)
 			=> new CommandExecution(context, this);
 
-		public OperatingSystemCommandShell GetShell(object context) => GetExecutionData(context).Shell;
+		public OperatingSystemCommandShell GetShell(object context) => this.GetExecutionData(context).Shell;
 
 		internal bool NeedsInitialization() => _filters == null;
 
@@ -233,22 +236,22 @@ namespace RunCmd {
 		}
 
 		public void RunCommands(object context, PrintCallback print) {
-			CommandExecution e = GetExecutionData(context);
+			CommandExecution e = this.GetExecutionData(context);
 			e.print = print;
 			Initialize();
 			e.StartRunningEachCommandInSequence();
 		}
 
 		public void InsertNextCommandToExecute(object context, string command) {
-			CommandExecution e = GetExecutionData(context);
+			CommandExecution e = this.GetExecutionData(context);
 			e.InsertNextCommandToExecute(command);
 		}
 
-		public override void StartCooperativeFunction(object context, string command, PrintCallback print) {
-			GetExecutionData(context).StartCooperativeFunction(command, print);
+		public void StartCooperativeFunction(object context, string command, PrintCallback print) {
+			this.GetExecutionData(context).StartCooperativeFunction(command, print);
 		}
 
-		public override bool IsExecutionFinished(object context) => GetExecutionData(context).IsExecutionFinished();
+		public bool IsExecutionFinished(object context) => this.GetExecutionData(context).IsExecutionFinished();
 
 		//public void ExecuteCommand(string command, object context, PrintCallback printCallback) {
 		//	CommandExecution e = GetExecutionData(context);
@@ -273,6 +276,9 @@ namespace RunCmd {
 				call.Invoke();
 			}
 		}
+
+		public void RemoveExecutionData(object context) => CommandRunnerExtension.RemoveExecutionData(this, context);
+
 		private class CoroutineRunner : MonoBehaviour {
 			private static CoroutineRunner _instance;
 			public static CoroutineRunner Instance {

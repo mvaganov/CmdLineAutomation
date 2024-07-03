@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace RunCmd {
@@ -6,14 +7,18 @@ namespace RunCmd {
 	/// <see cref="ICommandProcessor"/>
 	/// </summary>
 	[CreateAssetMenu(fileName = "DebugLog", menuName = "ScriptableObjects/Filters/DebugLog")]
-	public class FilterDebugLog : CommandRunner<string>, ICommandFilter {
+	public class FilterDebugLog : ScriptableObject, CommandRunner<string>, ICommandFilter {
 		public enum LogType { None, StdOutput, DebugLog_Error, DebugLog_Assert, DebugLog_Warning, DebugLog_Log, DebugLog_Exception }
 		[SerializeField] protected bool _enabled = true;
 		[SerializeField] protected bool _consumeCommand = false;
 		[SerializeField] protected LogType _logType = LogType.DebugLog_Log;
 		[SerializeField] protected string _linePrefix = "", _lineSuffix = "";
-		public override void StartCooperativeFunction(object context, string command, PrintCallback print) {
-			SetExecutionData(context, _consumeCommand ? null : command);
+
+		private Dictionary<object, string> _executionData = new Dictionary<object, string>();
+		public Dictionary<object, string> ExecutionDataAccess { get => _executionData; set => _executionData = value; }
+
+		public void StartCooperativeFunction(object context, string command, PrintCallback print) {
+			this.SetExecutionData(context, _consumeCommand ? null : command);
 			if (!_enabled) {
 				return;
 			}
@@ -30,12 +35,14 @@ namespace RunCmd {
 			}
 		}
 
-		public string FunctionResult(object context) => GetExecutionData(context);
+		public string FunctionResult(object context) => this.GetExecutionData(context);
 
-		public override bool IsExecutionFinished(object context) => true;
+		public bool IsExecutionFinished(object context) => true;
 
-		protected override string CreateEmptyContextEntry(object context) => null;
+		public string CreateEmptyContextEntry(object context) => null;
 
-		public override float Progress(object context) => 0;
+		public float Progress(object context) => 0;
+
+		public void RemoveExecutionData(object context) => CommandRunnerExtension.RemoveExecutionData(this, context);
 	}
 }

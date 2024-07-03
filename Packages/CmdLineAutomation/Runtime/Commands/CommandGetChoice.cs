@@ -11,7 +11,7 @@ using UnityEditor;
 namespace RunCmd {
 	// TODO make choice UI that can execute during runtime
 	[CreateAssetMenu(fileName = "getchoice", menuName = "ScriptableObjects/Commands/getchoice")]
-	public class CommandGetChoice : CommandRunner<CommandGetChoice.Execution>, INamedCommand {
+	public class CommandGetChoice : ScriptableObject, CommandRunner<CommandGetChoice.Execution>, INamedCommand {
 		public static Vector2 MousePosition;
 		public bool _blockUntilChoiceIsMade = true;
 		public bool _defaultChoiceOnTimeout = true;
@@ -25,6 +25,7 @@ namespace RunCmd {
 			new KeyValuePairStrings("yes", ""),
 			new KeyValuePairStrings("no", "exit"),
 		};
+
 
 		public class Execution {
 			public bool finished;
@@ -55,7 +56,10 @@ namespace RunCmd {
 
 		public string CommandToken => this.name;
 
-		public override void StartCooperativeFunction(object context, string command, PrintCallback print) {
+		private Dictionary<object, Execution> _executionData = new Dictionary<object, Execution>();
+		public Dictionary<object, Execution> ExecutionDataAccess { get => _executionData; set => _executionData = value; }
+
+		public void StartCooperativeFunction(object context, string command, PrintCallback print) {
 			UpdateMousePosition();
 			object parsed = Parse.ParseText($"[{command}]", out Parse.ParseResult err);
 			if (err.IsError) {
@@ -71,7 +75,7 @@ namespace RunCmd {
 			List<string> argsOptions = new List<string>();
 			List<Action> argsActions = new List<Action>();
 			Action<int> onChoiceMade = null;
-			Execution exec = GetExecutionData(context);
+			Execution exec = this.GetExecutionData(context);
 			if (_blockUntilChoiceIsMade) {
 				exec.timeoutStart = Environment.TickCount;
 				exec.timeoutDuration = (int)(_choiceTimeout * 1000);
@@ -110,7 +114,7 @@ namespace RunCmd {
 		}
 
 		public void ChoiceMade(object context, int choiceIndex) {
-			Execution exec = GetExecutionData(context);
+			Execution exec = this.GetExecutionData(context);
 			exec.finished = true;
 #if UNITY_EDITOR
 			exec.choiceWindow?.CloseChoiceWindow();
@@ -121,12 +125,12 @@ namespace RunCmd {
 			return $"{name} \"message\" {{ \"optionText0\" : \"command0\", ... \"optionTextN\" : \"commandN\" }}";
 		}
 
-		public override bool IsExecutionFinished(object context) =>
-			_blockUntilChoiceIsMade ? GetExecutionData(context).finished : true;
+		public bool IsExecutionFinished(object context) =>
+			_blockUntilChoiceIsMade ? this.GetExecutionData(context).finished : true;
 
-		public override float Progress(object context) {
+		public float Progress(object context) {
 			if (_defaultChoiceOnTimeout) {
-				Execution exec = GetExecutionData(context);
+				Execution exec = this.GetExecutionData(context);
 				int passed = Environment.TickCount - exec.timeoutStart;
 				float progress = (float)passed / exec.timeoutDuration;
 				if (progress >= 1) {
@@ -139,16 +143,16 @@ namespace RunCmd {
 			return 0;
 		}
 
-		protected override Execution CreateEmptyContextEntry(object context) => new Execution();
+		public Execution CreateEmptyContextEntry(object context) => new Execution();
 
-		public override void RemoveExecutionData(object context) {
+		public void RemoveExecutionData(object context) {
 #if UNITY_EDITOR
-			Execution exec = GetExecutionData(context);
+			Execution exec = this.GetExecutionData(context);
 			if (exec != null && exec.choiceWindow != null) {
 				exec.choiceWindow.CloseChoiceWindow();
 			}
 #endif
-			base.RemoveExecutionData(context);
+			CommandRunnerExtension.RemoveExecutionData(this, context);
 		}
 
 #if UNITY_EDITOR

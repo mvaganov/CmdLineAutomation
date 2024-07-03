@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace RunCmd {
@@ -5,15 +6,18 @@ namespace RunCmd {
 	/// Removes a command from the command set if it begins with a given prefix
 	/// </summary>
 	[CreateAssetMenu(fileName = "Comment", menuName = "ScriptableObjects/Filters/Comment")]
-	public class FilterComment : CommandRunner<string>, ICommandFilter {
+	public class FilterComment : ScriptableObject, CommandRunner<string>, ICommandFilter {
 		[SerializeField] protected bool _enabled = true;
 		[SerializeField] protected string _prefix = "#";
 		[SerializeField] protected string _suffix = "";
 		private bool _eatMessages;
 
-		public override void StartCooperativeFunction(object context, string command, PrintCallback print) {
+		private Dictionary<object, string> _executionData = new Dictionary<object, string>();
+		public Dictionary<object, string> ExecutionDataAccess { get => _executionData; set => _executionData = value; }
+
+		public void StartCooperativeFunction(object context, string command, PrintCallback print) {
 			if (!_enabled) {
-				SetExecutionData(context, command);
+				this.SetExecutionData(context, command);
 				return;
 			}
 			string result = command;
@@ -46,15 +50,17 @@ namespace RunCmd {
 					}
 				}
 			}
-			SetExecutionData(context, result);
+			this.SetExecutionData(context, result);
 		}
 
-		public string FunctionResult(object context) => GetExecutionData(context);
+		public string FunctionResult(object context) => this.GetExecutionData(context);
 
-		public override bool IsExecutionFinished(object context) => true;
+		public bool IsExecutionFinished(object context) => true;
 
-		protected override string CreateEmptyContextEntry(object context) => null;
+		public string CreateEmptyContextEntry(object context) => null;
 
-		public override float Progress(object context) => 0;
+		public float Progress(object context) => 0;
+
+		public void RemoveExecutionData(object context) => CommandRunnerExtension.RemoveExecutionData(this, context);
 	}
 }
