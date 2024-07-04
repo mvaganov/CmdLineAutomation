@@ -27,7 +27,7 @@ namespace RunCmd {
 	/// </summary>
 	[CreateAssetMenu(fileName = "CommandLineSettings", menuName = "ScriptableObjects/CommandLineSettings", order = 1)]
 	public partial class CommandLineSettings : ScriptableObject {
-		private enum RegexGroupId { None = -1, HideNextLine = 0, DisableOnRead, EnableOnRead }
+		internal enum RegexGroupId { None = -1, HideNextLine = 0, DisableOnRead, EnableOnRead }
 		/// <summary>
 		/// List of the possible custom commands written as C# <see cref="ICommandProcessor"/>s
 		/// </summary>
@@ -56,6 +56,9 @@ namespace RunCmd {
 				new RegexMatrix.Row(RegexGroupId.EnableOnRead.ToString()),
 			});
 
+			public IList<NamedRegexSearch> VariablesFromCommandLineRegexSearch => _variablesFromCommandLineRegexSearch;
+			public RegexMatrix CensorshipRules => _censorshipRules;
+
 			public MutableValues Clone() {
 				MutableValues clone = new MutableValues();
 				clone._variablesFromCommandLineRegexSearch = new NamedRegexSearch[_variablesFromCommandLineRegexSearch.Length];
@@ -74,11 +77,11 @@ namespace RunCmd {
 
 		public IList<ICommandFilter> Filters => _filters;
 
-		public IList<NamedRegexSearch> VariablesFromCommandLineRegexSearch => _runtimeSettings._variablesFromCommandLineRegexSearch;
+		public IList<NamedRegexSearch> VariablesFromCommandLineRegexSearch => _runtimeSettings.VariablesFromCommandLineRegexSearch;
 
 		private bool NeedsInitialization() => _filters == null;
 
-		public RegexMatrix CensorshipRules => _runtimeSettings._censorshipRules;
+		public RegexMatrix CensorshipRules => _runtimeSettings.CensorshipRules;
 
 		/// <summary>
 		/// If the given regex is triggered, all output will be hidden (until <see cref="AddUncensorshipTrigger(string)"/>)
