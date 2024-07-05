@@ -29,8 +29,8 @@ namespace RunCmd {
 	public partial class CommandLineAutomation : ScriptableObject, CommandRunner<CommandExecution>, ICommandProcessor, ICommandAutomation, ICommandExecutor {
 		[SerializeField]
 		protected CommandLineSettings _settings;
-		protected CommandLineSettings.MutableValues _mutableSettings;
-		private CommandLineExecutor _executor;
+		//protected CommandLineSettings.MutableValues _mutableSettings;
+		protected CommandLineExecutor _executor;
 		//private enum RegexGroupId { None = -1, HideNextLine = 0, DisableOnRead, EnableOnRead }
 		///// <summary>
 		///// List of the possible custom commands written as C# <see cref="ICommandProcessor"/>s
@@ -67,19 +67,26 @@ namespace RunCmd {
 		//private bool _hideNextLine = false;
 		private List<(int row, int col)> _triggeredGroup = new List<(int row, int col)>();
 		//private System.Action<string> _onOutputChange;
+		public Dictionary<object, CommandExecution> _executions = new Dictionary<object, CommandExecution>();
+
+		public Dictionary<object, CommandExecution> ExecutionDataAccess { get => _executions; set => _executions = value; }
 
 		public IList<ParsedTextCommand> CommandsToDo {
 			get => _command.ParsedCommands;
 			set => _command.ParsedCommands = new List<ParsedTextCommand>(value);
 		}
 
-		public ICommandExecutor CommandExecutor => this;
+		public ICommandExecutor CommandExecutor => GetCommandExecutor();
+
+		public CommandLineExecutor GetCommandExecutor() => _executor != null && _executor.Settings == _settings ? _executor : _executor = new CommandLineExecutor(_settings);
+
+		private CommandLineSettings.MutableValues MutableSettings => GetCommandExecutor().MutableSettings;
 
 		public IList<ICommandFilter> Filters => _settings.Filters;
 
 		public TextCommand TextCommandData => _command;
 
-		public IList<NamedRegexSearch> VariablesFromCommandLineRegexSearch => _mutableSettings.VariablesFromCommandLineRegexSearch;//_variablesFromCommandLineRegexSearch;
+		//public IList<NamedRegexSearch> VariablesFromCommandLineRegexSearch => MutableSettings.VariablesFromCommandLineRegexSearch;//_variablesFromCommandLineRegexSearch;
 
 		public string Commands {
 			get => _command.Text;
@@ -111,8 +118,7 @@ namespace RunCmd {
 			set { _executor.OnOutputChange = value; }
 		}
 
-		public Dictionary<object, CommandExecution> ExecutionDataAccess { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
-		public RegexMatrix CensorshipRules => _mutableSettings.CensorshipRules;
+		public RegexMatrix CensorshipRules => MutableSettings.CensorshipRules;
 
 		public void AddToCommandOutput(string value) {
 			if (CensorshipRules.HasRegexTriggers) {
@@ -143,7 +149,7 @@ namespace RunCmd {
 		public ICommandProcessor CurrentCommand(object context) => this.GetExecutionData(context).CurrentCommand();
 
 		public CommandExecution CreateEmptyContextEntry(object context)
-			=> new CommandExecution(context, this);
+			=> new CommandExecution(context, GetCommandExecutor());
 
 		public OperatingSystemCommandShell GetShell(object context) => this.GetExecutionData(context).Shell;
 
@@ -154,33 +160,33 @@ namespace RunCmd {
 		/// If the given regex is triggered, all output will be hidden (until <see cref="AddUncensorshipTrigger(string)"/>)
 		/// </summary>
 		/// <param name="regexTrigger"></param>
-		public void AddCensorshipTrigger(string regexTrigger) => CensorshipRules.Add((int)CommandLineSettings.RegexGroupId.DisableOnRead, regexTrigger);
+		public void AddCensorshipTrigger(string regexTrigger) => CensorshipRules.Add((int)CommandLineSettings.RegexGroupId.DisableOutputOnRead, regexTrigger);
 
 		/// <summary>
 		/// If the given regex is triggered, all output will be shown again
 		/// </summary>
 		/// <param name="regexTrigger"></param>
-		public void AddUncensorshipTrigger(string regexTrigger) => CensorshipRules.Add((int)CommandLineSettings.RegexGroupId.EnableOnRead, regexTrigger);
+		public void AddUncensorshipTrigger(string regexTrigger) => CensorshipRules.Add((int)CommandLineSettings.RegexGroupId.EnableOutputOnRead, regexTrigger);
 
 		/// <summary>
 		/// Hide lines that contain the given regex trigger
 		/// </summary>
 		/// <param name="regexTrigger"></param>
-		public void AddCensorLineTrigger(string regexTrigger) => CensorshipRules.Add((int)CommandLineSettings.RegexGroupId.HideNextLine, regexTrigger);
+		public void AddCensorLineTrigger(string regexTrigger) => CensorshipRules.Add((int)CommandLineSettings.RegexGroupId.HideNextOutputLine, regexTrigger);
 
 		/// <summary>
 		/// Remove a regex trigger added by <see cref="AddCensorshipTrigger(string)"/>
 		/// </summary>
 		/// <param name="regexTrigger"></param>
 		/// <returns></returns>
-		public bool RemoveCensorshipTrigger(string regexTrigger) => CensorshipRules.Remove((int)CommandLineSettings.RegexGroupId.DisableOnRead, regexTrigger);
+		public bool RemoveCensorshipTrigger(string regexTrigger) => CensorshipRules.Remove((int)CommandLineSettings.RegexGroupId.DisableOutputOnRead, regexTrigger);
 
 		/// <summary>
 		/// Remove a regex trigger added by <see cref="AddUncensorshipTrigger(string)"/>
 		/// </summary>
 		/// <param name="regexTrigger"></param>
 		/// <returns></returns>
-		public bool RemoveUncensorshipTrigger(string regexTrigger) => CensorshipRules.Remove((int)CommandLineSettings.RegexGroupId.EnableOnRead, regexTrigger);
+		public bool RemoveUncensorshipTrigger(string regexTrigger) => CensorshipRules.Remove((int)CommandLineSettings.RegexGroupId.EnableOutputOnRead, regexTrigger);
 
 		/// <summary>
 		/// Remove all regex triggers added by <see cref="AddCensorLineTrigger(string)"/>,
@@ -245,7 +251,7 @@ namespace RunCmd {
 			CommandExecution e = this.GetExecutionData(context);
 			e.print = print;
 			Initialize();
-			e.StartRunningEachCommandInSequence();
+			e.StartRunningEachCommandInSequence(CommandsToDo);
 		}
 
 		public void InsertNextCommandToExecute(object context, string command) {

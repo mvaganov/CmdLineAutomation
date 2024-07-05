@@ -239,7 +239,7 @@ namespace RunCmd {
 			CommandExecution e = this.GetExecutionData(context);
 			e.print = print;
 			Initialize();
-			e.StartRunningEachCommandInSequence();
+			e.StartRunningEachCommandInSequence(CommandsToDo);
 		}
 
 		public void InsertNextCommandToExecute(object context, string command) {

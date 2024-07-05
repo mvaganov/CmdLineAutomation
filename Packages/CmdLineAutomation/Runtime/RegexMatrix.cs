@@ -6,15 +6,12 @@ using UnityEngine.Events;
 namespace RunCmd {
 	[System.Serializable]
 	public class RegexMatrix {
-		[System.Serializable]
-		public class UnityEvent_string : UnityEvent<string> { }
 
 		[System.Serializable]
 		public class Row {
 			public string Purpose;
 			public List<NamedRegexSearch> list = new List<NamedRegexSearch>();
 			public Action<string> OnTrigger = delegate { };
-			//public UnityEvent_string OnTrigger = new UnityEvent_string(); // TODO replace with Action<string>?
 			public Row(Action<string> regexCallback, string[] expressions) {
 				if (expressions != null) {
 					for (int i = 0; i < expressions.Length; ++i) {
@@ -26,8 +23,12 @@ namespace RunCmd {
 				}
 			}
 			public Row() { }
-			public Row(string purpose) {
+			public Row(string purpose) : this(purpose, null) { }
+			public Row(string purpose, IList<NamedRegexSearch> regexTriggers) {
 				Purpose = purpose;
+				if (regexTriggers != null) {
+					list = new List<NamedRegexSearch>(regexTriggers);
+				}
 			}
 
 			public Row Clone() {

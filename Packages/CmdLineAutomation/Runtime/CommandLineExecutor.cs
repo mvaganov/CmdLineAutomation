@@ -34,8 +34,8 @@ namespace RunCmd {
 		private bool _hideNextLine = false;
 		private List<(int row, int col)> _triggeredGroup = new List<(int row, int col)>();
 		private System.Action<string> _onOutputChange;
-
-		IList<ParsedTextCommand> _commandsToDo;
+		private CommandLineSettings.MutableValues _mutableSettings;
+		private IList<ParsedTextCommand> _commandsToDo;
 
 		///// <summary>
 		///// Variables to read from command line input
@@ -47,14 +47,20 @@ namespace RunCmd {
 
 		public IList<ParsedTextCommand> CommandsToDo {
 			get => _commandsToDo;
-			set => _commandsToDo = new List<ParsedTextCommand>(value);
+			set => _commandsToDo = value;
 		}
 
 		public ICommandExecutor CommandExecutor => this;
 
-		public IList<NamedRegexSearch> VariablesFromCommandLineRegexSearch => _settings.VariablesFromCommandLineRegexSearch;// _variablesFromCommandLineRegexSearch;
+		//public IList<NamedRegexSearch> VariablesFromCommandLineRegexSearch => _settings.VariablesFromCommandLineRegexSearch;// _variablesFromCommandLineRegexSearch;
 
-		public RegexMatrix CensorshipRules => _settings.CensorshipRules;
+		public IList<ICommandFilter> Filters => _settings.Filters;
+
+		public RegexMatrix CensorshipRules => _settings.RegexTriggers;
+
+		public CommandLineSettings Settings => _settings;
+
+		public CommandLineSettings.MutableValues MutableSettings => _mutableSettings;
 
 		public string CommandOutput {
 			get => _inspectorCommandOutput;
@@ -82,9 +88,14 @@ namespace RunCmd {
 		private Dictionary<object, CommandExecution> _executionData = new Dictionary<object, CommandExecution>();
 		public Dictionary<object, CommandExecution> ExecutionDataAccess { get => _executionData; set => _executionData = value; }
 
+		public CommandLineExecutor(CommandLineSettings settings) {
+			_settings = settings;
+			_mutableSettings = _settings._runtimeSettings.Clone();
+		}
+
 		public void AddToCommandOutput(string value) {
-			if (_settings.CensorshipRules.HasRegexTriggers) {
-				_settings.CensorshipRules.ProcessAndCheckTextForTriggeringLines(value, AddProcessedLineToCommandOutput, _triggeredGroup);
+			if (_settings.RegexTriggers.HasRegexTriggers) {
+				_settings.RegexTriggers.ProcessAndCheckTextForTriggeringLines(value, AddProcessedLineToCommandOutput, _triggeredGroup);
 			} else {
 				AddLineToCommandOutputInternal(value);
 			}
@@ -188,7 +199,7 @@ namespace RunCmd {
 			CommandExecution e = this.GetExecutionData(context);
 			e.print = print;
 			Initialize();
-			e.StartRunningEachCommandInSequence();
+			e.StartRunningEachCommandInSequence(CommandsToDo);
 		}
 
 		public void InsertNextCommandToExecute(object context, string command) {

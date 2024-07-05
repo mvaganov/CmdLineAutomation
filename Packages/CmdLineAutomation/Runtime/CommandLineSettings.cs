@@ -27,7 +27,7 @@ namespace RunCmd {
 	/// </summary>
 	[CreateAssetMenu(fileName = "CommandLineSettings", menuName = "ScriptableObjects/CommandLineSettings", order = 1)]
 	public partial class CommandLineSettings : ScriptableObject {
-		internal enum RegexGroupId { None = -1, HideNextLine = 0, DisableOnRead, EnableOnRead }
+		internal enum RegexGroupId { None = -1, Variable = 0, HideNextOutputLine = 1, DisableOutputOnRead = 2, EnableOutputOnRead = 3 }
 		/// <summary>
 		/// List of the possible custom commands written as C# <see cref="ICommandProcessor"/>s
 		/// </summary>
@@ -40,32 +40,38 @@ namespace RunCmd {
 
 		[System.Serializable]
 		public class MutableValues {
-			/// <summary>
-			/// Variables to read from command line input
-			/// </summary>
-			[SerializeField]
-			public NamedRegexSearch[] _variablesFromCommandLineRegexSearch = new NamedRegexSearch[] {
-				new NamedRegexSearch("WindowsTerminalVersion", @"Microsoft Windows \[Version ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\]", new int[] { 1 }, true, NamedRegexSearch.SpecialReadLogic.IgnoreAfterFirstValue),
-				new NamedRegexSearch("dir", NamedRegexSearch.CommandPromptRegexWindows, null, true, NamedRegexSearch.SpecialReadLogic.None)
-			};
+			///// <summary>
+			///// Variables to read from command line input
+			///// </summary>
+			//[SerializeField]
+			//public NamedRegexSearch[] _variablesFromCommandLineRegexSearch = new NamedRegexSearch[] {
+			//	new NamedRegexSearch("WindowsTerminalVersion", @"Microsoft Windows \[Version ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\]", new int[] { 1 }, true, NamedRegexSearch.SpecialReadLogic.IgnoreAfterFirstValue),
+			//	new NamedRegexSearch("dir", NamedRegexSearch.CommandPromptRegexWindows, null, true, NamedRegexSearch.SpecialReadLogic.None)
+			//};
 
 			[SerializeField]
-			public RegexMatrix _censorshipRules = new RegexMatrix(new RegexMatrix.Row[] {
-				new RegexMatrix.Row(RegexGroupId.HideNextLine.ToString()),
-				new RegexMatrix.Row(RegexGroupId.DisableOnRead.ToString()),
-				new RegexMatrix.Row(RegexGroupId.EnableOnRead.ToString()),
+			public RegexMatrix _regexTriggerProcessor = new RegexMatrix(new RegexMatrix.Row[] {
+				new RegexMatrix.Row(RegexGroupId.Variable.ToString(), new NamedRegexSearch[] {
+					new NamedRegexSearch("WindowsTerminalVersion", @"Microsoft Windows \[Version ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\]",
+						new int[] { 1 }, true, NamedRegexSearch.SpecialReadLogic.IgnoreAfterFirstValue),
+					new NamedRegexSearch("dir", NamedRegexSearch.CommandPromptRegexWindows,
+						null, true, NamedRegexSearch.SpecialReadLogic.None)
+				}),
+				new RegexMatrix.Row(RegexGroupId.HideNextOutputLine.ToString()),
+				new RegexMatrix.Row(RegexGroupId.DisableOutputOnRead.ToString()),
+				new RegexMatrix.Row(RegexGroupId.EnableOutputOnRead.ToString()),
 			});
 
-			public IList<NamedRegexSearch> VariablesFromCommandLineRegexSearch => _variablesFromCommandLineRegexSearch;
-			public RegexMatrix CensorshipRules => _censorshipRules;
+			//public IList<NamedRegexSearch> VariablesFromCommandLineRegexSearch => _variablesFromCommandLineRegexSearch;
+			public RegexMatrix CensorshipRules => _regexTriggerProcessor;
 
 			public MutableValues Clone() {
 				MutableValues clone = new MutableValues();
-				clone._variablesFromCommandLineRegexSearch = new NamedRegexSearch[_variablesFromCommandLineRegexSearch.Length];
-				for(int i = 0; i < clone._variablesFromCommandLineRegexSearch.Length; ++i) {
-					clone._variablesFromCommandLineRegexSearch[i] = _variablesFromCommandLineRegexSearch[i].Clone();
-				}
-				clone._censorshipRules = _censorshipRules.Clone();
+				//clone._variablesFromCommandLineRegexSearch = new NamedRegexSearch[_variablesFromCommandLineRegexSearch.Length];
+				//for(int i = 0; i < clone._variablesFromCommandLineRegexSearch.Length; ++i) {
+				//	clone._variablesFromCommandLineRegexSearch[i] = _variablesFromCommandLineRegexSearch[i].Clone();
+				//}
+				clone._regexTriggerProcessor = _regexTriggerProcessor.Clone();
 				return clone;
 			}
 		}
@@ -77,49 +83,49 @@ namespace RunCmd {
 
 		public IList<ICommandFilter> Filters => _filters;
 
-		public IList<NamedRegexSearch> VariablesFromCommandLineRegexSearch => _runtimeSettings.VariablesFromCommandLineRegexSearch;
+		//public IList<NamedRegexSearch> VariablesFromCommandLineRegexSearch => _runtimeSettings.VariablesFromCommandLineRegexSearch;
 
 		private bool NeedsInitialization() => _filters == null;
 
-		public RegexMatrix CensorshipRules => _runtimeSettings.CensorshipRules;
+		public RegexMatrix RegexTriggers => _runtimeSettings.CensorshipRules;
 
 		/// <summary>
 		/// If the given regex is triggered, all output will be hidden (until <see cref="AddUncensorshipTrigger(string)"/>)
 		/// </summary>
 		/// <param name="regexTrigger"></param>
-		public void AddCensorshipTrigger(string regexTrigger) => CensorshipRules.Add((int)RegexGroupId.DisableOnRead, regexTrigger);
+		public void AddCensorshipTrigger(string regexTrigger) => RegexTriggers.Add((int)RegexGroupId.DisableOutputOnRead, regexTrigger);
 
 		/// <summary>
 		/// If the given regex is triggered, all output will be shown again
 		/// </summary>
 		/// <param name="regexTrigger"></param>
-		public void AddUncensorshipTrigger(string regexTrigger) => CensorshipRules.Add((int)RegexGroupId.EnableOnRead, regexTrigger);
+		public void AddUncensorshipTrigger(string regexTrigger) => RegexTriggers.Add((int)RegexGroupId.EnableOutputOnRead, regexTrigger);
 
 		/// <summary>
 		/// Hide lines that contain the given regex trigger
 		/// </summary>
 		/// <param name="regexTrigger"></param>
-		public void AddCensorLineTrigger(string regexTrigger) => CensorshipRules.Add((int)RegexGroupId.HideNextLine, regexTrigger);
+		public void AddCensorLineTrigger(string regexTrigger) => RegexTriggers.Add((int)RegexGroupId.HideNextOutputLine, regexTrigger);
 
 		/// <summary>
 		/// Remove a regex trigger added by <see cref="AddCensorshipTrigger(string)"/>
 		/// </summary>
 		/// <param name="regexTrigger"></param>
 		/// <returns></returns>
-		public bool RemoveCensorshipTrigger(string regexTrigger) => CensorshipRules.Remove((int)RegexGroupId.DisableOnRead, regexTrigger);
+		public bool RemoveCensorshipTrigger(string regexTrigger) => RegexTriggers.Remove((int)RegexGroupId.DisableOutputOnRead, regexTrigger);
 
 		/// <summary>
 		/// Remove a regex trigger added by <see cref="AddUncensorshipTrigger(string)"/>
 		/// </summary>
 		/// <param name="regexTrigger"></param>
 		/// <returns></returns>
-		public bool RemoveUncensorshipTrigger(string regexTrigger) => CensorshipRules.Remove((int)RegexGroupId.EnableOnRead, regexTrigger);
+		public bool RemoveUncensorshipTrigger(string regexTrigger) => RegexTriggers.Remove((int)RegexGroupId.EnableOutputOnRead, regexTrigger);
 
 		/// <summary>
 		/// Remove all regex triggers added by <see cref="AddCensorLineTrigger(string)"/>,
 		/// <see cref="AddCensorshipTrigger(string)"/>, <see cref="AddUncensorshipTrigger(string)"/>
 		/// </summary>
-		public void ClearCensorshipRules() => CensorshipRules.ClearRows();
+		public void ClearCensorshipRules() => RegexTriggers.ClearRows();
 
 		public void Initialize() {
 			_filters = new List<ICommandFilter>();
