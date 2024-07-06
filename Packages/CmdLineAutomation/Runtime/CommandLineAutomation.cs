@@ -252,6 +252,7 @@ namespace RunCmd {
 			e.print = print;
 			Initialize();
 			e.StartRunningEachCommandInSequence(CommandsToDo);
+			Debug.LogWarning($"ComandsToDo {CommandsToDo.Count}");
 		}
 
 		public void InsertNextCommandToExecute(object context, string command) {

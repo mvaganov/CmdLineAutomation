@@ -43,7 +43,7 @@ namespace RunCmd {
 		/// The list of commands and filters this automation is executing
 		/// TODO replace this with ICommandExecutor
 		/// </summary>
-		private CommandAutomation _source;
+		//private CommandAutomation _source;
 		private ICommandExecutor source;
 		/// <summary>
 		/// Keeps track of a shell, if one is generated
@@ -124,10 +124,12 @@ namespace RunCmd {
 		public void StartRunningEachCommandInSequence(IList<ParsedTextCommand> commands) {
 			cancelled = false;
 			CommandsToDo = commands;
+			Debug.LogWarning($"~~[{source}]({source.GetHashCode()}) providing {nameof(CommandsToDo)}({_commandsToDo.Count})");
 			//modifiedTextCommand = null;
 			commandExecutingIndex = 0;
 			//RefreshRegexSearch();
 			RunEachCommandInSequence();
+			Debug.LogWarning($"--[{source}]({source.GetHashCode()}) providing {nameof(CommandsToDo)}({_commandsToDo.Count})");
 		}
 
 		//private void RefreshRegexSearch() {
@@ -143,10 +145,14 @@ namespace RunCmd {
 			//	modifiedTextCommand = source.TextCommandData.CloneSelf();
 			//}
 			//modifiedTextCommand.ParsedCommands.Insert(commandExecutingIndex + 1, new ParsedTextCommand(command));
+			if (_commandsToDo == null) {
+				throw new System.Exception($"[{source}]({source.GetHashCode()}) did not provide {nameof(CommandsToDo)}");
+			}
 			_commandsToDo.Insert(commandExecutingIndex + 1, new ParsedTextCommand(command));
 		}
 
 		private void RunEachCommandInSequence() {
+			Debug.Log($"ComandsToDo {CommandsToDo.Count} Sequence");
 			if (cancelled) {
 				return;
 			}
