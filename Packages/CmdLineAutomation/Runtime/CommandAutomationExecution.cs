@@ -146,13 +146,15 @@ namespace RunCmd {
 			//}
 			//modifiedTextCommand.ParsedCommands.Insert(commandExecutingIndex + 1, new ParsedTextCommand(command));
 			if (_commandsToDo == null) {
-				throw new System.Exception($"[{source}]({source.GetHashCode()}) did not provide {nameof(CommandsToDo)}");
+				CommandLineExecutor cle = source as CommandLineExecutor;
+
+				throw new System.Exception($"[{source}]({source.GetHashCode()}) did not provide {nameof(CommandsToDo)}... should be {cle.CommandsToDo}");
 			}
 			_commandsToDo.Insert(commandExecutingIndex + 1, new ParsedTextCommand(command));
 		}
 
 		private void RunEachCommandInSequence() {
-			Debug.Log($"ComandsToDo {CommandsToDo.Count} Sequence");
+			//Debug.Log($"ComandsToDo {CommandsToDo.Count} Sequence");
 			if (cancelled) {
 				return;
 			}
@@ -263,6 +265,7 @@ namespace RunCmd {
 		public string FunctionResult() => currentCommand != null ? currentCommand.FunctionResult(context) : currentCommandResult;
 
 		public CommandExecution(object context, ICommandExecutor commandExecutor) {
+			UnityEngine.Debug.LogWarning($"######## new Execution {context} by {commandExecutor}");
 			source = commandExecutor;
 			if (source == null) {
 				throw new System.Exception($"unable to execute {commandExecutor}, need a {nameof(CommandAutomation)}");
