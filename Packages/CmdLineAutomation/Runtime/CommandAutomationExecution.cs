@@ -148,7 +148,7 @@ namespace RunCmd {
 			if (_commandsToDo == null) {
 				CommandLineExecutor cle = source as CommandLineExecutor;
 
-				throw new System.Exception($"[{source}]({source.GetHashCode()}) did not provide {nameof(CommandsToDo)}... should be {cle.CommandsToDo}");
+				throw new System.Exception($"[{source}]({source.GetHashCode()}) did not provide {nameof(CommandsToDo)}... should be [{cle.CommandsToDo}]");
 			}
 			_commandsToDo.Insert(commandExecutingIndex + 1, new ParsedTextCommand(command));
 		}
