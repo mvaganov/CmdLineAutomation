@@ -124,12 +124,12 @@ namespace RunCmd {
 		public void StartRunningEachCommandInSequence(IList<ParsedTextCommand> commands) {
 			cancelled = false;
 			CommandsToDo = commands;
-			Debug.LogWarning($"~~[{source}]({source.GetHashCode()}) providing {nameof(CommandsToDo)}({_commandsToDo.Count})");
+			//Debug.LogWarning($"~~[{source}]({source.GetHashCode()}) providing {nameof(CommandsToDo)}({_commandsToDo.Count})");
 			//modifiedTextCommand = null;
 			commandExecutingIndex = 0;
 			//RefreshRegexSearch();
 			RunEachCommandInSequence();
-			Debug.LogWarning($"--[{source}]({source.GetHashCode()}) providing {nameof(CommandsToDo)}({_commandsToDo.Count})");
+			//Debug.LogWarning($"--[{source}]({source.GetHashCode()}) providing {nameof(CommandsToDo)}({_commandsToDo.Count})");
 		}
 
 		//private void RefreshRegexSearch() {
@@ -265,7 +265,7 @@ namespace RunCmd {
 		public string FunctionResult() => currentCommand != null ? currentCommand.FunctionResult(context) : currentCommandResult;
 
 		public CommandExecution(object context, ICommandExecutor commandExecutor) {
-			UnityEngine.Debug.LogWarning($"######## new Execution {context} by {commandExecutor}");
+			//UnityEngine.Debug.LogWarning($"######## new Execution {context} by {commandExecutor}");
 			source = commandExecutor;
 			if (source == null) {
 				throw new System.Exception($"unable to execute {commandExecutor}, need a {nameof(CommandAutomation)}");

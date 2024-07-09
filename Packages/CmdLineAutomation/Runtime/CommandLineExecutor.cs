@@ -121,8 +121,11 @@ namespace RunCmd {
 
 		public ICommandProcessor CurrentCommand(object context) => this.GetExecutionData(context).CurrentCommand();
 
-		public CommandExecution CreateEmptyContextEntry(object context)
-			=> new CommandExecution(context, this);
+		public CommandExecution CreateEmptyContextEntry(object context) {
+			CommandExecution execution = new CommandExecution(context, this);
+			//Debug.Log($"$$$$$$$$$$$$$$$$$$ HEY! I'm {this}({this.GetHashCode()}), for {context}({context.GetHashCode()})");
+			return execution;
+		}
 
 		public OperatingSystemCommandShell GetShell(object context) => this.GetExecutionData(context).Shell;
 

@@ -97,25 +97,25 @@ namespace RunCmd {
 		}
 
 		public string CommandOutput {
-			get => _executor.CommandOutput;
+			get => GetCommandExecutor().CommandOutput;
 			set {
-				_executor.CommandOutput = value;
+				GetCommandExecutor().CommandOutput = value;
 			}
 		}
 
 		public bool ShowOutput {
-			get => _executor.ShowOutput;
-			set => _executor.ShowOutput = value;
+			get => GetCommandExecutor().ShowOutput;
+			set => GetCommandExecutor().ShowOutput = value;
 		}
 
 		public bool HideNextLine {
-			get => _executor.HideNextLine;
-			set => _executor.HideNextLine = value;
+			get => GetCommandExecutor().HideNextLine;
+			set => GetCommandExecutor().HideNextLine = value;
 		}
 
 		public System.Action<string> OnOutputChange {
-			get { return _executor.OnOutputChange; }
-			set { _executor.OnOutputChange = value; }
+			get { return GetCommandExecutor().OnOutputChange; }
+			set { GetCommandExecutor().OnOutputChange = value; }
 		}
 
 		public RegexMatrix CensorshipRules => MutableSettings.CensorshipRules;
@@ -140,18 +140,27 @@ namespace RunCmd {
 			OnOutputChange?.Invoke(CommandOutput);
 		}
 
-		public float Progress(object context) => this.GetExecutionData(context).Progress;
+		public float Progress(object context) => GetExecutionData(context).Progress;
 
-		public void CancelProcess(object context) => this.GetExecutionData(context).CancelExecution();
+		public void CancelProcess(object context) => GetExecutionData(context).CancelExecution();
 
-		public string CurrentCommandText(object context) => this.GetExecutionData(context).CurrentCommandText();
+		public string CurrentCommandText(object context) => GetExecutionData(context).CurrentCommandText();
 
-		public ICommandProcessor CurrentCommand(object context) => this.GetExecutionData(context).CurrentCommand();
+		public ICommandProcessor CurrentCommand(object context) => GetExecutionData(context).CurrentCommand();
 
-		public CommandExecution CreateEmptyContextEntry(object context)
-			=> new CommandExecution(context, GetCommandExecutor());
+		public CommandExecution CreateEmptyContextEntry(object context) {
+			CommandExecution execution = GetCommandExecutor().CreateEmptyContextEntry(context);//new CommandExecution(context, GetCommandExecutor());
+			return execution;
+		}
 
-		public OperatingSystemCommandShell GetShell(object context) => this.GetExecutionData(context).Shell;
+		/// <summary>
+		/// All <see cref="CommandRunner{ExecutionData}"/> functionality delegates to <see cref="GetCommandExecutor()"/>
+		/// </summary>
+		/// <param name="context"></param>
+		/// <returns></returns>
+		public CommandExecution GetExecutionData(object context) => GetCommandExecutor().GetExecutionData(context);
+
+		public OperatingSystemCommandShell GetShell(object context) => GetExecutionData(context).Shell;
 
 		/// TODO rename core settings need initialization
 		internal bool NeedsInitialization() => Filters == null;
@@ -248,23 +257,23 @@ namespace RunCmd {
 		}
 
 		public void RunCommands(object context, PrintCallback print) {
-			CommandExecution e = this.GetExecutionData(context);
+			CommandExecution e = GetExecutionData(context);
 			e.print = print;
 			Initialize();
 			e.StartRunningEachCommandInSequence(CommandsToDo);
-			Debug.LogWarning($"ComandsToDo {CommandsToDo.Count}");
+			//Debug.LogWarning($"ComandsToDo {CommandsToDo.Count}");
 		}
 
 		public void InsertNextCommandToExecute(object context, string command) {
-			CommandExecution e = this.GetExecutionData(context);
+			CommandExecution e = GetExecutionData(context);
 			e.InsertNextCommandToExecute(command);
 		}
 
 		public void StartCooperativeFunction(object context, string command, PrintCallback print) {
-			this.GetExecutionData(context).StartCooperativeFunction(command, print);
+			GetExecutionData(context).StartCooperativeFunction(command, print);
 		}
 
-		public bool IsExecutionFinished(object context) => this.GetExecutionData(context).IsExecutionFinished();
+		public bool IsExecutionFinished(object context) => GetExecutionData(context).IsExecutionFinished();
 
 		//public void ExecuteCommand(string command, object context, PrintCallback printCallback) {
 		//	CommandExecution e = GetExecutionData(context);

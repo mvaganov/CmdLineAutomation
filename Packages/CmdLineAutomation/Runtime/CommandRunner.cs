@@ -16,7 +16,7 @@ namespace RunCmd {
 	public static class CommandRunnerExtension {
 		public static ExecutionData GetExecutionData<ExecutionData>(this CommandRunner<ExecutionData> self, object context) {
 			if (!self.ExecutionDataAccess.TryGetValue(context, out ExecutionData commandExecution)) {
-				UnityEngine.Debug.LogWarning($"{self.GetType().Name} making execution data for {context} {context.GetHashCode()}");
+				//UnityEngine.Debug.LogWarning($"~~~~~~~~~{self.GetType().Name} making execution data for {context} {context.GetHashCode()}");
 				self.ExecutionDataAccess[context] = commandExecution = self.CreateEmptyContextEntry(context);
 			}
 			return commandExecution;
