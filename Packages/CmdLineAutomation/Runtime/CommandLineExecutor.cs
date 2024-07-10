@@ -1,11 +1,8 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace RunCmd {
 	/// <summary>
-	/// TODO refactor:
-
 	/// CommandLineExecutor: has the runtime variables of a command line, like the parsed commands to execute, the command execution stack, specific found variable data. Executes commands for a command line defined by CommandLineSettings.
 	/// * Logic to process commands as a cooperative process
 	///   * does not block the Unity thread
@@ -14,11 +11,6 @@ namespace RunCmd {
 	/// * A list of commands to execute
 	/// * keeps track of command output, which can be filtered by line with regular expressions
 	/// * can be fed commands in the Unity Editor, or from runtime methods
-
-	/// CommandLineAutomation: has a specific command line instruction to execute, which it uses to populate a CommandLineExecutor
-	/// * Metadata/description about why this instruction set exists
-	/// * the instruction set
-
 	/// </summary>
 
 //	[CreateAssetMenu(fileName = "CmdLineExecutor", menuName = "ScriptableObjects/CmdLineExecutor", order = 1)]
@@ -37,22 +29,12 @@ namespace RunCmd {
 		private CommandLineSettings.MutableValues _mutableSettings;
 		private IList<ParsedTextCommand> _commandsToDo;
 
-		///// <summary>
-		///// Variables to read from command line input
-		///// </summary>
-		//[SerializeField]
-		//protected NamedRegexSearch[] _variablesFromCommandLineRegexSearch = new NamedRegexSearch[] {
-		//	// TODO copy from _settings
-		//};
-
 		public IList<ParsedTextCommand> CommandsToDo {
 			get => _commandsToDo;
 			set => _commandsToDo = value;
 		}
 
 		public ICommandExecutor CommandExecutor => this;
-
-		//public IList<NamedRegexSearch> VariablesFromCommandLineRegexSearch => _settings.VariablesFromCommandLineRegexSearch;// _variablesFromCommandLineRegexSearch;
 
 		public IList<ICommandFilter> Filters => _settings.Filters;
 
@@ -147,39 +129,6 @@ namespace RunCmd {
 		/// <inheritdoc cref="CommandLineSettings.ClearCensorshipRules()"/>
 		public void ClearCensorshipRules() => _settings.ClearCensorshipRules();
 
-		public void Initialize() {
-			// TODO make a mutable copy of _settings
-			//_filters = new List<ICommandFilter>();
-			//foreach (UnityEngine.Object obj in _commandFilters) {
-			//	switch (obj) {
-			//		case ICommandFilter iFilter:
-			//			_filters.Add(iFilter);
-			//			break;
-			//		default:
-			//			Debug.LogError($"unexpected filter type {obj.GetType().Name}, " +
-			//				$"{name} expects only {nameof(ICommandFilter)} entries");
-			//			break;
-			//	}
-			//}
-			//_censorshipRules = new RegexMatrix(new RegexMatrix.Row[] {
-			//	new RegexMatrix.Row(HideNextLineFunc, null),
-			//	new RegexMatrix.Row(HideAllFunc, null),
-			//	new RegexMatrix.Row(ShowAllFunc, null),
-			//});
-			//_censorshipRules.IsWaitingForTriggerRecalculate();
-			//if (CommandsToDo == null) {
-			//	ParseCommands();
-			//}
-		}
-
-		private void HideNextLineFunc(string trigger) { _hideNextLine = true; }
-		private void HideAllFunc(string trigger) { ShowOutput = false; }
-		private void ShowAllFunc(string trigger) { ShowOutput = true; }
-
-		//public void ParseCommands() {
-		//	_command.Parse();
-		//}
-
 		public void RunCommand(string command, PrintCallback print, object context) {
 			RunCommands(new string[] { command }, print, context);
 		}
@@ -201,7 +150,6 @@ namespace RunCmd {
 		public void RunCommands(object context, PrintCallback print) {
 			CommandExecution e = this.GetExecutionData(context);
 			e.print = print;
-			Initialize();
 			e.StartRunningEachCommandInSequence(CommandsToDo);
 		}
 
@@ -221,42 +169,6 @@ namespace RunCmd {
 			OnOutputChange?.Invoke(_inspectorCommandOutput);
 		}
 
-		//public void ExecuteCommand(string command, object context, PrintCallback printCallback) {
-		//	CommandExecution e = GetExecutionData(context);
-		//	e.CommandsToDo
-		//}
-
-		public static void DelayCall(System.Action call) {
-#if UNITY_EDITOR
-			if (!Application.isPlaying) {
-				UnityEditor.EditorApplication.delayCall += () => call();
-			} else
-#endif
-			{
-				DelayCallUsingCoroutine(call);
-			}
-		}
-
-		public static void DelayCallUsingCoroutine(System.Action call) {
-			CoroutineRunner.Instance.StartCoroutine(DelayCall());
-			System.Collections.IEnumerator DelayCall() {
-				yield return null;
-				call.Invoke();
-			}
-		}
-
 		public void RemoveExecutionData(object context) => CommandRunnerExtension.RemoveExecutionData(this, context);
-
-		private class CoroutineRunner : MonoBehaviour {
-			private static CoroutineRunner _instance;
-			public static CoroutineRunner Instance {
-				get {
-					if (_instance != null) { return _instance; }
-					GameObject go = new GameObject("<CoroutineRunner>");
-					DontDestroyOnLoad(go);
-					return _instance = go.AddComponent<CoroutineRunner>();
-				}
-			}
-		}
 	}
 }

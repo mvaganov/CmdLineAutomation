@@ -1,29 +1,11 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace RunCmd {
 	/// <summary>
-	/// TODO refactor:
-
 	/// CommandLineSettings: has all of the settings of a command line, like what commands it accepts and what variables it looks for
 	/// * Metadata/description about why this object exists
 	/// * A list of command filters (including the specific named command listing in a sub-asset)
-	/// * 
-
-	/// CommandLineExecutor: has the runtime variables of a command line, like the parsed commands to execute, the command execution stack, specific found variable data. Executes commands for a command line defined by CommandLineSettings.
-	/// * Logic to process commands as a cooperative process
-	///   * does not block the Unity thread
-	///   * tracks state of which command is executing now
-	///   * can be cancelled
-	/// * A list of commands to execute
-	/// * keeps track of command output, which can be filtered by line with regular expressions
-	/// * can be fed commands in the Unity Editor, or from runtime methods
-
-	/// CommandLineAutomation: has a specific command line instruction to execute, which it uses to populate a CommandLineExecutor
-	/// * Metadata/description about why this instruction set exists
-	/// * the instruction set
-
 	/// </summary>
 	[CreateAssetMenu(fileName = "CommandLineSettings", menuName = "ScriptableObjects/CommandLineSettings", order = 1)]
 	public partial class CommandLineSettings : ScriptableObject {
@@ -40,15 +22,6 @@ namespace RunCmd {
 
 		[System.Serializable]
 		public class MutableValues {
-			///// <summary>
-			///// Variables to read from command line input
-			///// </summary>
-			//[SerializeField]
-			//public NamedRegexSearch[] _variablesFromCommandLineRegexSearch = new NamedRegexSearch[] {
-			//	new NamedRegexSearch("WindowsTerminalVersion", @"Microsoft Windows \[Version ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\]", new int[] { 1 }, true, NamedRegexSearch.SpecialReadLogic.IgnoreAfterFirstValue),
-			//	new NamedRegexSearch("dir", NamedRegexSearch.CommandPromptRegexWindows, null, true, NamedRegexSearch.SpecialReadLogic.None)
-			//};
-
 			[SerializeField]
 			public RegexMatrix _regexTriggerProcessor = new RegexMatrix(new RegexMatrix.Row[] {
 				new RegexMatrix.Row(RegexGroupId.Variable.ToString(), new NamedRegexSearch[] {
@@ -62,15 +35,10 @@ namespace RunCmd {
 				new RegexMatrix.Row(RegexGroupId.EnableOutputOnRead.ToString()),
 			});
 
-			//public IList<NamedRegexSearch> VariablesFromCommandLineRegexSearch => _variablesFromCommandLineRegexSearch;
 			public RegexMatrix CensorshipRules => _regexTriggerProcessor;
 
 			public MutableValues Clone() {
 				MutableValues clone = new MutableValues();
-				//clone._variablesFromCommandLineRegexSearch = new NamedRegexSearch[_variablesFromCommandLineRegexSearch.Length];
-				//for(int i = 0; i < clone._variablesFromCommandLineRegexSearch.Length; ++i) {
-				//	clone._variablesFromCommandLineRegexSearch[i] = _variablesFromCommandLineRegexSearch[i].Clone();
-				//}
 				clone._regexTriggerProcessor = _regexTriggerProcessor.Clone();
 				return clone;
 			}
@@ -81,9 +49,14 @@ namespace RunCmd {
 		[ContextMenuItem(nameof(ResetRuntimeSettings), nameof(ResetRuntimeSettings))]
 		public MutableValues _runtimeSettings = new MutableValues();
 
-		public IList<ICommandFilter> Filters => _filters;
-
-		//public IList<NamedRegexSearch> VariablesFromCommandLineRegexSearch => _runtimeSettings.VariablesFromCommandLineRegexSearch;
+		public IList<ICommandFilter> Filters {
+			get {
+				if (NeedsInitialization()) {
+					Initialize();
+				}
+				return _filters;
+			}
+		} 
 
 		private bool NeedsInitialization() => _filters == null;
 
@@ -140,16 +113,6 @@ namespace RunCmd {
 						break;
 				}
 			}
-			//_censorshipRules = new RegexMatrix(new RegexMatrix.Row[] {
-			//	new RegexMatrix.Row(HideNextLineFunc, null),
-			//	new RegexMatrix.Row(HideAllFunc, null),
-			//	new RegexMatrix.Row(ShowAllFunc, null),
-			//});
-			//_censorshipRules.IsWaitingForTriggerRecalculate();
-
-			//if (CommandsToDo == null) {
-			//	ParseCommands();
-			//}
 		}
 
 		public static void DelayCall(System.Action call) {

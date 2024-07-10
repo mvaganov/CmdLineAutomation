@@ -192,7 +192,9 @@ namespace RunCmd {
 		}
 
 		private void RunCommands() {
-			Target.RunCommands(_context, Print);
+			CommandLineExecutor executor = Target.GetCommandExecutor();
+			executor.CommandsToDo = Target.CommandsToDo;
+			executor.RunCommands(_context, Print);
 			RefreshInspector();
 		}
 

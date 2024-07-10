@@ -227,6 +227,12 @@ namespace RunCmd {
 		}
 
 		private bool IsExecutionStoppedByFilterFunction() {
+			if (source == null) {
+				throw new System.Exception("Missing execution source");
+			}
+			if (source.Filters == null) {
+				throw new System.Exception($"missing filters {source}");
+			}
 			while (filterIndex < Filters.Count) {
 				if (currentCommand == null) {
 					currentCommand = Filters[filterIndex];
