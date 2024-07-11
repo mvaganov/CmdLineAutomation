@@ -12,8 +12,6 @@ namespace RunCmd {
 	/// * keeps track of command output, which can be filtered by line with regular expressions
 	/// * can be fed commands in the Unity Editor, or from runtime methods
 	/// </summary>
-
-//	[CreateAssetMenu(fileName = "CmdLineExecutor", menuName = "ScriptableObjects/CmdLineExecutor", order = 1)]
 	public partial class CommandLineExecutor : CommandRunner<CommandExecution>, ICommandAutomation, ICommandExecutor {
 		[SerializeField] protected CommandLineSettings _settings;
 
