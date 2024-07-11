@@ -36,7 +36,7 @@ namespace RunCmd {
 
 		public IList<ICommandFilter> Filters => _settings.Filters;
 
-		public RegexMatrix CensorshipRules => _settings.RegexTriggers;
+		public RegexMatrix RegexTriggers => _mutableSettings.RegexTriggers;
 
 		public CommandLineSettings Settings => _settings;
 
@@ -74,8 +74,8 @@ namespace RunCmd {
 		}
 
 		public void AddToCommandOutput(string value) {
-			if (_settings.RegexTriggers.HasRegexTriggers) {
-				_settings.RegexTriggers.ProcessAndCheckTextForTriggeringLines(value, AddProcessedLineToCommandOutput, _triggeredGroup);
+			if (RegexTriggers.HasRegexTriggers) {
+				RegexTriggers.ProcessAndCheckTextForTriggeringLines(value, AddProcessedLineToCommandOutput, _triggeredGroup);
 			} else {
 				AddLineToCommandOutputInternal(value);
 			}
@@ -93,13 +93,15 @@ namespace RunCmd {
 			OnOutputChange?.Invoke(_inspectorCommandOutput);
 		}
 
-		public float Progress(object context) => this.GetExecutionData(context).Progress;
+		public CommandExecution GetExecutionData(object context) => ((CommandRunner<CommandExecution>)this).GetExecutionData(context);
 
-		public void CancelProcess(object context) => this.GetExecutionData(context).CancelExecution();
+		public float Progress(object context) => GetExecutionData(context).Progress;
 
-		public string CurrentCommandText(object context) => this.GetExecutionData(context).CurrentCommandText();
+		public void CancelProcess(object context) => GetExecutionData(context).CancelExecution();
 
-		public ICommandProcessor CurrentCommand(object context) => this.GetExecutionData(context).CurrentCommand();
+		public string CurrentCommandText(object context) => GetExecutionData(context).CurrentCommandText();
+
+		public ICommandProcessor CurrentCommand(object context) => GetExecutionData(context).CurrentCommand();
 
 		public CommandExecution CreateEmptyContextEntry(object context) {
 			CommandExecution execution = new CommandExecution(context, this);
@@ -107,25 +109,25 @@ namespace RunCmd {
 			return execution;
 		}
 
-		public OperatingSystemCommandShell GetShell(object context) => this.GetExecutionData(context).Shell;
+		public OperatingSystemCommandShell GetShell(object context) => GetExecutionData(context).Shell;
 
 		/// <inheritdoc cref="CommandLineSettings.AddCensorshipTrigger(string)"/>
-		public void AddCensorshipTrigger(string regexTrigger) => _settings.AddCensorshipTrigger(regexTrigger);
+		public void AddCensorshipTrigger(string regexTrigger) => _mutableSettings.AddCensorshipTrigger(regexTrigger);
 
 		/// <inheritdoc cref="CommandLineSettings.AddUncensorshipTrigger(string)"/>
-		public void AddUncensorshipTrigger(string regexTrigger) => _settings.AddUncensorshipTrigger(regexTrigger);
+		public void AddUncensorshipTrigger(string regexTrigger) => _mutableSettings.AddUncensorshipTrigger(regexTrigger);
 
 		/// <inheritdoc cref="CommandLineSettings.AddCensorLineTrigger(string)"/>
-		public void AddCensorLineTrigger(string regexTrigger) => _settings.AddCensorLineTrigger(regexTrigger);
+		public void AddCensorLineTrigger(string regexTrigger) => _mutableSettings.AddCensorLineTrigger(regexTrigger);
 
 		/// <inheritdoc cref="CommandLineSettings.RemoveCensorshipTrigger(string)"/>
-		public bool RemoveCensorshipTrigger(string regexTrigger) => _settings.RemoveCensorshipTrigger(regexTrigger);
+		public bool RemoveCensorshipTrigger(string regexTrigger) => _mutableSettings.RemoveCensorshipTrigger(regexTrigger);
 
 		/// <inheritdoc cref="CommandLineSettings.RemoveUncensorshipTrigger(string)"/>
-		public bool RemoveUncensorshipTrigger(string regexTrigger) => _settings.RemoveUncensorshipTrigger(regexTrigger);
+		public bool RemoveUncensorshipTrigger(string regexTrigger) => _mutableSettings.RemoveUncensorshipTrigger(regexTrigger);
 
 		/// <inheritdoc cref="CommandLineSettings.ClearCensorshipRules()"/>
-		public void ClearCensorshipRules() => _settings.ClearCensorshipRules();
+		public void ClearCensorshipRules() => _mutableSettings.ClearCensorshipRules();
 
 		public void RunCommand(string command, PrintCallback print, object context) {
 			RunCommands(new string[] { command }, print, context);

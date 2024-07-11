@@ -68,7 +68,7 @@ namespace RunCmd {
 			set { GetCommandExecutor().OnOutputChange = value; }
 		}
 
-		public RegexMatrix CensorshipRules => MutableSettings.CensorshipRules;
+		public RegexMatrix RegexTriggers => MutableSettings.RegexTriggers;
 
 		public void AddToCommandOutput(string value) {
 			GetCommandExecutor().AddToCommandOutput(value);
@@ -103,39 +103,39 @@ namespace RunCmd {
 		/// If the given regex is triggered, all output will be hidden (until <see cref="AddUncensorshipTrigger(string)"/>)
 		/// </summary>
 		/// <param name="regexTrigger"></param>
-		public void AddCensorshipTrigger(string regexTrigger) => CensorshipRules.Add((int)CommandLineSettings.RegexGroupId.DisableOutputOnRead, regexTrigger);
+		public void AddCensorshipTrigger(string regexTrigger) => RegexTriggers.Add((int)CommandLineSettings.RegexGroupId.DisableOutputOnRead, regexTrigger);
 
 		/// <summary>
 		/// If the given regex is triggered, all output will be shown again
 		/// </summary>
 		/// <param name="regexTrigger"></param>
-		public void AddUncensorshipTrigger(string regexTrigger) => CensorshipRules.Add((int)CommandLineSettings.RegexGroupId.EnableOutputOnRead, regexTrigger);
+		public void AddUncensorshipTrigger(string regexTrigger) => RegexTriggers.Add((int)CommandLineSettings.RegexGroupId.EnableOutputOnRead, regexTrigger);
 
 		/// <summary>
 		/// Hide lines that contain the given regex trigger
 		/// </summary>
 		/// <param name="regexTrigger"></param>
-		public void AddCensorLineTrigger(string regexTrigger) => CensorshipRules.Add((int)CommandLineSettings.RegexGroupId.HideNextOutputLine, regexTrigger);
+		public void AddCensorLineTrigger(string regexTrigger) => RegexTriggers.Add((int)CommandLineSettings.RegexGroupId.HideNextOutputLine, regexTrigger);
 
 		/// <summary>
 		/// Remove a regex trigger added by <see cref="AddCensorshipTrigger(string)"/>
 		/// </summary>
 		/// <param name="regexTrigger"></param>
 		/// <returns></returns>
-		public bool RemoveCensorshipTrigger(string regexTrigger) => CensorshipRules.Remove((int)CommandLineSettings.RegexGroupId.DisableOutputOnRead, regexTrigger);
+		public bool RemoveCensorshipTrigger(string regexTrigger) => RegexTriggers.Remove((int)CommandLineSettings.RegexGroupId.DisableOutputOnRead, regexTrigger);
 
 		/// <summary>
 		/// Remove a regex trigger added by <see cref="AddUncensorshipTrigger(string)"/>
 		/// </summary>
 		/// <param name="regexTrigger"></param>
 		/// <returns></returns>
-		public bool RemoveUncensorshipTrigger(string regexTrigger) => CensorshipRules.Remove((int)CommandLineSettings.RegexGroupId.EnableOutputOnRead, regexTrigger);
+		public bool RemoveUncensorshipTrigger(string regexTrigger) => RegexTriggers.Remove((int)CommandLineSettings.RegexGroupId.EnableOutputOnRead, regexTrigger);
 
 		/// <summary>
 		/// Remove all regex triggers added by <see cref="AddCensorLineTrigger(string)"/>,
 		/// <see cref="AddCensorshipTrigger(string)"/>, <see cref="AddUncensorshipTrigger(string)"/>
 		/// </summary>
-		public void ClearCensorshipRules() => CensorshipRules.ClearRows();
+		public void ClearCensorshipRules() => RegexTriggers.ClearRows();
 
 		public void Initialize() {
 			if (NeedsInitialization()) {
