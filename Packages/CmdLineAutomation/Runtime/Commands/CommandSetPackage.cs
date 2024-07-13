@@ -12,9 +12,9 @@ namespace RunCmd {
 		public string CommandToken => this.name;
 		public void StartCooperativeFunction(object context, string command, PrintCallback print) {
 #if UNITY_EDITOR
-			string[] args = command.Split(' ');
-			Debug.Log(string.Join("---", args));
-			if (args.Length >= 2) {
+			IList<string> args = Parse.ParseArgs(command);
+			print(command + "\n");
+			if (args.Count >= 2) {
 				SetPackage(args[1], args[2]);
 			}
 #else
@@ -25,6 +25,12 @@ namespace RunCmd {
 		public bool IsExecutionFinished(object context) => true;
 		public float Progress(object context) => 0;
 
+		/// <summary>
+		/// Changes (or adds or removes) a package entry in this project's manifest.json
+		/// </summary>
+		/// <param name="packageName"></param>
+		/// <param name="packageValue">if empty, delete the given packageName entry</param>
+		/// <returns></returns>
 		public static bool SetPackage(string packageName, string packageValue) {
 			string dataPath = Application.dataPath;
 			if (string.IsNullOrEmpty(dataPath) || !dataPath.EndsWith(Assets)) {
@@ -53,13 +59,31 @@ namespace RunCmd {
 			int firstActualDependency = depLine + 1;
 			int packageEntryLine = lines.FindIndex(firstActualDependency, depCount,
 				line => line.Contains($"\"{packageName}\""));
-			string newLine = $"    \"{ packageName}\": \"{ packageValue}\"";
-			if (packageEntryLine < 0) {
-				lines.Insert(depLine + 1, newLine + (depCount > 0 ? "," : ""));
+			if (string.IsNullOrEmpty(packageValue)) {
+				string newLine = $"    \"{ packageName}\": \"{ packageValue}\"";
+				if (packageEntryLine < 0) {
+					lines.Insert(depLine + 1, newLine + (depCount > 0 ? "," : ""));
+				} else {
+					lines[packageEntryLine] = newLine + (depCount > 1 ? "," : "");
+				}
 			} else {
-				lines[packageEntryLine] = newLine + (depCount > 1 ? "," : "");
+				if (packageEntryLine >= 0) {
+					bool isLastAndTrailingCommanMustBeRemoved = packageEntryLine == depLine + depCount - 1;
+					lines.RemoveAt(packageEntryLine);
+					if (isLastAndTrailingCommanMustBeRemoved) {
+						string lastLine = lines[packageEntryLine - 1];
+						lastLine = lastLine.TrimEnd();
+						lastLine = lastLine.Substring(0, lastLine.Length - 1);
+						lines[packageEntryLine - 1] = lastLine;
+					}
+				} else {
+					Debug.LogWarning($"{packageName} already removed");
+				}
 			}
-			string finalFile = string.Join('\n', lines) + "\n";
+			if (lines[lines.Count - 1].Length != 0) {
+				lines.Add("");
+			}
+			string finalFile = string.Join('\n', lines);
 			File.WriteAllText(manifestFilePath, finalFile);
 			return true;
 		}

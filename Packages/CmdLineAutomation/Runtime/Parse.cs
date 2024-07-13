@@ -184,6 +184,27 @@ namespace RunCmd {
 			return SetErrorAndReturnNull(ParseResult.Kind.UnexpectedToken, token, out error);
 		}
 
+		/// <summary>
+		/// Parse strings, without any meta data or data structures.
+		/// Use this to separate string literals from string tokens.
+		/// </summary>
+		/// <param name="text"></param>
+		/// <returns></returns>
+		public static IList<string> ParseArgs(string text) {
+			IList<Token> tokens = new TokenParsing(text).SplitTokens();
+			List<string> args = new List<string>();
+			for (int i = 0; i < tokens.Count; i++) {
+				Token token = tokens[i];
+				switch (token.TokenKind) {
+					case Token.Kind.Text:
+					case Token.Kind.Delim:
+						args.Add(token.Text);
+						break;
+				}
+			}
+			return args;
+		}
+
 		private static object SetErrorAndReturnNull(ParseResult.Kind kind, Token token, out ParseResult error) {
 			error = new ParseResult(kind, token.TextIndex);
 			return null;

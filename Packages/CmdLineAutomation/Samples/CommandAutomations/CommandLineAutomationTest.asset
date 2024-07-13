@@ -39,8 +39,6 @@ MonoBehaviour:
 
       echo done!'
     ParsedCommands:
-    - Text: setpackage com.unity.collab-proxy 2.0.0
-      Ignore: 0
     - Text: '# getchoice'
       Ignore: 0
     - Text: echo /*this is a very basic print function in the command line*/ start!
