@@ -134,7 +134,11 @@ namespace RunCmd {
 		public void Stop() {
 			_running = false;
 			if (_process != null) {
-				_process.Kill();
+				try {
+					_process.Kill();
+				} catch (Exception e) {
+					Debug.LogWarning(e);
+				}
 				_thread.Join(200);
 				_thread.Abort();
 				_process = null;
