@@ -35,15 +35,9 @@ namespace RunCmd {
 		/// Function to pass all lines from standard output to
 		/// </summary>
 		public PrintCallback print;
-		///// <summary>
-		///// used when getchoice or some other command needs to adjust the commands as they are being executed
-		///// </summary>
-		//private TextCommand modifiedTextCommand;
 		/// <summary>
 		/// The list of commands and filters this automation is executing
-		/// TODO replace this with ICommandExecutor
 		/// </summary>
-		//private CommandAutomation _source;
 		private ICommandExecutor source;
 		/// <summary>
 		/// Keeps track of a shell, if one is generated
@@ -66,12 +60,6 @@ namespace RunCmd {
 
 		public IList<ParsedTextCommand> CommandsToDo {
 			get => _commandsToDo;
-			//{
-			//	if (modifiedTextCommand == null) {
-			//		return source.CommandsToDo;
-			//	}
-			//	return modifiedTextCommand.ParsedCommands;
-			//}
 			set => _commandsToDo = new List<ParsedTextCommand>(value);
 		}
 
@@ -125,26 +113,12 @@ namespace RunCmd {
 			cancelled = false;
 			CommandsToDo = commands;
 			//Debug.LogWarning($"~~[{source}]({source.GetHashCode()}) providing {nameof(CommandsToDo)}({_commandsToDo.Count})");
-			//modifiedTextCommand = null;
 			commandExecutingIndex = 0;
-			//RefreshRegexSearch();
 			RunEachCommandInSequence();
 			//Debug.LogWarning($"--[{source}]({source.GetHashCode()}) providing {nameof(CommandsToDo)}({_commandsToDo.Count})");
 		}
 
-		//private void RefreshRegexSearch() {
-		//	_regexSearches.Clear();
-		//	//for (int i = 0; i < source.VariablesFromCommandLineRegexSearch.Count; ++i) {
-		//	//	NamedRegexSearch regexSearch = source.VariablesFromCommandLineRegexSearch[i];
-		//	//	_regexSearches[regexSearch.Name] = regexSearch;
-		//	//}
-		//}
-
 		public void InsertNextCommandToExecute(string command) {
-			//if (modifiedTextCommand == null) {
-			//	modifiedTextCommand = source.TextCommandData.CloneSelf();
-			//}
-			//modifiedTextCommand.ParsedCommands.Insert(commandExecutingIndex + 1, new ParsedTextCommand(command));
 			if (_commandsToDo == null) {
 				CommandLineExecutor cle = source as CommandLineExecutor;
 
@@ -207,9 +181,6 @@ namespace RunCmd {
 			currentCommandText = command;
 			currentCommandResult = command;
 			filterIndex = 0;
-			//if (source.NeedsInitialization()) {
-			//	source.Initialize();
-			//}
 			DoCurrentCommand();
 		}
 

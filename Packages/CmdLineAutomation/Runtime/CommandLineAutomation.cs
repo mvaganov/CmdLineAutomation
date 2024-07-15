@@ -96,56 +96,6 @@ namespace RunCmd {
 
 		public OperatingSystemCommandShell GetShell(object context) => GetExecutionData(context).Shell;
 
-		/// TODO rename core settings need initialization
-		internal bool NeedsInitialization() => Filters == null;
-
-		/// <summary>
-		/// If the given regex is triggered, all output will be hidden (until <see cref="AddUncensorshipTrigger(string)"/>)
-		/// </summary>
-		/// <param name="regexTrigger"></param>
-		public void AddCensorshipTrigger(string regexTrigger) => RegexTriggers.Add((int)CommandLineSettings.RegexGroupId.DisableOutputOnRead, regexTrigger);
-
-		/// <summary>
-		/// If the given regex is triggered, all output will be shown again
-		/// </summary>
-		/// <param name="regexTrigger"></param>
-		public void AddUncensorshipTrigger(string regexTrigger) => RegexTriggers.Add((int)CommandLineSettings.RegexGroupId.EnableOutputOnRead, regexTrigger);
-
-		/// <summary>
-		/// Hide lines that contain the given regex trigger
-		/// </summary>
-		/// <param name="regexTrigger"></param>
-		public void AddCensorLineTrigger(string regexTrigger) => RegexTriggers.Add((int)CommandLineSettings.RegexGroupId.HideNextOutputLine, regexTrigger);
-
-		/// <summary>
-		/// Remove a regex trigger added by <see cref="AddCensorshipTrigger(string)"/>
-		/// </summary>
-		/// <param name="regexTrigger"></param>
-		/// <returns></returns>
-		public bool RemoveCensorshipTrigger(string regexTrigger) => RegexTriggers.Remove((int)CommandLineSettings.RegexGroupId.DisableOutputOnRead, regexTrigger);
-
-		/// <summary>
-		/// Remove a regex trigger added by <see cref="AddUncensorshipTrigger(string)"/>
-		/// </summary>
-		/// <param name="regexTrigger"></param>
-		/// <returns></returns>
-		public bool RemoveUncensorshipTrigger(string regexTrigger) => RegexTriggers.Remove((int)CommandLineSettings.RegexGroupId.EnableOutputOnRead, regexTrigger);
-
-		/// <summary>
-		/// Remove all regex triggers added by <see cref="AddCensorLineTrigger(string)"/>,
-		/// <see cref="AddCensorshipTrigger(string)"/>, <see cref="AddUncensorshipTrigger(string)"/>
-		/// </summary>
-		public void ClearCensorshipRules() => RegexTriggers.ClearRows();
-
-		public void Initialize() {
-			if (NeedsInitialization()) {
-				_settings.Initialize();
-			}
-			if (CommandsToDo == null) {
-				ParseCommands();
-			}
-		}
-
 		public void ParseCommands() {
 			_command.Parse();
 		}

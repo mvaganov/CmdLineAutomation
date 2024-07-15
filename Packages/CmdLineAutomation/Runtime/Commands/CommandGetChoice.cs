@@ -26,7 +26,6 @@ namespace RunCmd {
 			new KeyValuePairStrings("no", "exit"),
 		};
 
-
 		public class Execution {
 			public bool finished;
 			public int timeoutStart;

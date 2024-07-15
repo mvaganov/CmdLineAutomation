@@ -4,28 +4,9 @@ using UnityEngine;
 
 namespace RunCmd {
 	/// <summary>
-	/// TODO refactor:
-
-	/// CommandLineSettings: has all of the settings of a command line, like what commands it accepts and what variables it looks for
-	/// * Metadata/description about why this object exists
-	/// * A list of command filters (including the specific named command listing in a sub-asset)
-	/// * 
-
-	/// CommandLineExecutor: has the runtime variables of a command line, like the parsed commands to execute, the command execution stack, specific found variable data. Executes commands for a command line defined by CommandLineSettings.
-	/// * Logic to process commands as a cooperative process
-	///   * does not block the Unity thread
-	///   * tracks state of which command is executing now
-	///   * can be cancelled
-	/// * A list of commands to execute
-	/// * keeps track of command output, which can be filtered by line with regular expressions
-	/// * can be fed commands in the Unity Editor, or from runtime methods
-
-	/// CommandLineAutomation: has a specific command line instruction to execute, which it uses to populate a CommandLineExecutor
-	/// * Metadata/description about why this instruction set exists
-	/// * the instruction set
-
+	/// This class is obselete. Use <see cref="CommandLineAutomation"/> instead
 	/// </summary>
-	[CreateAssetMenu(fileName = "NewCmdLineAutomation", menuName = "ScriptableObjects/CmdLineAutomation", order = 1)]
+	//[CreateAssetMenu(fileName = "NewCmdLineAutomation", menuName = "ScriptableObjects/CmdLineAutomation", order = 1)]
 	public partial class CommandAutomation : ScriptableObject, CommandRunner<CommandExecution>, ICommandProcessor, ICommandAutomation, ICommandExecutor {
 		private enum RegexGroupId { None = -1, HideNextLine = 0, DisableOnRead, EnableOnRead }
 		/// <summary>
