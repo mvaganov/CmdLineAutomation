@@ -36,12 +36,12 @@ namespace RunCmd {
 			button.onClick.AddListener(() => commandGetChoice.ChoiceMade(context, index));
 		}
 
-		public void SetChoicesUi(IEnumerable<KeyValuePairStrings> choices) {
+		public void SetChoicesUi(IEnumerable<KeyValuePairStrings> choices, object context, CommandGetChoice commandGetChoice) {
 			options.Clear();
 			foreach(KeyValuePairStrings option in choices) {
 				options.Add(option);
 			}
-			RefreshOptions();
+			RefreshOptions(context, commandGetChoice);
 		}
 
 		public void ClearOptionsUi() {
@@ -51,13 +51,13 @@ namespace RunCmd {
 			}
 		}
 		
-		public void RefreshOptions() {
+		public void RefreshOptions(object context, CommandGetChoice commandGetChoice) {
 			ClearOptionsUi();
 			for (int i = 0; i < options.Count; ++i) {
 				GameObject optionUiElement = Instantiate(choicePrefab);
 				optionUiElement.transform.SetParent(choiceContent, false);
 				optionUi.Add(optionUiElement);
-				SetChoice(i, options[i].Key, options[i].Value);
+				SetChoice(i, options[i].Key, options[i].Value, context, commandGetChoice);
 			}
 		}
 
