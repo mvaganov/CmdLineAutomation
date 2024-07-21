@@ -30,6 +30,7 @@ namespace RunCmd {
 			public bool finished;
 			public int timeoutStart;
 			public int timeoutDuration;
+			public ComponentGetChoice runtimeComponent;
 #if UNITY_EDITOR
 			public GetChoiceWindow choiceWindow;
 #endif
@@ -69,7 +70,7 @@ namespace RunCmd {
 			}
 			IList arguments = parsed as IList;
 			string  message = (arguments.Count > 1) ? (Parse.Token)arguments[1] : (Parse.Token)_defaultMessage;
-			IDictionary args = (arguments.Count > 2) ? arguments[2] as IDictionary : DefaultChoiceDitionary();
+			IDictionary args = (arguments.Count > 2) ? arguments[2] as IDictionary : DefaultChoiceDictionary();
 			Vector2 size = new Vector2(250, 30 + args.Count * 20);
 			List<string> argsOptions = new List<string>();
 			List<Action> argsActions = new List<Action>();
@@ -102,9 +103,18 @@ namespace RunCmd {
 				exec.choiceWindow._choiceBlocker.rootVisualElement.style.backgroundColor = _underlayWindowColor;
 			}
 #endif
+			if (ComponentGetChoice.Instance != null) {
+				exec.runtimeComponent = ComponentGetChoice.Instance;
+				exec.runtimeComponent.Message = message;
+				exec.runtimeComponent.SetChoices(argsOptions, context, this);
+				exec.runtimeComponent.ChoiceWindow.GetComponent<Image>().tintColor = _choiceWindowColor;
+				if (_blockingUnderlay) {
+					exec.runtimeComponent.Underlay.GetComponent<Image>().tintColor = _underlayWindowColor;
+				}
+			}
 		}
 
-		public IDictionary DefaultChoiceDitionary() {
+		public IDictionary DefaultChoiceDictionary() {
 			OrderedDictionary dict = new OrderedDictionary();
 			for (int i = 0; i < _defaultChoices.Length; ++i) {
 				dict[(Parse.Token)_defaultChoices[i].Key] = (Parse.Token)_defaultChoices[i].Value;
@@ -118,6 +128,9 @@ namespace RunCmd {
 #if UNITY_EDITOR
 			exec.choiceWindow?.CloseChoiceWindow();
 #endif
+			if (ComponentGetChoice.Instance != null) {
+				// TODO make the window work at runtime too
+			}
 		}
 
 		public string UsageString() {

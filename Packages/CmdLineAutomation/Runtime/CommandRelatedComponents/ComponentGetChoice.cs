@@ -5,6 +5,8 @@ using UnityEngine.UI;
 
 namespace RunCmd {
 	public class ComponentGetChoice : MonoBehaviour {
+		[SerializeField] protected RectTransform underlay;
+		[SerializeField] protected RectTransform choiceWindow;
 		[SerializeField] protected GameObject choicePrefab;
 		[SerializeField] protected TMP_Text message;
 		[SerializeField] protected RectTransform choiceContent;
@@ -14,59 +16,47 @@ namespace RunCmd {
 			set => message.text = value;
 		}
 
-		public List<KeyValuePairStrings> options = new List<KeyValuePairStrings>();
-		public List<GameObject> optionUi;
+		public RectTransform ChoiceWindow => choiceWindow;
 
-		public void SetChoiceText(int index, string text) {
-			options[index].Key = text;
+		public RectTransform Underlay => underlay;
+
+		protected List<GameObject> optionUi;
+
+		public static ComponentGetChoice Instance { get; private set; }
+
+		private void Awake() {
+			if (Instance != null) {
+				throw new System.Exception($"multiple {nameof(ComponentGetChoice)}, {Instance} and {this}");
+			}
+			Instance = this;
 		}
 
-		public void SetChoiceCommand(int index, string command) {
-			options[index].Value = command;
-		}
-
-		public void SetChoice(int index, string text, string command, object context, CommandGetChoice commandGetChoice) {
-			SetChoiceText(index, text);
-			SetChoiceCommand(index, command);
+		public void SetChoice(int index, string text) {
 			GameObject uiElement = optionUi[index];
 			TMP_Text textComponent = uiElement.GetComponentInChildren<TMP_Text>();
 			textComponent.text = text;
-			Button button = uiElement.GetComponentInChildren<Button>();
+		}
+
+		public void SetChoice(int index, string text, object context, CommandGetChoice commandGetChoice) {
+			SetChoice(index, text);
+			Button button = optionUi[index].GetComponentInChildren<Button>();
 			button.onClick.RemoveAllListeners();
 			button.onClick.AddListener(() => commandGetChoice.ChoiceMade(context, index));
 		}
 
-		public void SetChoicesUi(IEnumerable<KeyValuePairStrings> choices, object context, CommandGetChoice commandGetChoice) {
-			options.Clear();
-			foreach(KeyValuePairStrings option in choices) {
-				options.Add(option);
-			}
-			RefreshOptions(context, commandGetChoice);
-		}
-
-		public void ClearOptionsUi() {
-			for(int i = 0; i < optionUi.Count; ++i) {
-				GameObject go = optionUi[i];
-				Destroy(go);
-			}
-		}
-		
-		public void RefreshOptions(object context, CommandGetChoice commandGetChoice) {
+		public void SetChoices(IList<string> choices, object context, CommandGetChoice commandGetChoice) {
 			ClearOptionsUi();
-			for (int i = 0; i < options.Count; ++i) {
+			for (int i = 0; i < choices.Count; ++i) {
 				GameObject optionUiElement = Instantiate(choicePrefab);
 				optionUiElement.transform.SetParent(choiceContent, false);
 				optionUi.Add(optionUiElement);
-				SetChoice(i, options[i].Key, options[i].Value, context, commandGetChoice);
+				SetChoice(i, choices[i], context, commandGetChoice);
 			}
 		}
 
-		void Start() {
-
-		}
-
-		void Update() {
-
+		public void ClearOptionsUi() {
+			optionUi.ForEach(Destroy);
+			optionUi.Clear();
 		}
 	}
 }
