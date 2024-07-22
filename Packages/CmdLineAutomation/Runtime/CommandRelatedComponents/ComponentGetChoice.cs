@@ -10,6 +10,7 @@ namespace RunCmd {
 		[SerializeField] protected GameObject choicePrefab;
 		[SerializeField] protected TMP_Text message;
 		[SerializeField] protected RectTransform choiceContent;
+		private static ComponentGetChoice _instance;
 
 		public string Message {
 			get => message.text;
@@ -20,13 +21,21 @@ namespace RunCmd {
 
 		public RectTransform Underlay => underlay;
 
-		protected List<GameObject> optionUi;
+		protected List<GameObject> optionUi = new List<GameObject>();
 
-		public static ComponentGetChoice Instance { get; private set; }
+		public static ComponentGetChoice Instance {
+			get {
+				if (_instance != null) {
+					return _instance;
+				}
+				return _instance = FindAnyObjectByType<ComponentGetChoice>(FindObjectsInactive.Include);
+			}
+			private set { _instance = value; }
+		}
 
 		private void Awake() {
-			if (Instance != null) {
-				throw new System.Exception($"multiple {nameof(ComponentGetChoice)}, {Instance} and {this}");
+			if (Instance != null && Instance != this) {
+				throw new System.Exception($"multiple {nameof(ComponentGetChoice)}, {Instance.GetHashCode()} and {GetHashCode()}");
 			}
 			Instance = this;
 		}
@@ -44,18 +53,22 @@ namespace RunCmd {
 			button.onClick.AddListener(() => commandGetChoice.ChoiceMade(context, index));
 		}
 
-		public void SetChoices(IList<string> choices, object context, CommandGetChoice commandGetChoice) {
+		public void SetChoices(IList<string> choices, System.Action<int> onChoiceMade, object context, CommandGetChoice commandGetChoice) {
 			ClearOptionsUi();
 			for (int i = 0; i < choices.Count; ++i) {
 				GameObject optionUiElement = Instantiate(choicePrefab);
 				optionUiElement.transform.SetParent(choiceContent, false);
 				optionUi.Add(optionUiElement);
+				optionUiElement.SetActive(true);
+				// TODO is onChoiceMade the same as commandGetChoice.ChoiceMade?
 				SetChoice(i, choices[i], context, commandGetChoice);
 			}
 		}
 
 		public void ClearOptionsUi() {
-			optionUi.ForEach(Destroy);
+			optionUi.ForEach(go => {
+				if (go != null) { Destroy(go); }
+			});
 			optionUi.Clear();
 		}
 	}

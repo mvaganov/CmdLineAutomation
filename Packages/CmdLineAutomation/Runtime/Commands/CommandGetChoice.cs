@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine.UIElements;
 using System.Collections;
 using System.Collections.Specialized;
+using UnityEngine.EventSystems;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -49,6 +50,8 @@ namespace RunCmd {
 #if UNITY_EDITOR
 					MousePosition = Event.current.mousePosition;
 					//Debug.Log("MousePosition : " + MousePosition);
+#else
+					MousePosition = Input.mousePosition;
 #endif
 					break;
 			}
@@ -96,21 +99,31 @@ namespace RunCmd {
 				++entryIndex;
 			}
 #if UNITY_EDITOR
-			exec.choiceWindow = GetChoiceWindow.Dialog(message, argsOptions,
-				argsActions, onChoiceMade, size, size / -2, _blockingUnderlay);
-			exec.choiceWindow.rootVisualElement.style.backgroundColor = _choiceWindowColor;
-			if (_blockingUnderlay) {
-				exec.choiceWindow._choiceBlocker.rootVisualElement.style.backgroundColor = _underlayWindowColor;
+			if (!Application.isPlaying) {
+				exec.choiceWindow = GetChoiceWindow.Dialog(message, argsOptions,
+					argsActions, onChoiceMade, size, size / -2, _blockingUnderlay);
+				exec.choiceWindow.rootVisualElement.style.backgroundColor = _choiceWindowColor;
+				if (_blockingUnderlay) {
+					exec.choiceWindow._choiceBlocker.rootVisualElement.style.backgroundColor = _underlayWindowColor;
+				}
+				return;
 			}
 #endif
+			Debug.Log($"choice? {ComponentGetChoice.Instance}");
 			if (ComponentGetChoice.Instance != null) {
 				exec.runtimeComponent = ComponentGetChoice.Instance;
 				exec.runtimeComponent.Message = message;
-				exec.runtimeComponent.SetChoices(argsOptions, context, this);
-				exec.runtimeComponent.ChoiceWindow.GetComponent<Image>().tintColor = _choiceWindowColor;
+				exec.runtimeComponent.SetChoices(argsOptions, onChoiceMade, context, this);
+				GameObject choiceGameObject = exec.runtimeComponent.ChoiceWindow.gameObject;
+				Debug.Log(choiceGameObject);
+				UnityEngine.UI.Image img = choiceGameObject.GetComponent<UnityEngine.UI.Image>();
+				img.color = _choiceWindowColor;
+				choiceGameObject.SetActive(true);
 				if (_blockingUnderlay) {
-					exec.runtimeComponent.Underlay.GetComponent<Image>().tintColor = _underlayWindowColor;
+					exec.runtimeComponent.Underlay.GetComponent<UnityEngine.UI.Image>().color = _underlayWindowColor;
 				}
+				exec.runtimeComponent.Underlay.gameObject.SetActive(_blockingUnderlay);
+				exec.runtimeComponent.gameObject.SetActive(true);
 			}
 		}
 
@@ -129,7 +142,7 @@ namespace RunCmd {
 			exec.choiceWindow?.CloseChoiceWindow();
 #endif
 			if (ComponentGetChoice.Instance != null) {
-				// TODO make the window work at runtime too
+				exec.runtimeComponent.gameObject.SetActive(false);
 			}
 		}
 
@@ -158,12 +171,15 @@ namespace RunCmd {
 		public Execution CreateEmptyContextEntry(object context) => new Execution();
 
 		public void RemoveExecutionData(object context) {
-#if UNITY_EDITOR
 			Execution exec = this.GetExecutionData(context);
 			if (exec != null && exec.choiceWindow != null) {
-				exec.choiceWindow.CloseChoiceWindow();
+#if UNITY_EDITOR
+				exec.choiceWindow?.CloseChoiceWindow();
 			}
 #endif
+			if (ComponentGetChoice.Instance != null) {
+				exec.runtimeComponent.gameObject.SetActive(false);
+			}
 			CommandRunnerExtension.RemoveExecutionData(this, context);
 		}
 
