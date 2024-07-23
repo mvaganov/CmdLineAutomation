@@ -272,7 +272,7 @@ namespace RunCmd {
 				}
 				for (int i = 0; i < _options.Count; ++i) {
 					Button button = new Button();
-					button.text = _options[i];
+					button.text = _options[i].Replace("\r","");
 					{
 						int index = i;
 						button.clicked += () => DoAction(index);
