@@ -141,7 +141,7 @@ namespace RunCmd {
 #if UNITY_EDITOR
 			exec.choiceWindow?.CloseChoiceWindow();
 #endif
-			if (ComponentGetChoice.Instance != null) {
+			if (ComponentGetChoice.Instance != null && exec.runtimeComponent != null) {
 				exec.runtimeComponent.gameObject.SetActive(false);
 			}
 		}
@@ -177,7 +177,7 @@ namespace RunCmd {
 				exec.choiceWindow?.CloseChoiceWindow();
 			}
 #endif
-			if (ComponentGetChoice.Instance != null) {
+			if (ComponentGetChoice.Instance != null && exec.runtimeComponent != null) {
 				exec.runtimeComponent.gameObject.SetActive(false);
 			}
 			CommandRunnerExtension.RemoveExecutionData(this, context);
