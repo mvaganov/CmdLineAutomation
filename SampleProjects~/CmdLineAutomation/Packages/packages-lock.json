@@ -1,9 +1,9 @@
 {
   "dependencies": {
     "com.codegiraffe.cmdlineautomation": {
-      "version": "file:CmdLineAutomation",
+      "version": "file:C:/Users/mvaga/Developer/CmdLineAutomation",
       "depth": 0,
-      "source": "embedded",
+      "source": "local",
       "dependencies": {}
     },
     "com.unity.editorcoroutines": {
