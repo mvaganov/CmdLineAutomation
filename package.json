@@ -1,9 +1,9 @@
 {
   "name": "com.codegiraffe.cmdlineautomation",
-  "displayName": "CmdLineAutomation",
+  "displayName": "CommandLineAutomation",
   "version": "0.0.1",
   "unity": "2021.3",
-  "description": "Run commands from the Unity editor",
+  "description": "Run commands from Unity. Has a sample asset that can run OS commands from the Editor.",
   "type": "tool",
   "author": "Michael Vaganov <mvaganov@hotmail.com>",
   "dependencies": {

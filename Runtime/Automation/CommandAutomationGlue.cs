@@ -5,6 +5,9 @@ using UnityEngine.Events;
 using UnityEngine.EventSystems;
 
 namespace RunCmd {
+	/// <summary>
+	/// Sample that calls <see cref="CommandLineAutomation"/> from Unity runtime
+	/// </summary>
 	public class CommandAutomationGlue : MonoBehaviour, ICommandAutomation {
 		[System.Serializable]
 		public class UnityEvent_string : UnityEvent<string> {}
