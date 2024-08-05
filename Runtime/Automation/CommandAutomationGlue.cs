@@ -14,15 +14,15 @@ namespace RunCmd {
 		[SerializeField] private Button actionButton;
 		[SerializeField] private ScrollRect scrollRect;
 
-		public CommandAutomation cmdLineAutomation;
+		public CommandLineAutomation commandLineAutomation;
 		public UnityEvent_string OnOutputChange = new UnityEvent_string();
 		private string _outputText;
 		private bool _outputTextChanged;
 
-		public ICommandExecutor CommandExecutor => cmdLineAutomation;
+		public ICommandExecutor CommandExecutor => commandLineAutomation;
 
 		void Start() {
-			cmdLineAutomation.OnOutputChange += PrintCallback;
+			commandLineAutomation.OnOutputChange += PrintCallback;
 			PrintCallback(null);
 			UpdateUiAfterCommand();
 		}
@@ -44,7 +44,11 @@ namespace RunCmd {
 		}
 
 		public void PrintCallback(string newText) {
-			_outputText = CommandExecutor.CommandOutput.Replace("\r","");
+			string output = CommandExecutor.CommandOutput;
+			if (output == null) {
+				return;
+			}
+			_outputText = output.Replace("\r","");
 			_outputTextChanged = true;
 		}
 
@@ -79,8 +83,8 @@ namespace RunCmd {
 		}
 
 		public void ExecuteCommand(string command) {
-			Debug.Log($"invoking {cmdLineAutomation.name} '{command}'");
-			cmdLineAutomation.RunCommand(command, PrintCallback, this);
+			Debug.Log($"invoking {commandLineAutomation.name} '{command}'");
+			commandLineAutomation.RunCommand(command, PrintCallback, this);
 		}
 
 		private void Update() {

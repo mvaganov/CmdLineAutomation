@@ -163,7 +163,7 @@ namespace RunCmd {
 					label = $"{action} {runningMark} \"{sh.Name}\"";// (lines {sh.LineCount})";
 				}
 				if (GUILayout.Button(label)) {
-					CommandAutomation.DelayCall(() => {
+					CommandDelay.DelayCall(() => {
 						ShellButton(sh, effect);
 					});
 				}

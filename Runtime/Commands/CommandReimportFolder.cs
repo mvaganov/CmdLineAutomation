@@ -15,7 +15,7 @@ namespace RunCmd {
 			string[] args = command.Split();
 			if (args.Length > 1) {
 				this.SetExecutionData(context, args[1]);
-				CommandAutomation.DelayCall(() => ReimportCurrentPathFolder(context));
+				CommandDelay.DelayCall(() => ReimportCurrentPathFolder(context));
 			} else {
 				this.SetExecutionData(context, null);
 				Debug.LogWarning($"missing time parameter");

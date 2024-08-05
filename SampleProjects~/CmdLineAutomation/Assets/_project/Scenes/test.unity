@@ -803,7 +803,7 @@ MonoBehaviour:
   outputUiTransform: {fileID: 211336465}
   actionButton: {fileID: 2137667664}
   scrollRect: {fileID: 1132943336}
-  cmdLineAutomation: {fileID: 11400000, guid: d148d8d1382ec2241bdc3a92550d1061, type: 2}
+  commandLineAutomation: {fileID: 11400000, guid: 1211055714d96cf4e8ce1aaa91ebc15f, type: 2}
   OnOutputChange:
     m_PersistentCalls:
       m_Calls:

@@ -5,6 +5,8 @@ namespace RunCmd {
 		public ICommandExecutor CommandExecutor { get; }
 	}
 
+
+	// TODO merge into CommandProcessor?
 	public interface ICommandExecutor {
 		/// <summary>
 		/// Command output
@@ -28,5 +30,7 @@ namespace RunCmd {
 		/// The execution filters to apply each command through
 		/// </summary>
 		IList<ICommandFilter> Filters { get; }
+
+		public void CancelProcess(object context);
 	}
 }

@@ -137,7 +137,7 @@ namespace RunCmd {
 					EndCurrentCommand();
 					++commandExecutingIndex;
 				} else {
-				CommandLineSettings.DelayCall(RunEachCommandInSequence);
+					CommandDelay.DelayCall(RunEachCommandInSequence);
 					return;
 				}
 			}
@@ -169,7 +169,7 @@ namespace RunCmd {
 				}
 			}
 			if (commandExecutingIndex >= 0 && commandExecutingIndex < CommandsToDo.Count) {
-				CommandLineSettings.DelayCall(RunEachCommandInSequence);
+				CommandDelay.DelayCall(RunEachCommandInSequence);
 			} else {
 				commandExecutingIndex = 0;
 			}
@@ -245,7 +245,7 @@ namespace RunCmd {
 			//UnityEngine.Debug.LogWarning($"######## new Execution {context} by {commandExecutor}");
 			source = commandExecutor;
 			if (source == null) {
-				throw new System.Exception($"unable to execute {commandExecutor}, need a {nameof(CommandAutomation)}");
+				throw new System.Exception($"unable to execute {commandExecutor}, need a {nameof(ICommandExecutor)}");
 			}
 			this.context = context;
 			commandExecutingIndex = 0;

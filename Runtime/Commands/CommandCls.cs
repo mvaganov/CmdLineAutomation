@@ -7,7 +7,7 @@ namespace RunCmd {
 		public void StartCooperativeFunction(object context, string command, PrintCallback print) {
 			if (context is ICommandAutomation automation) {
 				// clear the screen just after this command is processed
-				CommandAutomation.DelayCall(ClearOnNextUpdate);
+				CommandDelay.DelayCall(ClearOnNextUpdate);
 				void ClearOnNextUpdate() {
 					automation.CommandExecutor.CommandOutput = "";
 				}
