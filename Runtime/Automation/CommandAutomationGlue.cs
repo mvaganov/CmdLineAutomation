@@ -82,11 +82,20 @@ namespace RunCmd {
 				inputField.Select();
 				yield return null;
 				scrollRect.normalizedPosition = Vector2.zero;
+				yield return null;
+				GameObject lastVisibleObject = null;
+				for(int i = outputUiTransform.childCount - 1; i >= 0; ++i) {
+					lastVisibleObject = outputUiTransform.GetChild(i).gameObject;
+					if (lastVisibleObject.activeSelf) { break; }
+				}
+				lastVisibleObject.SetActive(false);
+				yield return null;
+				lastVisibleObject.SetActive(true);
 			}
 		}
 
 		public void ExecuteCommand(string command) {
-			Debug.Log($"invoking {commandLineAutomation.name} '{command}'");
+			//Debug.Log($"invoking {commandLineAutomation.name} '{command}'");
 			commandLineAutomation.RunCommand(command, PrintCallback, this);
 		}
 
