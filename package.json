@@ -3,7 +3,7 @@
   "displayName": "CommandLineAutomation",
   "version": "0.0.1",
   "unity": "2021.3",
-  "description": "Run commands from Unity. Has a sample asset that can run OS commands from the Editor.",
+  "description": "Run commands from Unity. Has a sample asset that can run OS commands from the Editor. Also has a sample prefab that can run OS commands at runtime (from a platform with a command line).",
   "type": "tool",
   "author": "Michael Vaganov <mvaganov@hotmail.com>",
   "dependencies": {
