@@ -49,9 +49,10 @@ namespace RunCmd {
 		public void PrintCallback(string newText) {
 			string output = CommandExecutor.CommandOutput;
 			if (output == null) {
-				return;
+				_outputText = "";
+			} else {
+				_outputText = output.Replace("\r", "");
 			}
-			_outputText = output.Replace("\r","");
 			_outputTextChanged = true;
 		}
 
@@ -84,13 +85,15 @@ namespace RunCmd {
 				scrollRect.normalizedPosition = Vector2.zero;
 				yield return null;
 				GameObject lastVisibleObject = null;
-				for(int i = outputUiTransform.childCount - 1; i >= 0; ++i) {
+				for(int i = outputUiTransform.childCount - 1; i >= 0; --i) {
 					lastVisibleObject = outputUiTransform.GetChild(i).gameObject;
 					if (lastVisibleObject.activeSelf) { break; }
 				}
-				lastVisibleObject.SetActive(false);
-				yield return null;
-				lastVisibleObject.SetActive(true);
+				if (lastVisibleObject != null) {
+					lastVisibleObject.SetActive(false);
+					yield return null;
+					lastVisibleObject.SetActive(true);
+				}
 			}
 		}
 

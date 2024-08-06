@@ -147,8 +147,9 @@ namespace RunCmd {
 					EndCurrentCommand();
 					return;
 				}
-				string textToDo = CommandsToDo[commandExecutingIndex].Text;
-				if (!CommandsToDo[commandExecutingIndex].Ignore) {
+				ParsedTextCommand nextCommand = commandExecutingIndex < CommandsToDo.Count ? CommandsToDo[commandExecutingIndex] : null;
+				if (nextCommand != null && !nextCommand.Ignore) {
+					string textToDo = nextCommand.Text;
 					filterIndex = 0;
 					//Debug.Log("execute " + _commandExecutingIndex+" "+ textToDo);
 					StartCooperativeFunction(textToDo, print);

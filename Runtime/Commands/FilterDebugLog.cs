@@ -8,10 +8,10 @@ namespace RunCmd {
 	/// </summary>
 	[CreateAssetMenu(fileName = "DebugLog", menuName = "ScriptableObjects/Filters/DebugLog")]
 	public class FilterDebugLog : ScriptableObject, CommandRunner<string>, ICommandFilter {
-		public enum LogType { None, StdOutput, DebugLog_Error, DebugLog_Assert, DebugLog_Warning, DebugLog_Log, DebugLog_Exception }
+		public enum LogType { None, StdOutput, UnityDebugLogError, UnityDebugLogAssert, UnityDebugLogWarning, UnityDebugLog, UnityDebugLogException }
 		[SerializeField] protected bool _enabled = true;
 		[SerializeField] protected bool _consumeCommand = false;
-		[SerializeField] protected LogType _logType = LogType.DebugLog_Log;
+		[SerializeField] protected LogType _logType = LogType.UnityDebugLog;
 		[SerializeField] protected string _linePrefix = "", _lineSuffix = "";
 
 		private Dictionary<object, string> _executionData = new Dictionary<object, string>();
@@ -27,11 +27,11 @@ namespace RunCmd {
 			}
 			switch (_logType) {
 				case LogType.StdOutput: print.Invoke(command); break;
-				case LogType.DebugLog_Error: Debug.LogError(command); break;
-				case LogType.DebugLog_Assert: Debug.LogAssertion(command); break;
-				case LogType.DebugLog_Warning: Debug.LogWarning(command); break;
-				case LogType.DebugLog_Log:      Debug.Log(command); break;
-				case LogType.DebugLog_Exception: Debug.LogException(new System.Exception(command), context as UnityEngine.Object); break;
+				case LogType.UnityDebugLogError: Debug.LogError(command); break;
+				case LogType.UnityDebugLogAssert: Debug.LogAssertion(command); break;
+				case LogType.UnityDebugLogWarning: Debug.LogWarning(command); break;
+				case LogType.UnityDebugLog:      Debug.Log(command); break;
+				case LogType.UnityDebugLogException: Debug.LogException(new System.Exception(command), context as UnityEngine.Object); break;
 			}
 		}
 

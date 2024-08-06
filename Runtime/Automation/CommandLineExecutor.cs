@@ -29,7 +29,7 @@ namespace RunCmd {
 
 		public IList<ParsedTextCommand> CommandsToDo {
 			get => _commandsToDo;
-			set => _commandsToDo = value;
+			set => _commandsToDo = new List<ParsedTextCommand>(value);
 		}
 
 		public ICommandExecutor CommandExecutor => this;
@@ -134,9 +134,13 @@ namespace RunCmd {
 		}
 
 		public void RunCommands(string[] commands, PrintCallback print, object context) {
-			ParsedTextCommand[] parsedTextCommands = new ParsedTextCommand[commands.Length];
-			for (int i = 0; i < parsedTextCommands.Length; i++) {
-				parsedTextCommands[i] = commands[i];
+			List<ParsedTextCommand> parsedTextCommands = new List<ParsedTextCommand>();
+			for (int i = 0; i < commands.Length; i++) {
+				string command = commands[i];
+				if (command == null) {
+					continue;
+				}
+				parsedTextCommands.Add(commands[i]);
 			}
 			CommandsToDo = parsedTextCommands;
 			RunCommands(context, print);
