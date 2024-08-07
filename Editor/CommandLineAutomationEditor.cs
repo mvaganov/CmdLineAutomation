@@ -110,7 +110,7 @@ namespace RunCmd {
 		private void RunCommandsButtonGUI() {
 			float commandProgress = Target.Progress(_context);
 			if (commandProgress <= 0) {
-				EditorUtility.ClearProgressBar();
+				ComponentProgressBar.ClearProgressBar();
 				if (GUILayout.Button("Run Commands To Do")) {
 					RunCommands();
 				}
@@ -126,7 +126,7 @@ namespace RunCmd {
 		private void HandleProgressBar(float commandProgress) {
 			string title = Target.name;
 			string info = Target.CurrentCommandText(_context);
-			bool stop = EditorUtility.DisplayCancelableProgressBar(title, info, commandProgress);
+			bool stop = ComponentProgressBar.DisplayCancelableProgressBar(title, info, commandProgress);
 			AbortButton(stop);
 			RefreshInspectorInternal();
 		}
@@ -134,7 +134,7 @@ namespace RunCmd {
 		private void AbortButton(bool abort) {
 			if (GUILayout.Button("Abort Commands") || abort) {
 				Target.CancelProcess(_context);
-				EditorUtility.ClearProgressBar();
+				ComponentProgressBar.ClearProgressBar();
 			}
 		}
 
