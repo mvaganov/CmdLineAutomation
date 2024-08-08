@@ -18,6 +18,8 @@ namespace RunCmd {
 		/// </summary>
 		[ContextMenuItem(nameof(ParseCommands), nameof(ParseCommands))]
 		[SerializeField] protected TextCommand _command;
+		[SerializeField] protected bool finishedDebug;
+		[SerializeField] protected float progressDebug;
 
 		public Dictionary<object, CommandExecution> _executions = new Dictionary<object, CommandExecution>();
 
@@ -74,7 +76,10 @@ namespace RunCmd {
 			GetCommandExecutor().AddToCommandOutput(value);
 		}
 
-		public float Progress(object context) => GetExecutionData(context).Progress;
+		public float Progress(object context) {
+			finishedDebug = GetExecutionData(context).IsExecutionFinished();
+			return progressDebug = GetExecutionData(context).Progress;
+		}
 
 		public void CancelProcess(object context) => GetExecutionData(context).CancelExecution();
 

@@ -24,7 +24,7 @@ namespace RunCmd {
 		/// <summary>
 		/// Semaphore prevents new command from running
 		/// </summary>
-		private bool waitingForCommand = false;
+		private bool waitingForCommandToFinish = false;
 		/// <summary>
 		/// References an optional shell that exists for this command automation
 		/// </summary>
@@ -69,6 +69,10 @@ namespace RunCmd {
 			CreateTextStyle();
 			DrawDefaultInspector();
 			InputPromptGUI();
+			waitingForCommandToFinish = !Target.IsExecutionFinished(_context);
+			//if (ComponentProgressBar.IsProgressBarVisible && Target.Progress(_context) >= 1) {
+			//	ComponentProgressBar.ClearProgressBar();
+			//}
 			GUILayout.BeginHorizontal();
 			RunCommandsButtonGUI();
 			ClearOutputButtonGUI();
@@ -93,7 +97,7 @@ namespace RunCmd {
 			if (command == null) {
 				return;
 			}
-			if (waitingForCommand) {
+			if (waitingForCommandToFinish) {
 				Debug.Log("waiting for command to finish...");
 			} else {
 				RunInternalCommand(command);
@@ -103,7 +107,7 @@ namespace RunCmd {
 
 		private void RunInternalCommand(string command) {
 			Target.StartCooperativeFunction(_context, command, Print);
-			waitingForCommand = !Target.IsExecutionFinished(_context);
+			waitingForCommandToFinish = !Target.IsExecutionFinished(_context);
 			RefreshInspector();
 		}
 
@@ -135,6 +139,7 @@ namespace RunCmd {
 			if (GUILayout.Button("Abort Commands") || abort) {
 				Target.CancelProcess(_context);
 				ComponentProgressBar.ClearProgressBar();
+				waitingForCommandToFinish = false;
 			}
 		}
 
@@ -216,15 +221,19 @@ namespace RunCmd {
 		}
 
 		public string PromptGUI(GUIStyle style) {
-			if (!IsStarted) {
-				GUILayout.BeginHorizontal();
-				GUILayout.Label("<no shell>");
-				GUILayout.EndHorizontal();
-				return null;
-			}
+			//if (!IsStarted) {
+			//	GUILayout.BeginHorizontal();
+			//	GUILayout.Label("<no shell>");
+			//	GUILayout.EndHorizontal();
+			//	return null;
+			//}
 			GUILayout.BeginHorizontal();
-			string prompt = Shell.WorkingDirectory;
-			GUILayout.Label(prompt, style, GUILayout.ExpandWidth(false));
+			if (IsStarted) {
+				string prompt = Shell.WorkingDirectory;
+				GUILayout.Label(prompt, style, GUILayout.ExpandWidth(false));
+			} else {
+				GUILayout.Label("<no shell>", GUILayout.ExpandWidth(false));
+			}
 			try {
 				_inspectorCommandInput = GUILayout.TextField(_inspectorCommandInput, style, GUILayout.ExpandWidth(true));
 			} catch { }

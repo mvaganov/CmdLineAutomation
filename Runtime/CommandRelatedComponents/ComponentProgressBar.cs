@@ -14,6 +14,7 @@ public class ComponentProgressBar : MonoBehaviour
 	private static ComponentProgressBar _instance;
 
 	public static ComponentProgressBar Instance => _instance;
+	public static bool _progressBarVisible;
 
 	public bool Cancelled {
 		get => _cancelled;
@@ -57,8 +58,12 @@ public class ComponentProgressBar : MonoBehaviour
 		}
 	}
 
+	public static bool IsProgressBarVisible => _progressBarVisible;
+
 	public static bool DisplayCancelableProgressBar(string title, string info, float progress) {
+		_progressBarVisible = true;
 #if UNITY_EDITOR
+//Debug.Log($"progress {title} {progress}");
 		if (!Application.isPlaying) {
 			return UnityEditor.EditorUtility.DisplayCancelableProgressBar(title, info, progress);
 		}
@@ -81,7 +86,9 @@ public class ComponentProgressBar : MonoBehaviour
 	}
 
 	public static void ClearProgressBar() {
+		_progressBarVisible = false;
 #if UNITY_EDITOR
+		Debug.Log("done");
 		if (!Application.isPlaying) {
 			UnityEditor.EditorUtility.ClearProgressBar();
 			return;
