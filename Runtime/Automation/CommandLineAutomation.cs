@@ -8,6 +8,7 @@ namespace RunCmd {
 	/// * the instruction set
 	/// </summary>
 	[CreateAssetMenu(fileName = "CommandLineAutomation", menuName = "ScriptableObjects/CommandLineAutomation", order = 1)]
+	/// TODO determine if the interfaces can be combined.
 	public partial class CommandLineAutomation : ScriptableObject, CommandRunner<CommandExecution>, ICommandProcessor, ICommandAutomation, ICommandExecutor {
 		[SerializeField]
 		protected CommandLineSettings _settings;

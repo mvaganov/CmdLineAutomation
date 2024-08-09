@@ -69,7 +69,7 @@ namespace RunCmd {
 				}
 				currentCommand.StartCooperativeFunction(context, command, print);
 				if (!currentCommand.IsExecutionFinished(context)) {
-					//Debug.Log("~~~~~~~~~~~~~~~~~~~~~"+_currentCommand + " still running");
+					Debug.Log($"~~~~~~~~~~~~~~~~~~~~~{currentCommand} still running");
 					return true;
 				}
 				//_currentCommandFilterResult = _currentCommand.FunctionResult();

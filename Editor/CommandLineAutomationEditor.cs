@@ -69,7 +69,7 @@ namespace RunCmd {
 			CreateTextStyle();
 			DrawDefaultInspector();
 			InputPromptGUI();
-			waitingForCommandToFinish = !Target.IsExecutionFinished(_context);
+			//waitingForCommandToFinish = !Target.IsExecutionFinished(_context);
 			//if (ComponentProgressBar.IsProgressBarVisible && Target.Progress(_context) >= 1) {
 			//	ComponentProgressBar.ClearProgressBar();
 			//}
@@ -119,8 +119,13 @@ namespace RunCmd {
 					RunCommands();
 				}
 			} else {
-				if (Target.CurrentCommand(_context) != null) {
-					HandleProgressBar(commandProgress);
+				ICommandProcessor commandProcessor = Target.CurrentCommand(_context);
+				if (commandProcessor != null) {
+					if (commandProcessor.IsExecutionFinished(_context)) {
+						ComponentProgressBar.ClearProgressBar();
+					} else {
+						HandleProgressBar(commandProgress);
+					}
 				} else {
 					AbortButton(false);
 				}

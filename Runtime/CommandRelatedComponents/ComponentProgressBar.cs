@@ -63,7 +63,7 @@ public class ComponentProgressBar : MonoBehaviour
 	public static bool DisplayCancelableProgressBar(string title, string info, float progress) {
 		_progressBarVisible = true;
 #if UNITY_EDITOR
-//Debug.Log($"progress {title} {progress}");
+		//Debug.Log($"progress {title} {progress}");
 		if (!Application.isPlaying) {
 			return UnityEditor.EditorUtility.DisplayCancelableProgressBar(title, info, progress);
 		}
@@ -88,7 +88,7 @@ public class ComponentProgressBar : MonoBehaviour
 	public static void ClearProgressBar() {
 		_progressBarVisible = false;
 #if UNITY_EDITOR
-		Debug.Log("done");
+		//Debug.Log("done");
 		if (!Application.isPlaying) {
 			UnityEditor.EditorUtility.ClearProgressBar();
 			return;

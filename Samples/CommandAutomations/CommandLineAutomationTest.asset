@@ -60,3 +60,5 @@ MonoBehaviour:
       Ignore: 0
     - Text: echo done!
       Ignore: 0
+  finishedDebug: 1
+  progressDebug: 0

@@ -20,6 +20,7 @@ namespace RunCmd {
 			int now = Environment.TickCount;
 			this.SetExecutionData(context, new Data(now,now));
 			string[] args = command.Split();
+			Debug.Log("STARTING SLEEP");
 			if (args.Length > 1) {
 				if (float.TryParse(args[1], out float seconds)) {
 					this.SetExecutionData(context, new Data(now, now + (int)(seconds * 1000)));
