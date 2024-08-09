@@ -12,6 +12,8 @@ namespace RunCmd {
 	public partial class CommandLineAutomation : ScriptableObject, CommandRunner<CommandExecution>, ICommandProcessor, ICommandAutomation, ICommandExecutor {
 		[SerializeField]
 		protected CommandLineSettings _settings;
+
+		//[SerializeField]
 		protected CommandLineExecutor _executor;
 
 		/// <summary>

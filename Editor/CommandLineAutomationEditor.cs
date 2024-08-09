@@ -108,6 +108,7 @@ namespace RunCmd {
 		private void RunInternalCommand(string command) {
 			Target.StartCooperativeFunction(_context, command, Print);
 			waitingForCommandToFinish = !Target.IsExecutionFinished(_context);
+			//Target.CurrentCommand
 			RefreshInspector();
 		}
 
