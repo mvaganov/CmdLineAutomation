@@ -16,6 +16,7 @@ namespace RunCmd {
 
 		private Dictionary<object, string> _executionData = new Dictionary<object, string>();
 		public Dictionary<object, string> ExecutionDataAccess { get => _executionData; set => _executionData = value; }
+		public IEnumerable<object> GetContexts() => ExecutionDataAccess.Keys;
 
 		public void StartCooperativeFunction(object context, string command, PrintCallback print) {
 			this.SetExecutionData(context, _consumeCommand ? null : command);

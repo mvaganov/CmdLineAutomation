@@ -25,8 +25,8 @@ namespace RunCmd {
 		[SerializeField] protected float progressDebug;
 
 		public Dictionary<object, CommandExecution> _executions = new Dictionary<object, CommandExecution>();
-
 		public Dictionary<object, CommandExecution> ExecutionDataAccess { get => _executions; set => _executions = value; }
+		public IEnumerable<object> GetContexts() => ExecutionDataAccess.Keys;
 
 		public IList<ParsedTextCommand> CommandsToDo {
 			get => _command.ParsedCommands;

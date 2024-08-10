@@ -18,6 +18,7 @@ namespace RunCmd {
 
 		private Dictionary<object, CommandExecution> _executionData = new Dictionary<object, CommandExecution>();
 		public Dictionary<object, CommandExecution> ExecutionDataAccess { get => _executionData; set => _executionData = value; }
+		public IEnumerable<object> GetContexts() => ExecutionDataAccess.Keys;
 
 		public class CommandExecution {
 			private object context;
@@ -85,13 +86,13 @@ namespace RunCmd {
 		private void Reset() {
 			_commandListing = GetAllScriptableObjectAssets<INamedCommand>();
 		}
-		private static Object[] GetAllScriptableObjectAssets<TYPE>(string[] searchInFolders = null) {
+		public static Object[] GetAllScriptableObjectAssets<TYPE>(string[] searchInFolders = null) {
 			List<Object> found = new List<Object>();
 			string[] guids = UnityEditor.AssetDatabase.FindAssets($"t:{nameof(ScriptableObject)}", searchInFolders);
 			foreach (string guid in guids) {
 				string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
 				ScriptableObject so = UnityEditor.AssetDatabase.LoadAssetAtPath<ScriptableObject>(path);
-				if (so is INamedCommand) {
+				if (so is TYPE) {
 					found.Add(so);
 				}
 			}

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text;
 
 namespace RunCmd {
 	/// <summary>
@@ -33,9 +34,40 @@ namespace RunCmd {
 		public static void RemoveExecutionData<ExecutionData>(this CommandRunner<ExecutionData> self, object context) {
 			self.ExecutionDataAccess.Remove(context);
 		}
+
+		public static IList<object> GetOwningContexts<ExecutionData>(this CommandRunnerBase self) {
+			List<object> contexts = new List<object>();
+			foreach (object key in self.GetContexts()) {
+				contexts.Add(key);
+			}
+			return contexts;
+		}
+
+		public static string GetDescriptionOfContexts(this CommandRunnerBase self) {
+			StringBuilder sb = new StringBuilder();
+			IEnumerable<object> contexts = self.GetContexts();
+			if (contexts == null) {
+				return "<none>";
+			}
+			foreach (object key in contexts) {
+				string description;
+				if (key is UnityEngine.Object uObj) {
+					description = uObj.name;
+				} else {
+					description = key.ToString() + key.GetHashCode();
+				}
+				string percentDone = (self.Progress(key) * 100).ToString("###.#");
+				string done = self.IsExecutionFinished(key) ? "done" : "work";
+				string line = $"{done} {percentDone}% {description}\n";
+				UnityEngine.Debug.Log(line);
+				sb.Append(line);
+			}
+			return sb.ToString();
+		}
 	}
 
 	public interface CommandRunnerBase : ICommandProcessor {
 		public void RemoveExecutionData(object context);
+		public IEnumerable<object> GetContexts();
 	}
 }

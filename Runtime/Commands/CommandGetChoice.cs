@@ -61,6 +61,7 @@ namespace RunCmd {
 
 		private Dictionary<object, Execution> _executionData = new Dictionary<object, Execution>();
 		public Dictionary<object, Execution> ExecutionDataAccess { get => _executionData; set => _executionData = value; }
+		public IEnumerable<object> GetContexts() => ExecutionDataAccess.Keys;
 
 		public void StartCooperativeFunction(object context, string command, PrintCallback print) {
 			UpdateMousePosition();

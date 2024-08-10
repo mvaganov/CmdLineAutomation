@@ -67,6 +67,7 @@ namespace RunCmd {
 
 		private Dictionary<object, CommandExecution> _executionData = new Dictionary<object, CommandExecution>();
 		public Dictionary<object, CommandExecution> ExecutionDataAccess { get => _executionData; set => _executionData = value; }
+		public IEnumerable<object> GetContexts() => ExecutionDataAccess.Keys;
 
 		public CommandLineExecutor(CommandLineSettings settings) {
 			_settings = settings;
