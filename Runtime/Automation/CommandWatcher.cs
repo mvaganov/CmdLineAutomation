@@ -31,8 +31,8 @@ namespace RunCmd {
 					runner = commandRunners[i];
 				}
 				runner.commandRunner = commandRunnerAssets[i];
-				runner.name = runner.commandRunner.name;
 				runner.description = runnerBase.GetDescriptionOfContexts();
+				runner.name = runner.commandRunner.name + (string.IsNullOrEmpty(runner.description) ? "*" : "");
 			}
 		}
 	}

@@ -17,9 +17,10 @@ namespace RunCmd {
 		public IEnumerable<object> GetContexts() => ExecutionDataAccess.Keys;
 
 		public void StartCooperativeFunction(object context, string command, PrintCallback print) {
-			if (!CouldPossiblyTrigger(command)) {
-				return;
-			}
+			//if (!CouldPossiblyTrigger(command)) {
+			//	Debug.Log("NOPE");
+			//	return;
+			//}
 			if (!_enabled) {
 				this.SetExecutionData(context, command);
 				return;

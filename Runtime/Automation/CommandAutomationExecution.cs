@@ -220,7 +220,7 @@ namespace RunCmd {
 						_shell = osShell.Shell;
 					}
 				}
-				if (currentCommand == null || !currentCommand.IsExecutionFinished(context)) {
+				if (currentCommand != null && !currentCommand.IsExecutionFinished(context)) {
 					return true;
 				}
 				currentCommandResult = currentCommand.FunctionResult(context);
