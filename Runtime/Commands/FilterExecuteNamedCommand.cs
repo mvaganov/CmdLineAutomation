@@ -79,7 +79,7 @@ namespace RunCmd {
 				return false;
 			}
 
-			public float Progress => currentCommand.Progress(context);
+			public float Progress => currentCommand != null ? currentCommand.Progress(context) : -1;
 		}
 
 #if UNITY_EDITOR

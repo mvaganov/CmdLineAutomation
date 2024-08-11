@@ -17,6 +17,9 @@ namespace RunCmd {
 		public IEnumerable<object> GetContexts() => ExecutionDataAccess.Keys;
 
 		public void StartCooperativeFunction(object context, string command, PrintCallback print) {
+			if (!CouldPossiblyTrigger(command)) {
+				return;
+			}
 			if (!_enabled) {
 				this.SetExecutionData(context, command);
 				return;
@@ -52,6 +55,12 @@ namespace RunCmd {
 				}
 			}
 			this.SetExecutionData(context, result);
+		}
+
+		public bool CouldPossiblyTrigger(string text) {
+			if (_eatMessages) { return true; }
+			if (text == null || !_enabled) { return false; }
+			return text.IndexOf(_prefix) >= 0;
 		}
 
 		public string FunctionResult(object context) => this.GetExecutionData(context);
