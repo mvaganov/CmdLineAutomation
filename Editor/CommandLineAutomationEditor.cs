@@ -97,9 +97,12 @@ namespace RunCmd {
 			if (command == null) {
 				return;
 			}
+			waitingForCommandToFinish = !Target.IsExecutionFinished(_context);
 			if (waitingForCommandToFinish) {
-				Debug.Log("waiting for command to finish...");
+				Debug.Log($"waiting for command to finish before '{command}' can execute...\n" +
+					$"({Target.IsExecutionFinished(_context)}) \"{Target.CurrentCommand(_context)}\"");
 			} else {
+				Debug.Log($"running command {command}");
 				RunInternalCommand(command);
 				RefreshInspector();
 			}
