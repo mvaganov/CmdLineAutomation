@@ -211,7 +211,7 @@ namespace RunCmd {
 					if (context == null) {
 						Debug.LogError("context must not be null!");
 					}
-					//Debug.Log($"~~~~~~~~{name} start {command} co-op f[{_filterIndex}] {_currentCommand}\n\n{_currentCommandText}");
+					Debug.Log($"~~~~~~~~ start {currentCommand} co-op f[{filterIndex}] {currentCommand}\n\n{currentCommandText}");
 					currentCommand.StartCooperativeFunction(context, currentCommandText, OutputAnalysis);
 					if (filterIndex < 0) {
 						return true;
