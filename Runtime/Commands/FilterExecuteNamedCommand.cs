@@ -11,6 +11,7 @@ namespace RunCmd {
 		/// List of the possible custom commands written as C# <see cref="ICommandProcessor"/>s
 		/// </summary>
 		[SerializeField] protected UnityEngine.Object[] _commandListing;
+		protected ICommandFilter _nextCommand;
 		/// <summary>
 		/// Named functions which may or may not consume a command
 		/// </summary>
@@ -19,12 +20,13 @@ namespace RunCmd {
 		private Dictionary<object, CommandExecution> _executionData = new Dictionary<object, CommandExecution>();
 		public Dictionary<object, CommandExecution> ExecutionDataAccess { get => _executionData; set => _executionData = value; }
 		public IEnumerable<object> GetContexts() => ExecutionDataAccess.Keys;
+		public ICommandProcessor GetReferencedCommand(object context) => this.GetExecutionData(context).currentCommand;
 
 		public class CommandExecution {
 			private object context;
 			private string currentCommandText;
 			private string currentCommandFilterResult;
-			private ICommandProcessor currentCommand;
+			internal ICommandProcessor currentCommand;
 			private FilterExecuteNamedCommand source;
 
 			public CommandExecution(object context, FilterExecuteNamedCommand source) {

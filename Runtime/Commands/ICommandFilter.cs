@@ -14,6 +14,6 @@ namespace RunCmd
 		/// <summary>
 		/// If this command is a branching command, it will have a non-self command result
 		/// </summary>
-//		public ICommandFilter ReferencedCommand { get; }
+		public ICommandProcessor GetReferencedCommand(object context);
 	}
 }

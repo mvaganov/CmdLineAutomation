@@ -198,6 +198,7 @@ namespace RunCmd {
 			filterIndex = 0;
 		}
 
+		// TODO this function is ... weird. does it need to be rewritten?
 		private bool IsExecutionStoppedByFilterFunction() {
 			if (source == null) {
 				throw new System.Exception("Missing execution source");
@@ -224,19 +225,25 @@ namespace RunCmd {
 				}
 				if (currentCommand != null && !currentCommand.IsExecutionFinished(context)) {
 					Object commandObj = currentCommand as Object;
-					
-					Debug.Log($"~~~ more [{filterIndex}] {commandObj.name}\n\n{currentCommandText}\n\n"); 
+					ICommandFilter filter = commandObj as ICommandFilter;
+					if (filter != null) {
+						ICommandProcessor subCommand = filter.GetReferencedCommand(context);
+						Object subCommandObj = subCommand as Object;
+						Debug.Log($"~~~ more [{filterIndex}] {commandObj.name} -> {subCommandObj.name}\n\n{currentCommandText}\n\n");
+					} else {
+						Debug.Log($"~~~ more [{filterIndex}] {commandObj.name}\n\n{currentCommandText}\n\n");
+					}
 					return true;
 				}
 				currentCommandResult = currentCommand.FunctionResult(context);
-				currentCommand = null;
 				if (currentCommandResult == null) {
 					Debug.Log($"@@@@@ {currentCommandText} consumed by {Filters[filterIndex]}");
 					return false;
 				} else if (currentCommandResult != currentCommandText) {
-					Debug.Log($"@@@@@ {currentCommandText} changed into {currentCommandResult} by {Filters[filterIndex]}");
+					Debug.Log($"@@@@@ {currentCommandText} changed into {currentCommandResult} by {Filters[filterIndex]} {currentCommand}");
 					currentCommandText = currentCommandResult;
 				}
+				currentCommand = null;
 				++filterIndex;
 			}
 			//Debug.Log($"{currentCommandText} NOT consumed");
