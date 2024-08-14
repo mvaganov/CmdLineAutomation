@@ -211,9 +211,11 @@ namespace RunCmd {
 					if (context == null) {
 						Debug.LogError("context must not be null!");
 					}
-					Debug.Log($"~~~~~~~~ start {currentCommand} co-op f[{filterIndex}] {currentCommand}\n\n{currentCommandText}");
+					//Debug.Log($"~~~ [{filterIndex}] {commandObj.name}\n\n{currentCommandText}\n\n");
 					currentCommand.StartCooperativeFunction(context, currentCommandText, OutputAnalysis);
 					if (filterIndex < 0) {
+						Object commandObj = currentCommand as Object;
+						Debug.Log($"~~~ CANCEL [{filterIndex}] {commandObj.name}\n\n{currentCommandText}\n\n");
 						return true;
 					}
 					if ((_shell == null || !_shell.IsRunning) && currentCommand is FilterOperatingSystemCommandShell osShell) {
@@ -221,15 +223,18 @@ namespace RunCmd {
 					}
 				}
 				if (currentCommand != null && !currentCommand.IsExecutionFinished(context)) {
+					Object commandObj = currentCommand as Object;
+					
+					Debug.Log($"~~~ more [{filterIndex}] {commandObj.name}\n\n{currentCommandText}\n\n"); 
 					return true;
 				}
 				currentCommandResult = currentCommand.FunctionResult(context);
 				currentCommand = null;
 				if (currentCommandResult == null) {
-					//Debug.Log($"@@@@@ {currentCommandText} consumed by {Filters[filterIndex]}");
+					Debug.Log($"@@@@@ {currentCommandText} consumed by {Filters[filterIndex]}");
 					return false;
 				} else if (currentCommandResult != currentCommandText) {
-					//Debug.Log($"@@@@@ {currentCommandText} changed into {currentCommandResult} by {Filters[filterIndex]}");
+					Debug.Log($"@@@@@ {currentCommandText} changed into {currentCommandResult} by {Filters[filterIndex]}");
 					currentCommandText = currentCommandResult;
 				}
 				++filterIndex;
