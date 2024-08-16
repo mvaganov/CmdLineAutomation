@@ -9,12 +9,13 @@ namespace RunCmd {
 	/// </summary>
 	[CreateAssetMenu(fileName = "CommandLineAutomation", menuName = "ScriptableObjects/CommandLineAutomation", order = 1)]
 	/// TODO determine if the interfaces can be combined.
+	/// TODO rewrite this while class... there is too much abstraction, and too many pieces of data that can't be audited in the inspector.
 	public partial class CommandLineAutomation : ScriptableObject, CommandRunner<CommandExecution>, ICommandProcessor, ICommandAutomation, ICommandExecutor {
 		[SerializeField]
 		protected CommandLineSettings _settings;
 
 		//[SerializeField]
-		protected CommandLineExecutor _executor;
+		protected CommandLineExecutor[] _executor;
 
 		/// <summary>
 		/// Information about what these commands are for
@@ -35,7 +36,8 @@ namespace RunCmd {
 
 		public ICommandExecutor CommandExecutor => GetCommandExecutor();
 
-		public CommandLineExecutor GetCommandExecutor() => _executor != null && _executor.Settings == _settings ? _executor : _executor = new CommandLineExecutor(_settings);
+		public CommandLineExecutor GetCommandExecutor() => _executor != null && _executor.Length == 1 && _executor[0].Settings == _settings
+			? _executor[0] : (_executor = new CommandLineExecutor[] { new CommandLineExecutor(_settings) })[0];
 
 		private CommandLineSettings.MutableValues MutableSettings => GetCommandExecutor().MutableSettings;
 
@@ -80,7 +82,11 @@ namespace RunCmd {
 		}
 
 		public float Progress(object context) {
-			finishedDebug = GetExecutionData(context).IsExecutionFinished();
+			CommandExecution data = GetExecutionData(context);
+			if (data == null) {
+				return -1;
+			}
+			finishedDebug = data.IsExecutionFinished();
 			return progressDebug = GetExecutionData(context).Progress;
 		}
 

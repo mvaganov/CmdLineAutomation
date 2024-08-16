@@ -12,6 +12,7 @@ namespace RunCmd {
 	/// * keeps track of command output, which can be filtered by line with regular expressions
 	/// * can be fed commands in the Unity Editor, or from runtime methods
 	/// </summary>
+[System.Serializable]
 	public partial class CommandLineExecutor : CommandRunner<CommandExecution>, ICommandAutomation, ICommandExecutor {
 		[SerializeField] protected CommandLineSettings _settings;
 
@@ -25,7 +26,7 @@ namespace RunCmd {
 		private List<(int row, int col)> _triggeredGroup = new List<(int row, int col)>();
 		private System.Action<string> _onOutputChange;
 		private CommandLineSettings.MutableValues _mutableSettings;
-		private IList<ParsedTextCommand> _commandsToDo;
+		private List<ParsedTextCommand> _commandsToDo;
 
 		public IList<ParsedTextCommand> CommandsToDo {
 			get => _commandsToDo;

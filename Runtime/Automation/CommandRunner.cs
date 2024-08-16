@@ -16,10 +16,11 @@ namespace RunCmd {
 
 	public static class CommandRunnerExtension {
 		public static ExecutionData GetExecutionData<ExecutionData>(this CommandRunner<ExecutionData> self, object context) {
-			//if (self.ExecutionDataAccess == null) {
-			//	//UnityEngine.Debug.LogError("no data?");
-			//	self.ExecutionDataAccess = new Dictionary<object, ExecutionData>();
-			//}
+			if (self.ExecutionDataAccess == null) {
+				//UnityEngine.Debug.LogError("no data?");
+				//self.ExecutionDataAccess = new Dictionary<object, ExecutionData>();
+				return default;
+			}
 			if (!self.ExecutionDataAccess.TryGetValue(context, out ExecutionData commandExecution)) {
 				//UnityEngine.Debug.LogWarning($"~~~~~~~~~{self.GetType().Name} making execution data for {context} {context.GetHashCode()}");
 				self.ExecutionDataAccess[context] = commandExecution = self.CreateEmptyContextEntry(context);
