@@ -9,5 +9,15 @@ namespace RunCmd {
 		[SerializeField]
 		protected CommandLineSettings _settings;
 
+		/// <summary>
+		/// Information about what these commands are for
+		/// </summary>
+		[ContextMenuItem(nameof(ParseCommands), nameof(ParseCommands))]
+		[SerializeField] protected TextCommand _command;
+		[SerializeField] protected AutomationExecutor _executor = new AutomationExecutor();
+
+		public void ParseCommands() {
+			_command.Parse();
+		}
 	}
 }
