@@ -15,9 +15,16 @@ namespace RunCmd {
 		[ContextMenuItem(nameof(ParseCommands), nameof(ParseCommands))]
 		[SerializeField] protected TextCommand _command;
 		[SerializeField] protected AutomationExecutor _executor = new AutomationExecutor();
+		[ContextMenuItem(nameof(ExecuteCurrentCommand), nameof(ExecuteCurrentCommand))]
+		[SerializeField] protected string _commandInput;
 
 		public void ParseCommands() {
 			_command.Parse();
+		}
+
+		private void ExecuteCurrentCommand() {
+			_executor._currentCommand = _commandInput;
+			_executor.ExecuteCurrentCommand();
 		}
 	}
 }
