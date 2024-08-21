@@ -23,7 +23,8 @@ namespace RunCmd {
 		}
 
 		private void ExecuteCurrentCommand() {
-			_executor._currentCommand = _commandInput;
+			_executor._settings = _settings;
+			_executor.currentCommandText = _commandInput;
 			_executor.ExecuteCurrentCommand();
 		}
 	}
