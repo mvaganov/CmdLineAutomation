@@ -22,7 +22,7 @@ namespace RunCmd {
 		/// <summary>
 		/// The list of commands and filters this automation is executing
 		/// </summary>
-		private ICommandExecutor source;
+		internal ICommandExecutor source;
 		/// <summary>
 		/// Function to pass all lines from standard output to
 		/// </summary>

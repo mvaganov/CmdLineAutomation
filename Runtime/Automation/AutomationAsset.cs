@@ -5,7 +5,7 @@ using UnityEngine;
 namespace RunCmd {
 
 	[CreateAssetMenu(fileName = "AutomationAsset", menuName = "ScriptableObjects/AutomationAsset", order = 1)]
-	public class AutomationAsset : ScriptableObject {
+	public class AutomationAsset : ScriptableObject, ICommandExecutor {
 		[SerializeField]
 		protected CommandLineSettings _settings;
 
@@ -17,6 +17,24 @@ namespace RunCmd {
 		[SerializeField] protected AutomationExecutor _executor = new AutomationExecutor();
 		[ContextMenuItem(nameof(ExecuteCurrentCommand), nameof(ExecuteCurrentCommand))]
 		[SerializeField] protected string _commandInput;
+		[SerializeField] protected string _commandOutput;
+
+		public string CommandOutput { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
+
+		public IList<ICommandFilter> Filters=> _settings.Filters;
+
+
+		public void AddToCommandOutput(string value) {
+			_commandOutput += value;
+		}
+
+		public void CancelProcess(object context) {
+			throw new System.NotImplementedException();
+		}
+
+		public void InsertNextCommandToExecute(object context, string command) {
+			throw new System.NotImplementedException();
+		}
 
 		public void ParseCommands() {
 			_command.Parse();
@@ -25,6 +43,7 @@ namespace RunCmd {
 		private void ExecuteCurrentCommand() {
 			_executor._settings = _settings;
 			_executor.currentCommandText = _commandInput;
+			_executor.source = this;
 			_executor.ExecuteCurrentCommand();
 		}
 	}
