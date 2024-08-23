@@ -35,6 +35,7 @@ namespace RunCmd {
 		public bool HaveCommandToDo() => currentCommand != null;
 		public IList<ICommandFilter> Filters => source.Filters;
 		public object Context => this;
+		public OperatingSystemCommandShell Shell => _shell;
 
 		private void EndCurrentCommand() {
 			if (currentCommand is CommandRunnerBase runner) {

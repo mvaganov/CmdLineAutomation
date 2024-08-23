@@ -17,12 +17,16 @@ namespace RunCmd {
 		[SerializeField] protected AutomationExecutor _executor = new AutomationExecutor();
 		[ContextMenuItem(nameof(ExecuteCurrentCommand), nameof(ExecuteCurrentCommand))]
 		[SerializeField] protected string _commandInput;
-		[SerializeField] protected string _commandOutput;
+		/// <summary>
+		/// TODO print this in the inspector
+		/// </summary>
+		protected string _commandOutput;
 
 		public string CommandOutput { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
 
 		public IList<ICommandFilter> Filters=> _settings.Filters;
 
+		public AutomationExecutor Executor => _executor;
 
 		public void AddToCommandOutput(string value) {
 			_commandOutput += value;

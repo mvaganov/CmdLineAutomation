@@ -60,5 +60,10 @@ MonoBehaviour:
     - Text: echo done!
       Ignore: 0
   _executor:
-    _currentCommandIndex: 0
+    _settings: {fileID: 11400000, guid: 0e953e990e34af54eadaed24f3b88238, type: 2}
+    commandExecutingIndex: 3
     _currentCommands: []
+    currentCommandText: cls
+    cancelled: 0
+    currentCommandResult: 
+  _commandInput: cls
