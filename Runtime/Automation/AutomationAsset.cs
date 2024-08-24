@@ -22,7 +22,7 @@ namespace RunCmd {
 		/// </summary>
 		protected string _commandOutput;
 
-		public string CommandOutput { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
+		public string CommandOutput { get => _commandOutput; set => _commandOutput  = value; }
 
 		public IList<ICommandFilter> Filters=> _settings.Filters;
 
