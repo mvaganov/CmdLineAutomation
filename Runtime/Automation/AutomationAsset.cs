@@ -16,20 +16,19 @@ namespace RunCmd {
 		[SerializeField] protected TextCommand _command;
 		[SerializeField] protected AutomationExecutor _executor = new AutomationExecutor();
 		[ContextMenuItem(nameof(ExecuteCurrentCommand), nameof(ExecuteCurrentCommand))]
-		[SerializeField] protected string _commandInput;
-		/// <summary>
-		/// TODO print this in the inspector
-		/// </summary>
-		protected string _commandOutput;
+		protected string _commandInput;
 
-		public string CommandOutput { get => _commandOutput; set => _commandOutput  = value; }
+		public string CommandOutput { get => _executor.CommandOutput; set => _executor.CommandOutput  = value; }
+		public string CurrentCommandInput { get => _commandInput; set => _commandInput = value; }
 
 		public IList<ICommandFilter> Filters=> _settings.Filters;
 
 		public AutomationExecutor Executor => _executor;
 
+		public bool IsExecuting => _executor != null && _executor.HaveCommandToDo();
+
 		public void AddToCommandOutput(string value) {
-			_commandOutput += value;
+			_executor.AddToCommandOutput(value);
 		}
 
 		public void CancelProcess(object context) {
@@ -44,7 +43,7 @@ namespace RunCmd {
 			_command.Parse();
 		}
 
-		private void ExecuteCurrentCommand() {
+		public void ExecuteCurrentCommand() {
 			_executor._settings = _settings;
 			_executor.currentCommandText = _commandInput;
 			_executor.source = this;

@@ -68,6 +68,7 @@ namespace RunCmd {
 		public override void OnInspectorGUI() {
 			CreateTextStyle();
 			DrawDefaultInspector();
+			waitingForCommandToFinish = Target.IsExecuting;
 			InputPromptGUI();
 			//waitingForCommandToFinish = !Target.IsExecutionFinished(_context);
 			//if (ComponentProgressBar.IsProgressBarVisible && Target.Progress(_context) >= 1) {
@@ -93,10 +94,15 @@ namespace RunCmd {
 		}
 
 		private void InputPromptGUI() {
+			Color color = waitingForCommandToFinish ? Color.black : Color.gray;
+			GuiLine(1, color);
 			string command = PromptGUI(_consoleTextStyle);
+			GuiLine(1, color);
 			if (command == null) {
 				return;
 			}
+			Target.CurrentCommandInput = command;
+			Target.ExecuteCurrentCommand();
 			//waitingForCommandToFinish = !Target.IsExecutionFinished(_context);
 			//if (waitingForCommandToFinish) {
 			//	Debug.Log($"waiting for command to finish before '{command}' can execute...\n" +
@@ -106,6 +112,12 @@ namespace RunCmd {
 			//	RunInternalCommand(command);
 			//	RefreshInspector();
 			//}
+		}
+
+		private void GuiLine(int i_height = 1, Color color = default) {
+			Rect rect = EditorGUILayout.GetControlRect(false, i_height);
+			rect.height = i_height;
+			EditorGUI.DrawRect(rect, color);
 		}
 
 		//private void RunInternalCommand(string command) {
@@ -242,7 +254,7 @@ namespace RunCmd {
 				string prompt = Shell.WorkingDirectory;
 				GUILayout.Label(prompt, style, GUILayout.ExpandWidth(false));
 			} else {
-				GUILayout.Label("<no shell>", GUILayout.ExpandWidth(false));
+				GUILayout.Label(">", GUILayout.ExpandWidth(false));
 			}
 			try {
 				_inspectorCommandInput = GUILayout.TextField(_inspectorCommandInput, style, GUILayout.ExpandWidth(true));

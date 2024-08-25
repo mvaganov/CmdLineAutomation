@@ -111,7 +111,7 @@ namespace RunCmd {
 			CommandRunnerExtension.RemoveExecutionData(this, context);
 		}
 
-		public string FunctionResult(object context) => this.GetExecutionData(context).FunctionResult();
+		public string FilterResult(object context) => this.GetExecutionData(context).FunctionResult();
 
 		public void StartCooperativeFunction(object context, string command, PrintCallback print) {
 			this.GetExecutionData(context).StartCooperativeFunction(command, print);

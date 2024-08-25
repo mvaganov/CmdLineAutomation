@@ -4,17 +4,24 @@ using UnityEngine;
 
 namespace RunCmd {
 	[System.Serializable]
-	public class AutomationExecutor {
+	public class AutomationExecutor : ICommandExecutor, ICommandAutomation {
 		public CommandLineSettings _settings;
 		public int commandExecutingIndex = 0;
 		int filterIndex;
 		public List<string> _currentCommands = new List<string>();
-		public string currentCommandText;
 		public bool cancelled;
 		/// <summary>
-		/// Result of the last finished cooperative function
+		/// Text of the current command
 		/// </summary>
-		public string currentCommandResult;
+		public string currentCommandText;
+		/// <summary>
+		/// Results of commands
+		/// </summary>
+		[SerializeField] protected string commandOutput;
+		/// <summary>
+		/// Result of the command that could filter the current command into something else
+		/// </summary>
+		public string currentCommandAfterFilter;
 		/// <summary>
 		/// Which cooperative function is being executed right now
 		/// </summary>
@@ -36,6 +43,10 @@ namespace RunCmd {
 		public IList<ICommandFilter> Filters => source.Filters;
 		public object Context => this;
 		public OperatingSystemCommandShell Shell => _shell;
+
+		public string CommandOutput { get => commandOutput; set => commandOutput = value; }
+
+		public ICommandExecutor CommandExecutor => this;
 
 		private void EndCurrentCommand() {
 			if (currentCommand is CommandRunnerBase runner) {
@@ -65,7 +76,7 @@ namespace RunCmd {
 		public void StartCooperativeFunction(string command, PrintCallback print) {
 			this.print = print;
 			currentCommandText = command;
-			currentCommandResult = command;
+			currentCommandAfterFilter = command;
 			filterIndex = 0;
 			DoCurrentCommand();
 		}
@@ -75,7 +86,7 @@ namespace RunCmd {
 				Debug.Log($"still processing {currentCommand}");
 				return;
 			}
-			//Debug.Log("processing " + _currentCommandText);
+			Debug.Log("processing " + currentCommandText);
 			if (IsExecutionStoppedByFilterFunction()) {
 				return;
 			}
@@ -93,39 +104,37 @@ namespace RunCmd {
 			while (filterIndex < Filters.Count) {
 				if (currentCommand == null) {
 					currentCommand = Filters[filterIndex];
-					if (Context == null) {
-						Debug.LogError("context must not be null!");
-					}
 					//Debug.Log($"~~~ [{filterIndex}] {commandObj.name}\n\n{currentCommandText}\n\n");
 					currentCommand.StartCooperativeFunction(Context, currentCommandText, OutputAnalysis);
-					if (filterIndex < 0) {
-						Object commandObj = currentCommand as Object;
-						Debug.Log($"~~~ CANCEL [{filterIndex}] {commandObj.name}\n\n{currentCommandText}\n\n");
-						return true;
-					}
+					//if (filterIndex < 0) {
+					//	Object commandObj = currentCommand as Object;
+					//	Debug.Log($"~~~ CANCEL [{filterIndex}] {commandObj.name}\n\n{currentCommandText}\n\n");
+					//	return true;
+					//}
 					if ((_shell == null || !_shell.IsRunning) && currentCommand is FilterOperatingSystemCommandShell osShell) {
 						_shell = osShell.Shell;
 					}
 				}
-				if (currentCommand != null && !currentCommand.IsExecutionFinished(Context)) {
+				bool currentCommandStillExecuting = currentCommand != null && !currentCommand.IsExecutionFinished(Context);
+				if (currentCommandStillExecuting) {
 					Object commandObj = currentCommand as Object;
 					ICommandFilter filter = commandObj as ICommandFilter;
 					if (filter != null) {
 						ICommandProcessor subCommand = filter.GetReferencedCommand(Context);
 						Object subCommandObj = subCommand as Object;
-						Debug.Log($"~~~ more [{filterIndex}] {commandObj.name} -> {subCommandObj.name}\n\n{currentCommandText}\n\n");
+						Debug.Log($"~~~ executing [{filterIndex}] {commandObj.name} -> {subCommandObj.name}\n\n{currentCommandText}\n\n");
 					} else {
-						Debug.Log($"~~~ more [{filterIndex}] {commandObj.name}\n\n{currentCommandText}\n\n");
+						Debug.Log($"~~~ executing [{filterIndex}] {commandObj.name}\n\n{currentCommandText}\n\n");
 					}
 					return true;
 				}
-				currentCommandResult = currentCommand.FunctionResult(Context);
-				if (currentCommandResult == null) {
+				currentCommandAfterFilter = currentCommand.FilterResult(Context);
+				if (currentCommandAfterFilter == null) {
 					Debug.Log($"@@@@@ {currentCommandText} consumed by {Filters[filterIndex]}");
 					return false;
-				} else if (currentCommandResult != currentCommandText) {
-					Debug.Log($"@@@@@ {currentCommandText} changed into {currentCommandResult} by {Filters[filterIndex]} {currentCommand}");
-					currentCommandText = currentCommandResult;
+				} else if (currentCommandAfterFilter != currentCommandText) {
+					Debug.Log($"@@@@@ {currentCommandText} changed into {currentCommandAfterFilter} by {Filters[filterIndex]} {currentCommand}");
+					currentCommandText = currentCommandAfterFilter;
 				}
 				currentCommand = null;
 				++filterIndex;
@@ -145,6 +154,18 @@ namespace RunCmd {
 		//}
 
 		public bool IsCancelled() => cancelled || commandExecutingIndex < 0;
+
+		public void InsertNextCommandToExecute(object context, string command) {
+			throw new System.NotImplementedException();
+		}
+
+		public void AddToCommandOutput(string value) {
+			commandOutput += value;
+		}
+
+		public void CancelProcess(object context) {
+			throw new System.NotImplementedException();
+		}
 
 		//private void RunEachCommandInSequence() {
 		//	//Debug.Log($"ComandsToDo {CommandsToDo.Count} Sequence");

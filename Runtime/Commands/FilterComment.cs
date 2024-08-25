@@ -65,7 +65,7 @@ namespace RunCmd {
 			return text.IndexOf(_prefix) >= 0;
 		}
 
-		public string FunctionResult(object context) => this.GetExecutionData(context);
+		public string FilterResult(object context) => this.GetExecutionData(context);
 
 		public bool IsExecutionFinished(object context) => true;
 

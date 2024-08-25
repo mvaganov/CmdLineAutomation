@@ -45,7 +45,7 @@ namespace RunCmd {
 
 		public IEnumerable<object> GetContexts() => ExecutionDataAccess.Keys;
 
-		public string FunctionResult(object context) => _consumeCommand ? null : this.GetExecutionData(context).CurrentResult;
+		public string FilterResult(object context) => _consumeCommand ? null : this.GetExecutionData(context).CurrentResult;
 
 		public bool IsExecutionFinished(object context) => true;
 

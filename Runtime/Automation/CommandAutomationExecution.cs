@@ -235,7 +235,7 @@ namespace RunCmd {
 					}
 					return true;
 				}
-				currentCommandResult = currentCommand.FunctionResult(context);
+				currentCommandResult = currentCommand.FilterResult(context);
 				if (currentCommandResult == null) {
 					Debug.Log($"@@@@@ {currentCommandText} consumed by {Filters[filterIndex]}");
 					return false;
@@ -252,7 +252,7 @@ namespace RunCmd {
 
 		public bool IsExecutionFinished() => currentCommand == null || currentCommand.IsExecutionFinished(context);
 
-		public string FunctionResult() => currentCommand != null ? currentCommand.FunctionResult(context) : currentCommandResult;
+		public string FunctionResult() => currentCommand != null ? currentCommand.FilterResult(context) : currentCommandResult;
 
 		public CommandExecution(object context, ICommandExecutor commandExecutor) {
 			//UnityEngine.Debug.LogWarning($"######## new Execution {context} by {commandExecutor}");
