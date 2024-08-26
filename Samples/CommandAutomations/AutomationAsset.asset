@@ -61,9 +61,11 @@ MonoBehaviour:
       Ignore: 0
   _executor:
     _settings: {fileID: 11400000, guid: 0e953e990e34af54eadaed24f3b88238, type: 2}
-    commandExecutingIndex: 3
+    commandExecutingIndex: 31
     _currentCommands: []
-    currentCommandText: cls
     cancelled: 0
-    currentCommandResult: 
-  _commandInput: cls
+    currentCommandText: cls
+    commandOutput: '
+
+      C:\Users\mvaga\Developer\CmdLineAutomation\SampleProjects~\CmdLineAutomation>'
+    currentCommandAfterFilter: 
