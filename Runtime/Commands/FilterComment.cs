@@ -22,8 +22,8 @@ namespace RunCmd {
 			//	Debug.Log("NOPE");
 			//	return;
 			//}
+			this.SetExecutionData(context, command);
 			if (!_enabled) {
-				this.SetExecutionData(context, command);
 				return;
 			}
 			string result = command;

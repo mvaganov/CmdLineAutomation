@@ -114,6 +114,7 @@ namespace RunCmd {
 		public string FilterResult(object context) => this.GetExecutionData(context).FunctionResult();
 
 		public void StartCooperativeFunction(object context, string command, PrintCallback print) {
+			RemoveExecutionData(context);
 			this.GetExecutionData(context).StartCooperativeFunction(command, print);
 		}
 

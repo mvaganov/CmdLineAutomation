@@ -101,7 +101,14 @@ namespace RunCmd {
 			if (source.Filters == null) {
 				throw new System.Exception($"missing filters {source}");
 			}
+			int loopguard = 0;
 			while (filterIndex < Filters.Count) {
+				if (loopguard++ > 100) {
+					throw new System.Exception("executor loop guard");
+				}
+				if (currentCommand != null && currentCommand.IsExecutionFinished(Context)) {
+					currentCommand = null;
+				}
 				if (currentCommand == null) {
 					currentCommand = Filters[filterIndex];
 					//Debug.Log($"~~~ [{filterIndex}] {commandObj.name}\n\n{currentCommandText}\n\n");
@@ -133,7 +140,7 @@ namespace RunCmd {
 					Debug.Log($"@@@@@ {currentCommandText} consumed by {Filters[filterIndex]}");
 					return false;
 				} else if (currentCommandAfterFilter != currentCommandText) {
-					Debug.Log($"@@@@@ {currentCommandText} changed into {currentCommandAfterFilter} by {Filters[filterIndex]} {currentCommand}");
+					Debug.Log($"@@@@@ {currentCommandText} changed into {currentCommandAfterFilter} by {Filters[filterIndex]} {currentCommand}  (ctx {Context})");
 					currentCommandText = currentCommandAfterFilter;
 				}
 				currentCommand = null;
