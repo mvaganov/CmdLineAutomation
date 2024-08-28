@@ -36,6 +36,7 @@ namespace RunCmd {
 
 			public bool IsExecutionFinished() => currentCommand == null || currentCommand.IsExecutionFinished(context);
 
+			// TODO functionResult should pass the correct value from it's current command...
 			public string FunctionResult() => currentCommandFilterResult;
 
 			public void RemoveExecutionData() {

@@ -86,7 +86,7 @@ namespace RunCmd {
 				Debug.Log($"still processing {currentCommand}");
 				return;
 			}
-			Debug.Log("processing " + currentCommandText);
+			//Debug.Log("processing " + currentCommandText);
 			if (IsExecutionStoppedByFilterFunction()) {
 				return;
 			}
@@ -136,6 +136,7 @@ namespace RunCmd {
 					return true;
 				}
 				currentCommandAfterFilter = currentCommand.FilterResult(Context);
+				Debug.Log($"{filterIndex} {Filters[filterIndex]}     {currentCommandText} -> {currentCommandAfterFilter}");
 				if (currentCommandAfterFilter == null) {
 					Debug.Log($"@@@@@ {currentCommandText} consumed by {Filters[filterIndex]}");
 					return false;

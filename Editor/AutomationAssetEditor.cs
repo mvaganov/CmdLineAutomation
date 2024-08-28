@@ -101,8 +101,13 @@ namespace RunCmd {
 			if (command == null) {
 				return;
 			}
-			Target.CurrentCommandInput = command;
-			Target.ExecuteCurrentCommand();
+			if (waitingForCommandToFinish) {
+				Debug.Log($"waiting for command to finish before '{command}' can execute..." +
+					$" working on\n  \"{Target.CurrentCommandInput}\"");
+				return;
+			}
+			ExecuteCommand(command);
+			RefreshInspector();
 			//waitingForCommandToFinish = !Target.IsExecutionFinished(_context);
 			//if (waitingForCommandToFinish) {
 			//	Debug.Log($"waiting for command to finish before '{command}' can execute...\n" +
@@ -118,6 +123,11 @@ namespace RunCmd {
 			Rect rect = EditorGUILayout.GetControlRect(false, i_height);
 			rect.height = i_height;
 			EditorGUI.DrawRect(rect, color);
+		}
+
+		public void ExecuteCommand(string command) {
+			Target.CurrentCommandInput = command;
+			Target.ExecuteCurrentCommand();
 		}
 
 		//private void RunInternalCommand(string command) {
