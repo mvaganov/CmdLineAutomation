@@ -76,8 +76,9 @@ namespace RunCmd {
 					Debug.Log($"~~~~~~~~~~~~~~~~~~~~~{currentCommand} still running");
 					return true;
 				}
-				//_currentCommandFilterResult = _currentCommand.FunctionResult();
-				//Debug.Log($"{_currentCommandText} result : [{_currentCommandFilterResult}]");
+				ICommandFilter filter = currentCommand as ICommandFilter;
+				currentCommandFilterResult = filter != null ? filter.FilterResult(context) : null;
+				Debug.Log($"{currentCommandText} result : [{currentCommandFilterResult}]");
 				currentCommand = null;
 				return false;
 			}
