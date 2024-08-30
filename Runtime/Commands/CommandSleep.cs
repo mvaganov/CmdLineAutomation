@@ -35,16 +35,24 @@ namespace RunCmd {
 			}
 		}
 
-		public bool IsExecutionFinished(object context) => Environment.TickCount >= this.GetExecutionData(context).finished;
-
+		public bool IsExecutionFinished(object context) {
+			int finished = this.GetExecutionData(context).finished;
+			int now = Environment.TickCount;
+			Debug.Log($"now {now} >= {finished} finish");
+			return now >= finished;
+		}
 		public Data CreateEmptyContextEntry(object context) => null;
 
 		public float Progress(object context)
 		{
 			Data data = this.GetExecutionData(context);
-			int duration = data.finished - data.started;
-			int waited = Environment.TickCount - data.started;
-			return (float)waited / duration;
+			int finished = data.finished;
+			int now = Environment.TickCount;
+			int duration = finished - data.started;
+			int waited = now - data.started;
+			float normalizedProgress = (float)waited / duration;
+			//Debug.Log($"~~~ {normalizedProgress}");
+			return normalizedProgress;
 		}
 
 		public void RemoveExecutionData(object context) => CommandRunnerExtension.RemoveExecutionData(this, context);

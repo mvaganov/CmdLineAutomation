@@ -25,7 +25,17 @@ namespace RunCmd {
 
 		public AutomationExecutor Executor => _executor;
 
-		public bool IsExecuting => _executor != null && _executor.HaveCommandToDo();
+		public bool IsExecuting => _executor != null && _executor.IsExecuting;
+
+		public bool _progressing;
+
+		public float Progress {
+			get {
+				float value = Executor.IsExecuting ? Executor.Progress : 1;
+				_progressing = value < 1;
+				return value;
+			}
+		}
 
 		public void AddToCommandOutput(string value) {
 			_executor.AddToCommandOutput(value);

@@ -68,12 +68,17 @@ namespace RunCmd {
 		public override void OnInspectorGUI() {
 			CreateTextStyle();
 			DrawDefaultInspector();
-			waitingForCommandToFinish = Target.IsExecuting;
+			float progress = Target.IsExecuting ? Target.Progress : 1;
+			waitingForCommandToFinish = progress < 1;
 			InputPromptGUI();
 			//waitingForCommandToFinish = !Target.IsExecutionFinished(_context);
-			//if (ComponentProgressBar.IsProgressBarVisible && Target.Progress(_context) >= 1) {
-			//	ComponentProgressBar.ClearProgressBar();
-			//}
+			if (waitingForCommandToFinish) {
+				//Debug.Log($"PROGRESSBAR {progress}");
+				HandleProgressBar(progress);
+				RefreshInspector();
+			} else if (ComponentProgressBar.IsProgressBarVisible) {
+				ComponentProgressBar.ClearProgressBar();
+			}
 			GUILayout.BeginHorizontal();
 			RunCommandsButtonGUI();
 			ClearOutputButtonGUI();
@@ -140,7 +145,7 @@ namespace RunCmd {
 		private void RunCommandsButtonGUI() {
 			float commandProgress = 0;// Target.Progress(_context);
 			if (commandProgress <= 0) {
-				ComponentProgressBar.ClearProgressBar();
+				//ComponentProgressBar.ClearProgressBar();
 				if (GUILayout.Button("Run Commands To Do")) {
 					RunCommands();
 				}
@@ -148,7 +153,7 @@ namespace RunCmd {
 				ICommandProcessor commandProcessor = null;// Target.CurrentCommand(_context);
 				if (commandProcessor != null) {
 					if (commandProcessor.IsExecutionFinished(_context)) {
-						ComponentProgressBar.ClearProgressBar();
+						//ComponentProgressBar.ClearProgressBar();
 					} else {
 						HandleProgressBar(commandProgress);
 					}
@@ -229,6 +234,7 @@ namespace RunCmd {
 
 		private void RunCommands() {
 			Debug.Log("TODO");
+			//CommandExecutor.
 			//CommandLineExecutor executor = Target.GetCommandExecutor();
 			//executor.CommandsToDo = Target.CommandsToDo;
 			//executor.RunCommands(_context, Print);

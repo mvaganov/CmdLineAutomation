@@ -48,6 +48,9 @@ namespace RunCmd {
 
 		public ICommandExecutor CommandExecutor => this;
 
+		public bool IsExecuting => HaveCommandToDo();
+		public float Progress => currentCommand.Progress(Context);
+
 		private void EndCurrentCommand() {
 			if (currentCommand is CommandRunnerBase runner) {
 				runner.RemoveExecutionData(Context);
@@ -173,6 +176,17 @@ namespace RunCmd {
 
 		public void CancelProcess(object context) {
 			throw new System.NotImplementedException();
+		}
+
+		public void SetCommands(IList<string> commands) {
+			_currentCommands.Clear();
+			for(int i = 0; i < commands.Count; ++i) {
+				_currentCommands.Add(commands[i]);
+			}
+		}
+
+		public void StartCommands() {
+			commandExecutingIndex = 0;
 		}
 
 		//private void RunEachCommandInSequence() {
