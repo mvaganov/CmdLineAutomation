@@ -265,13 +265,14 @@ namespace RunCmd {
 			//	GUILayout.EndHorizontal();
 			//	return null;
 			//}
-			GUILayout.BeginHorizontal();
+
 			if (IsStarted) {
 				string prompt = Shell.WorkingDirectory;
 				GUILayout.Label(prompt, style, GUILayout.ExpandWidth(false));
 			} else {
-				GUILayout.Label(">", GUILayout.ExpandWidth(false));
 			}
+			GUILayout.BeginHorizontal();
+			GUILayout.Label(">", GUILayout.ExpandWidth(false));
 			try {
 				_inspectorCommandInput = GUILayout.TextField(_inspectorCommandInput, style, GUILayout.ExpandWidth(true));
 			} catch { }
