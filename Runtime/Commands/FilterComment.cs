@@ -14,6 +14,8 @@ namespace RunCmd {
 
 		private Dictionary<object, string> _executionData = new Dictionary<object, string>();
 		public Dictionary<object, string> ExecutionDataAccess { get => _executionData; set => _executionData = value; }
+		//private Dictionary<int, object> _executionDataByThread = new Dictionary<int, object>();
+		//public Dictionary<int, object> ExecutionDataByThreadId { get => _executionDataByThread; set => _executionDataByThread = value; }
 		public ICommandProcessor GetReferencedCommand(object context) => this;
 		public IEnumerable<object> GetContexts() => ExecutionDataAccess.Keys;
 

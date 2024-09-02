@@ -7,7 +7,7 @@ namespace RunCmd {
 	/// </summary>
 	[CustomEditor(typeof(AutomationAsset))]
 	[CanEditMultipleObjects]
-	public class AutomationAssetEditor : Editor, ICommandAutomation {
+	public class AutomationAssetEditor : Editor, ICommandAutomation, ICommandReference {
 		/// <summary>
 		/// The Automation being edited
 		/// </summary>
@@ -48,6 +48,8 @@ namespace RunCmd {
 
 		public bool IsStarted => Shell != null;
 
+		public ICommandProcessor ReferencedCommand => Target.ReferencedCommand;
+
 		private void OnEnable() {
 			if (Shell != null) {
 				EditorApplication.delayCall += RefreshInspector;
@@ -67,16 +69,10 @@ namespace RunCmd {
 		public override void OnInspectorGUI() {
 			CreateTextStyle();
 			DrawDefaultInspector();
-			float progress = Target.IsExecuting ? Target.Progress : 1;
-			waitingForCommandToFinish = progress < 1;
 			InputPromptGUI();
-			//waitingForCommandToFinish = !Target.IsExecutionFinished(_context);
+			waitingForCommandToFinish = Target.UpdateExecution();
 			if (waitingForCommandToFinish) {
-				//Debug.Log($"PROGRESSBAR {progress}");
-				HandleProgressBar(progress);
-				RefreshInspector();
-			} else if (ComponentProgressBar.IsProgressBarVisible) {
-				ComponentProgressBar.ClearProgressBar();
+				RefreshInspector(); // prompt GUI to animate after a change
 			}
 			GUILayout.BeginHorizontal();
 			RunCommandsButtonGUI();

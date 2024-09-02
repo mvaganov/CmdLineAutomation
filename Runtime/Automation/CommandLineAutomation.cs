@@ -10,7 +10,7 @@ namespace RunCmd {
 	[CreateAssetMenu(fileName = "CommandLineAutomation", menuName = "ScriptableObjects/CommandLineAutomation", order = 1)]
 	/// TODO determine if the interfaces can be combined.
 	/// TODO rewrite this while class... there is too much abstraction, and too many pieces of data that can't be audited in the inspector.
-	public partial class CommandLineAutomation : ScriptableObject, CommandRunner<CommandExecution>, ICommandProcessor, ICommandAutomation, ICommandExecutor {
+	public partial class CommandLineAutomation : ScriptableObject, CommandRunner<CommandExecution>, ICommandProcessor, ICommandAutomation, ICommandExecutor, ICommandReference {
 		[SerializeField]
 		protected CommandLineSettings _settings;
 
@@ -27,6 +27,8 @@ namespace RunCmd {
 
 		public Dictionary<object, CommandExecution> _executions = new Dictionary<object, CommandExecution>();
 		public Dictionary<object, CommandExecution> ExecutionDataAccess { get => _executions; set => _executions = value; }
+		//private Dictionary<int, object> _executionDataByThread = new Dictionary<int, object>();
+		//public Dictionary<int, object> ExecutionDataByThreadId { get => _executionDataByThread; set => _executionDataByThread = value; }
 		public IEnumerable<object> GetContexts() => ExecutionDataAccess.Keys;
 
 		public IList<ParsedTextCommand> CommandsToDo {
@@ -77,6 +79,8 @@ namespace RunCmd {
 
 		public RegexMatrix RegexTriggers => MutableSettings.RegexTriggers;
 
+		public ICommandProcessor ReferencedCommand => GetCurrentCommand(this);
+
 		public void AddToCommandOutput(string value) {
 			GetCommandExecutor().AddToCommandOutput(value);
 		}
@@ -94,7 +98,7 @@ namespace RunCmd {
 
 		public string CurrentCommandText(object context) => GetExecutionData(context).CurrentCommandText();
 
-		public ICommandProcessor CurrentCommand(object context) => GetExecutionData(context).CurrentCommand();
+		public ICommandProcessor GetCurrentCommand(object context) => GetExecutionData(context).CurrentCommand();
 
 		public CommandExecution CreateEmptyContextEntry(object context) {
 			CommandExecution execution = GetCommandExecutor().CreateEmptyContextEntry(context);//new CommandExecution(context, GetCommandExecutor());

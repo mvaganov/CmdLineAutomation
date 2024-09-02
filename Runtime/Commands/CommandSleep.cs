@@ -9,6 +9,8 @@ namespace RunCmd {
 
 		private Dictionary<object, Data> _executionData = new Dictionary<object, Data>();
 		public Dictionary<object, Data> ExecutionDataAccess { get => _executionData; set => _executionData = value; }
+		//private Dictionary<int, object> _executionDataByThread = new Dictionary<int, object>();
+		//public Dictionary<int, object> ExecutionDataByThreadId { get => _executionDataByThread; set => _executionDataByThread = value; }
 		public IEnumerable<object> GetContexts() => ExecutionDataAccess.Keys;
 
 		public class Data

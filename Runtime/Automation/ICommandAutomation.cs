@@ -5,6 +5,9 @@ namespace RunCmd {
 		public ICommandExecutor CommandExecutor { get; }
 	}
 
+	public interface ICommandReference {
+		public ICommandProcessor ReferencedCommand { get; }
+	}
 
 	// TODO merge into CommandProcessor?
 	public interface ICommandExecutor {

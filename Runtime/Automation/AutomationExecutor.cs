@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace RunCmd {
 	[System.Serializable]
-	public class AutomationExecutor : ICommandExecutor, ICommandAutomation {
+	public class AutomationExecutor : ICommandExecutor, ICommandAutomation, ICommandReference {
 		public CommandLineSettings _settings;
 		public int commandExecutingIndex = 0;
 		int filterIndex;
@@ -25,7 +25,7 @@ namespace RunCmd {
 		/// <summary>
 		/// Which cooperative function is being executed right now
 		/// </summary>
-		private ICommandFilter currentCommand;
+		private ICommandProcessor currentCommand;
 		/// <summary>
 		/// The list of commands and filters this automation is executing
 		/// </summary>
@@ -50,6 +50,16 @@ namespace RunCmd {
 
 		public bool IsExecuting => HaveCommandToDo();
 		public float Progress => currentCommand.Progress(Context);
+		public ICommandProcessor ReferencedCommand => currentCommand;
+		public ICommandProcessor CurrentCommandEnd {
+			get {
+				ICommandProcessor cursor = currentCommand;
+				while (cursor is ICommandReference automation) {
+					cursor = automation.ReferencedCommand;
+				}
+				return cursor;
+			}
+		}
 
 		private void EndCurrentCommand() {
 			if (currentCommand is CommandRunnerBase runner) {
@@ -138,7 +148,8 @@ namespace RunCmd {
 					}
 					return true;
 				}
-				currentCommandAfterFilter = currentCommand.FilterResult(Context);
+				ICommandFilter commandFilter = currentCommand as ICommandFilter;
+				currentCommandAfterFilter = (commandFilter != null) ? commandFilter.FilterResult(Context) : null;
 				Debug.Log($"{filterIndex} {Filters[filterIndex]}     {currentCommandText} -> {currentCommandAfterFilter}");
 				if (currentCommandAfterFilter == null) {
 					Debug.Log($"@@@@@ {currentCommandText} consumed by {Filters[filterIndex]}");
@@ -175,7 +186,8 @@ namespace RunCmd {
 		}
 
 		public void CancelProcess(object context) {
-			throw new System.NotImplementedException();
+			cancelled = true;
+			currentCommand = null;
 		}
 
 		public void SetCommands(IList<string> commands) {

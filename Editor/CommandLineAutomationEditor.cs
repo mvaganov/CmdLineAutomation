@@ -8,7 +8,7 @@ namespace RunCmd {
 	/// </summary>
 	[CustomEditor(typeof(CommandLineAutomation))]
 	[CanEditMultipleObjects]
-	public class CommandLineAutomationEditor : Editor, ICommandAutomation {
+	public class CommandLineAutomationEditor : Editor, ICommandAutomation, ICommandReference {
 		/// <summary>
 		/// The Automation being edited
 		/// </summary>
@@ -48,6 +48,8 @@ namespace RunCmd {
 		}
 
 		public bool IsStarted => Shell != null;
+
+		public ICommandProcessor ReferencedCommand => Target.ReferencedCommand;
 
 		private void OnEnable() {
 			if (Shell != null) {
@@ -100,7 +102,7 @@ namespace RunCmd {
 			waitingForCommandToFinish = !Target.IsExecutionFinished(_context);
 			if (waitingForCommandToFinish) {
 				Debug.Log($"waiting for command to finish before '{command}' can execute...\n" +
-					$"({Target.IsExecutionFinished(_context)}) \"{Target.CurrentCommand(_context)}\"");
+					$"({Target.IsExecutionFinished(_context)}) \"{Target.GetCurrentCommand(_context)}\"");
 			} else {
 				Debug.Log($"running command {command}");
 				RunInternalCommand(command);
@@ -123,7 +125,7 @@ namespace RunCmd {
 					RunCommands();
 				}
 			} else {
-				ICommandProcessor commandProcessor = Target.CurrentCommand(_context);
+				ICommandProcessor commandProcessor = Target.GetCurrentCommand(_context);
 				if (commandProcessor != null) {
 					if (commandProcessor.IsExecutionFinished(_context)) {
 						ComponentProgressBar.ClearProgressBar();

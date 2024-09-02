@@ -5,7 +5,7 @@ using UnityEngine;
 namespace RunCmd {
 
 	[CreateAssetMenu(fileName = "AutomationAsset", menuName = "ScriptableObjects/AutomationAsset", order = 1)]
-	public class AutomationAsset : ScriptableObject, ICommandExecutor {
+	public class AutomationAsset : ScriptableObject, ICommandExecutor, ICommandAutomation, ICommandReference {
 		[SerializeField]
 		protected CommandLineSettings _settings;
 
@@ -37,12 +37,17 @@ namespace RunCmd {
 			}
 		}
 
+		public ICommandExecutor CommandExecutor => this;
+
+		public ICommandProcessor ReferencedCommand => _executor.ReferencedCommand;
+
 		public void AddToCommandOutput(string value) {
 			_executor.AddToCommandOutput(value);
 		}
 
 		public void CancelProcess(object context) {
-			throw new System.NotImplementedException();
+			Debug.Log($"({context}) canceling [{_executor.CurrentCommandEnd}]");
+			_executor.CancelProcess(context);
 		}
 
 		public void InsertNextCommandToExecute(object context, string command) {
@@ -58,6 +63,24 @@ namespace RunCmd {
 			_executor.currentCommandText = _commandInput;
 			_executor.source = this;
 			_executor.ExecuteCurrentCommand();
+		}
+
+		public bool UpdateExecution() {
+			float progress = IsExecuting ? Progress : 1;
+			bool waitingForCommandToFinish = progress < 1;
+			//waitingForCommandToFinish = !Target.IsExecutionFinished(_context);
+			if (waitingForCommandToFinish) {
+				//Debug.Log($"PROGRESSBAR {progress}");
+				bool stop = ComponentProgressBar.DisplayCancelableProgressBar(name, Executor.currentCommandText, progress);
+				if (stop) {
+					Debug.Log("CANCEL");
+					CancelProcess(this);
+					ComponentProgressBar.ClearProgressBar();
+				}
+			} else if (ComponentProgressBar.IsProgressBarVisible) {
+				ComponentProgressBar.ClearProgressBar();
+			}
+			return waitingForCommandToFinish;
 		}
 	}
 }

@@ -24,6 +24,8 @@ namespace RunCmd {
 
 		public ICommandExecutor CommandExecutor => commandLineAutomation;
 
+		public ICommandProcessor ReferencedCommand => commandLineAutomation.ReferencedCommand;
+
 		void Start() {
 			commandLineAutomation.OnOutputChange += PrintCallback;
 			PrintCallback(null);

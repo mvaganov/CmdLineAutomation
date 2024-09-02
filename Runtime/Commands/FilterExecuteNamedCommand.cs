@@ -6,7 +6,7 @@ namespace RunCmd {
 	/// Command filter used to call named commands from a list
 	/// </summary>
 	[CreateAssetMenu(fileName = "ExecuteNamedCommand", menuName = "ScriptableObjects/Filters/ExecuteNamedCommand")]
-	public class FilterExecuteNamedCommand : ScriptableObject, CommandRunner<FilterExecuteNamedCommand.CommandExecution>, ICommandFilter {
+	public class FilterExecuteNamedCommand : ScriptableObject, CommandRunner<FilterExecuteNamedCommand.CommandExecution>, ICommandFilter, ICommandReference {
 		/// <summary>
 		/// List of the possible custom commands written as C# <see cref="ICommandProcessor"/>s
 		/// </summary>
@@ -19,8 +19,26 @@ namespace RunCmd {
 
 		private Dictionary<object, CommandExecution> _executionData = new Dictionary<object, CommandExecution>();
 		public Dictionary<object, CommandExecution> ExecutionDataAccess { get => _executionData; set => _executionData = value; }
+		//private Dictionary<int, object> _executionDataByThread = new Dictionary<int, object>();
+		//public Dictionary<int, object> ExecutionDataByThreadId { get => _executionDataByThread; set => _executionDataByThread = value; }
+
+		private object lastContext;
+
+		public ICommandProcessor ReferencedCommand {
+			get {
+				//this.TryGetDefaultContextForThisThread(out object context);
+				//if (context == null) {
+				//	Debug.Log($"null? {ExecutionDataByThreadId.Count}, {ExecutionDataAccess.Count}");
+				//} else {
+				//	Debug.Log($"{System.Environment.CurrentManagedThreadId} -> {context}");
+				//}
+				//return ExecutionDataAccess[context].currentCommand;
+				return ExecutionDataAccess[lastContext].currentCommand;
+			}
+		}
+
 		public IEnumerable<object> GetContexts() => ExecutionDataAccess.Keys;
-		public ICommandProcessor GetReferencedCommand(object context) => this.GetExecutionData(context).currentCommand;
+		public ICommandProcessor GetReferencedCommand(object context) => this.GetExecutionData(lastContext = context).currentCommand;
 
 		public class CommandExecution {
 			private object context;

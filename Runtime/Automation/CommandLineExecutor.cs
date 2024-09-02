@@ -68,6 +68,11 @@ namespace RunCmd {
 
 		private Dictionary<object, CommandExecution> _executionData = new Dictionary<object, CommandExecution>();
 		public Dictionary<object, CommandExecution> ExecutionDataAccess { get => _executionData; set => _executionData = value; }
+		//private Dictionary<int, object> _executionDataByThread = new Dictionary<int, object>();
+		//public Dictionary<int, object> ExecutionDataByThreadId { get => _executionDataByThread; set => _executionDataByThread = value; }
+
+		ICommandProcessor ReferencedCommand => GetCurrentCommand(this);
+
 		public IEnumerable<object> GetContexts() => ExecutionDataAccess.Keys;
 
 		public CommandLineExecutor(CommandLineSettings settings) {
@@ -103,7 +108,7 @@ namespace RunCmd {
 
 		public string CurrentCommandText(object context) => GetExecutionData(context).CurrentCommandText();
 
-		public ICommandProcessor CurrentCommand(object context) => GetExecutionData(context).CurrentCommand();
+		public ICommandProcessor GetCurrentCommand(object context) => GetExecutionData(context).CurrentCommand();
 
 		public CommandExecution CreateEmptyContextEntry(object context) {
 			CommandExecution execution = new CommandExecution(context, this);

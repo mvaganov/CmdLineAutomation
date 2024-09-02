@@ -6,11 +6,15 @@ namespace RunCmd {
 	/// Commands can be configured in a single asset, and used by multiple different contexts.
 	/// This abstract class is intended as a base class for commands, and keeps track of runtime
 	/// data, organized by context.
+	/// 
+	/// TODO stop this. every scriptable object should be a factory that creates a new instance of a command.
+	/// TODO `IRunnableCommandAsset`, which creates `IRunnableCommand`
 	/// </summary>
 	/// <typeparam name="ExecutionData"></typeparam>
 	public interface CommandRunner<ExecutionData> : CommandRunnerBase {
 
 		Dictionary<object, ExecutionData> ExecutionDataAccess { get; set; }
+		//Dictionary<int, object> ExecutionDataByThreadId { get; set; }
 		abstract ExecutionData CreateEmptyContextEntry(object context);
 	}
 
@@ -23,17 +27,39 @@ namespace RunCmd {
 			}
 			if (!self.ExecutionDataAccess.TryGetValue(context, out ExecutionData commandExecution)) {
 				//UnityEngine.Debug.LogWarning($"~~~~~~~~~{self.GetType().Name} making execution data for {context} {context.GetHashCode()}");
-				self.ExecutionDataAccess[context] = commandExecution = self.CreateEmptyContextEntry(context);
+				commandExecution = self.CreateEmptyContextEntry(context);
+				self.SetExecutionData(context, commandExecution);
+				//self.ExecutionDataAccess[context] = commandExecution = self.CreateEmptyContextEntry(context);
 			}
 			return commandExecution;
 		}
 
 		public static void SetExecutionData<ExecutionData>(this CommandRunner<ExecutionData> self, object context, ExecutionData data) {
 			self.ExecutionDataAccess[context] = data;
+			//int threadId = System.Environment.CurrentManagedThreadId;
+			//self.ExecutionDataByThreadId[threadId] = data;
 		}
+
+		//public static bool TryGetThreadId<ExecutionData>(this CommandRunner<ExecutionData> self, object context, out int id) {
+		//	foreach (var kvp in self.ExecutionDataByThreadId) {
+		//		if (kvp.Value == context) {
+		//			id = kvp.Key;
+		//			return true;
+		//		}
+		//	}
+		//	id = 0;
+		//	return false;
+		//}
+
+		//public static bool TryGetDefaultContextForThisThread<ExecutionData>(this CommandRunner<ExecutionData> self, out object context) {
+		//	int threadId = System.Environment.CurrentManagedThreadId;
+		//	return self.ExecutionDataByThreadId.TryGetValue(threadId, out context);
+		//}
 
 		public static void RemoveExecutionData<ExecutionData>(this CommandRunner<ExecutionData> self, object context) {
 			self.ExecutionDataAccess.Remove(context);
+			//TryGetThreadId(self, context, out int threadId);
+			//self.ExecutionDataByThreadId.Remove(threadId);
 		}
 
 		public static IList<object> GetOwningContexts<ExecutionData>(this CommandRunnerBase self) {
