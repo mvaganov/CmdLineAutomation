@@ -7,8 +7,6 @@ namespace RunCmd {
 	/// This abstract class is intended as a base class for commands, and keeps track of runtime
 	/// data, organized by context.
 	/// 
-	/// TODO stop this. every scriptable object should be a factory that creates a new instance of a command.
-	/// TODO `IRunnableCommandAsset`, which creates `IRunnableCommand`
 	/// </summary>
 	/// <typeparam name="ExecutionData"></typeparam>
 	public interface CommandRunner<ExecutionData> : CommandRunnerBase {

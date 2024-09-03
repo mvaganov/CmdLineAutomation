@@ -61,11 +61,14 @@ MonoBehaviour:
       Ignore: 0
   _executor:
     _settings: {fileID: 11400000, guid: 0e953e990e34af54eadaed24f3b88238, type: 2}
-    commandExecutingIndex: 31
+    commandExecutingIndex: 83
     _currentCommands: []
-    cancelled: 0
-    currentCommandText: cls
-    commandOutput: '
+    cancelled: 1
+    currentCommandText: sleep 3
+    commandOutput: 'sleep 3
 
-      C:\Users\mvaga\Developer\CmdLineAutomation\SampleProjects~\CmdLineAutomation>'
-    currentCommandAfterFilter: 
+      ~~~waiting 3 seconds~~~
+
+'
+    currentCommandAfterFilter: sleep 3
+  _progressing: 1
