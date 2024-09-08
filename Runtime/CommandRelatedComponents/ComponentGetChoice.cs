@@ -53,7 +53,26 @@ namespace RunCmd {
 			button.onClick.AddListener(() => commandGetChoice.ChoiceMade(context, index));
 		}
 
+		public void SetChoice(int index, string text, object context, CommandAssetGetChoice commandGetChoice) {
+			SetChoice(index, text);
+			Button button = optionUi[index].GetComponentInChildren<Button>();
+			button.onClick.RemoveAllListeners();
+			button.onClick.AddListener(() => commandGetChoice.ChoiceMade(context, index));
+		}
+
 		public void SetChoices(IList<string> choices, System.Action<int> onChoiceMade, object context, CommandGetChoice commandGetChoice) {
+			ClearOptionsUi();
+			for (int i = 0; i < choices.Count; ++i) {
+				GameObject optionUiElement = Instantiate(choicePrefab);
+				optionUiElement.transform.SetParent(choiceContent, false);
+				optionUi.Add(optionUiElement);
+				optionUiElement.SetActive(true);
+				// TODO is onChoiceMade the same as commandGetChoice.ChoiceMade?
+				SetChoice(i, choices[i], context, commandGetChoice);
+			}
+		}
+
+		public void SetChoices(IList<string> choices, System.Action<int> onChoiceMade, object context, CommandAssetGetChoice commandGetChoice) {
 			ClearOptionsUi();
 			for (int i = 0; i < choices.Count; ++i) {
 				GameObject optionUiElement = Instantiate(choicePrefab);
