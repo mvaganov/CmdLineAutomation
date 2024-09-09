@@ -40,7 +40,7 @@ namespace RunCmd {
 		public bool IsExecutionFinished(object context) {
 			int finished = this.GetExecutionData(context).finished;
 			int now = Environment.TickCount;
-			Debug.Log($"now {now} >= {finished} finish");
+			//Debug.Log($"now {now} >= {finished} finish");
 			return now >= finished;
 		}
 		public Data CreateEmptyContextEntry(object context) => null;
