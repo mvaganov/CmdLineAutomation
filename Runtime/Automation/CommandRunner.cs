@@ -21,7 +21,7 @@ namespace RunCmd {
 			if (self.ExecutionDataAccess == null) {
 				//UnityEngine.Debug.LogError("no data?");
 				self.ExecutionDataAccess = new Dictionary<object, ExecutionData>();
-				//return default;
+				//return default; // TODO this must be returned for the new AutomationAsset...
 			}
 			if (!self.ExecutionDataAccess.TryGetValue(context, out ExecutionData commandExecution)) {
 				//UnityEngine.Debug.LogWarning($"~~~~~~~~~{self.GetType().Name} making execution data for {context} {context.GetHashCode()}");
