@@ -7,7 +7,7 @@ namespace RunCmd {
 	/// </summary>
 	[CustomEditor(typeof(AutomationAsset))]
 	[CanEditMultipleObjects]
-	public class AutomationAssetEditor : Editor, ICommandAutomation, ICommandReference {
+	public class AutomationAssetEditor : Editor, ICommandAssetAutomation, ICommandProcessReference {
 		/// <summary>
 		/// The Automation being edited
 		/// </summary>
@@ -31,7 +31,7 @@ namespace RunCmd {
 
 		private object _context;
 
-		public ICommandExecutor CommandExecutor => Target;
+		public ICommandAssetExecutor CommandExecutor => Target;
 
 		public AutomationAsset Target => _target != null ? _target
 			: _target = target as AutomationAsset;
@@ -48,7 +48,7 @@ namespace RunCmd {
 
 		public bool IsStarted => Shell != null;
 
-		public ICommandProcessor ReferencedCommand => Target.ReferencedCommand;
+		public ICommandProcess ReferencedCommand => Target.ReferencedCommand;
 
 		private void OnEnable() {
 			if (Shell != null) {

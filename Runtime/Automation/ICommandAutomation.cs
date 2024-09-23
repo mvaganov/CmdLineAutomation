@@ -36,4 +36,43 @@ namespace RunCmd {
 
 		public void CancelProcess(object context);
 	}
+
+	// redux
+	public interface ICommandAssetAutomation {
+		public ICommandAssetExecutor CommandExecutor { get; }
+	}
+
+	// redux
+	public interface ICommandProcessReference {
+		public ICommandProcess ReferencedCommand { get; } // TODO rename ReferencedProcess
+	}
+
+	// redux
+	public interface ICommandAssetExecutor {
+		/// <summary>
+		/// Command output
+		/// </summary>
+		public string CommandOutput { get; set; }
+
+		/// <summary>
+		/// Allows insertion of another command immediately after this one, modifying the expected queue of instructions.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="command"></param>
+		public void InsertNextCommandToExecute(object context, string command);
+
+		/// <summary>
+		/// Adds to CommandOutput using any relevant filters
+		/// </summary>
+		/// <param name="value"></param>
+		public void AddToCommandOutput(string value);
+
+		/// <summary>
+		/// The command assets to apply each command through
+		/// </summary>
+		IList<ICommandAsset> CommandAssets { get; }
+
+		public void CancelProcess(object context);
+	}
+
 }
