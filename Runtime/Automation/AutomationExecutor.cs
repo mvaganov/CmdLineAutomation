@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace RunCmd {
+	// redux
 	[System.Serializable]
-	public class AutomationExecutor : ICommandExecutor, ICommandAutomation, ICommandReference {
-		public CommandLineSettings _settings;
+	public class AutomationExecutor : ICommandAssetExecutor, ICommandAssetAutomation, ICommandProcessReference {
+		public CommandAssetSettings _settings;
 		public int commandExecutingIndex = 0;
-		int filterIndex;
+		int filterIndex; // TODO rename commandAssetIndex
 		public List<string> _currentCommands = new List<string>();
 		public bool cancelled;
 		/// <summary>
@@ -25,11 +26,11 @@ namespace RunCmd {
 		/// <summary>
 		/// Which cooperative function is being executed right now
 		/// </summary>
-		private ICommandProcessor currentCommand;
+		private ICommandProcess currentCommand;
 		/// <summary>
 		/// The list of commands and filters this automation is executing
 		/// </summary>
-		internal ICommandExecutor source;
+		internal ICommandAssetExecutor source;
 		/// <summary>
 		/// Function to pass all lines from standard output to
 		/// </summary>
@@ -40,21 +41,21 @@ namespace RunCmd {
 		private OperatingSystemCommandShell _shell;
 
 		public bool HaveCommandToDo() => currentCommand != null;
-		public IList<ICommandFilter> Filters => source.Filters;
+		public IList<ICommandAsset> CommandAssets => source.CommandAssets;
 		public object Context => this;
 		public OperatingSystemCommandShell Shell => _shell;
 
 		public string CommandOutput { get => commandOutput; set => commandOutput = value; }
 
-		public ICommandExecutor CommandExecutor => this;
+		public ICommandAssetExecutor CommandExecutor => this;
 
 		public bool IsExecuting => HaveCommandToDo();
-		public float Progress => currentCommand.Progress(Context);
-		public ICommandProcessor ReferencedCommand => currentCommand;
-		public ICommandProcessor CurrentCommandEnd {
+		public float Progress => currentCommand.GetProgress();
+		public ICommandProcess ReferencedCommand => currentCommand;
+		public ICommandProcess CurrentCommandEnd {
 			get {
-				ICommandProcessor cursor = currentCommand;
-				while (cursor is ICommandReference automation) {
+				ICommandProcess cursor = currentCommand;
+				while (cursor is ICommandProcessReference automation) {
 					cursor = automation.ReferencedCommand;
 				}
 				return cursor;
@@ -80,7 +81,7 @@ namespace RunCmd {
 			}
 			// get the list of filters
 			// pass current command through each filter until it is executed on a filter that consumes
-			if (!HaveCommandToDo() || currentCommand.IsExecutionFinished(Context)) {
+			if (!HaveCommandToDo() || currentCommand.IsExecutionFinished) {
 				++commandExecutingIndex;
 			}
 			//if (HaveCommandToDo() && !_currentCommand.IsExecutionFinished()) { Debug.Log("       still doing it!"); }
@@ -95,7 +96,7 @@ namespace RunCmd {
 		}
 
 		private void DoCurrentCommand() {
-			if (currentCommand != null && !currentCommand.IsExecutionFinished(Context)) {
+			if (currentCommand != null && !currentCommand.IsExecutionFinished) {
 				Debug.Log($"still processing {currentCommand}");
 				return;
 			}
@@ -111,21 +112,25 @@ namespace RunCmd {
 			if (source == null) {
 				throw new System.Exception("Missing execution source");
 			}
-			if (source.Filters == null) {
+			if (source.CommandAssets == null) {
 				throw new System.Exception($"missing filters {source}");
 			}
 			int loopguard = 0;
-			while (filterIndex < Filters.Count) {
+			while (filterIndex < CommandAssets.Count) {
 				if (loopguard++ > 100) {
 					throw new System.Exception("executor loop guard");
 				}
-				if (currentCommand != null && currentCommand.IsExecutionFinished(Context)) {
+				if (currentCommand != null && currentCommand.IsExecutionFinished) {
 					currentCommand = null;
 				}
 				if (currentCommand == null) {
-					currentCommand = Filters[filterIndex];
+					ICommandAsset commandAsset = CommandAssets[filterIndex];
+					currentCommand = commandAsset.GetCommandCreateIfMissing(Context);
+					if (currentCommand == null) {
+						Debug.LogError($"failed to create process from: {commandAsset}");
+					}
 					//Debug.Log($"~~~ [{filterIndex}] {commandObj.name}\n\n{currentCommandText}\n\n");
-					currentCommand.StartCooperativeFunction(Context, currentCommandText, OutputAnalysis);
+					currentCommand.StartCooperativeFunction(currentCommandText, OutputAnalysis);
 					//if (filterIndex < 0) {
 					//	Object commandObj = currentCommand as Object;
 					//	Debug.Log($"~~~ CANCEL [{filterIndex}] {commandObj.name}\n\n{currentCommandText}\n\n");
@@ -135,7 +140,7 @@ namespace RunCmd {
 						_shell = osShell.Shell;
 					}
 				}
-				bool currentCommandStillExecuting = currentCommand != null && !currentCommand.IsExecutionFinished(Context);
+				bool currentCommandStillExecuting = currentCommand != null && !currentCommand.IsExecutionFinished;
 				if (currentCommandStillExecuting) {
 					Object commandObj = currentCommand as Object;
 					ICommandFilter filter = commandObj as ICommandFilter;
@@ -150,12 +155,12 @@ namespace RunCmd {
 				}
 				ICommandFilter commandFilter = currentCommand as ICommandFilter;
 				currentCommandAfterFilter = (commandFilter != null) ? commandFilter.FilterResult(Context) : null;
-				Debug.Log($"{filterIndex} {Filters[filterIndex]}     {currentCommandText} -> {currentCommandAfterFilter}");
+				Debug.Log($"{filterIndex} {CommandAssets[filterIndex]}     {currentCommandText} -> {currentCommandAfterFilter}");
 				if (currentCommandAfterFilter == null) {
-					Debug.Log($"@@@@@ {currentCommandText} consumed by {Filters[filterIndex]}");
+					Debug.Log($"@@@@@ {currentCommandText} consumed by {CommandAssets[filterIndex]}");
 					return false;
 				} else if (currentCommandAfterFilter != currentCommandText) {
-					Debug.Log($"@@@@@ {currentCommandText} changed into {currentCommandAfterFilter} by {Filters[filterIndex]} {currentCommand}  (ctx {Context})");
+					Debug.Log($"@@@@@ {currentCommandText} changed into {currentCommandAfterFilter} by {CommandAssets[filterIndex]} {currentCommand}  (ctx {Context})");
 					currentCommandText = currentCommandAfterFilter;
 				}
 				currentCommand = null;

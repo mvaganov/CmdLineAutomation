@@ -5,9 +5,9 @@ using UnityEngine;
 namespace RunCmd {
 
 	[CreateAssetMenu(fileName = "AutomationAsset", menuName = "ScriptableObjects/AutomationAsset", order = 1)]
-	public class AutomationAsset : ScriptableObject, ICommandExecutor, ICommandAutomation, ICommandReference {
+	public class AutomationAsset : ScriptableObject, ICommandAssetExecutor, ICommandAssetAutomation, ICommandProcessReference {
 		[SerializeField]
-		protected CommandLineSettings _settings;
+		protected CommandAssetSettings _settings;
 
 		/// <summary>
 		/// Information about what these commands are for
@@ -21,7 +21,7 @@ namespace RunCmd {
 		public string CommandOutput { get => _executor.CommandOutput; set => _executor.CommandOutput  = value; }
 		public string CurrentCommandInput { get => _commandInput; set => _commandInput = value; }
 
-		public IList<ICommandFilter> Filters=> _settings.Filters;
+		public IList<ICommandAsset> CommandAssets => _settings.CommandAssets;
 
 		public AutomationExecutor Executor => _executor;
 
@@ -37,9 +37,9 @@ namespace RunCmd {
 			}
 		}
 
-		public ICommandExecutor CommandExecutor => this;
+		public ICommandAssetExecutor CommandExecutor => this;
 
-		public ICommandProcessor ReferencedCommand => _executor.ReferencedCommand;
+		public ICommandProcess ReferencedCommand => _executor.ReferencedCommand;
 
 		public void AddToCommandOutput(string value) {
 			_executor.AddToCommandOutput(value);

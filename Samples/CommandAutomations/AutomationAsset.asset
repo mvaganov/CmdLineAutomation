@@ -65,7 +65,33 @@ MonoBehaviour:
     _currentCommands: []
     cancelled: 1
     currentCommandText: sleep 3
-    commandOutput: 'sleep 3
+    commandOutput: 'Microsoft Windows [Version 10.0.19045.4894]
+
+      (c) Microsoft
+      Corporation. All rights reserved.
+
+      
+
+      C:\Users\mvaga\Developer\CmdLineAutomation\SampleProjects~\CmdLineAutomation>hi
+
+      
+
+      C:\Users\mvaga\Developer\CmdLineAutomation\SampleProjects~\CmdLineAutomation>cd
+      ..
+
+      
+
+      C:\Users\mvaga\Developer\CmdLineAutomation\SampleProjects~>cd
+      ..
+
+      
+
+      C:\Users\mvaga\Developer\CmdLineAutomation>cd ..
+
+      
+
+      C:\Users\mvaga\Developer>sleep
+      3
 
       ~~~waiting 3 seconds~~~
 
