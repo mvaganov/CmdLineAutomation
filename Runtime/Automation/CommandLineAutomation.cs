@@ -10,7 +10,7 @@ namespace RunCmd {
 	[CreateAssetMenu(fileName = "CommandLineAutomation", menuName = "ScriptableObjects/CommandLineAutomation", order = 1)]
 	/// TODO determine if the interfaces can be combined.
 	/// TODO rewrite this while class... there is too much abstraction, and too many pieces of data that can't be audited in the inspector.
-	public partial class CommandLineAutomation : ScriptableObject, CommandRunner<CommandExecution>, ICommandProcessor, ICommandAutomation, ICommandExecutor, ICommandReference {
+	public partial class CommandLineAutomation : ScriptableObject, CommandRunner<ProcedureExecution>, ICommandProcessor, ICommandAutomation, ICommandExecutor, ICommandReference {
 		[SerializeField]
 		protected CommandLineSettings _settings;
 
@@ -25,8 +25,8 @@ namespace RunCmd {
 		[SerializeField] protected bool finishedDebug;
 		[SerializeField] protected float progressDebug;
 
-		public Dictionary<object, CommandExecution> _executions = new Dictionary<object, CommandExecution>();
-		public Dictionary<object, CommandExecution> ExecutionDataAccess { get => _executions; set => _executions = value; }
+		public Dictionary<object, ProcedureExecution> _executions = new Dictionary<object, ProcedureExecution>();
+		public Dictionary<object, ProcedureExecution> ExecutionDataAccess { get => _executions; set => _executions = value; }
 		//private Dictionary<int, object> _executionDataByThread = new Dictionary<int, object>();
 		//public Dictionary<int, object> ExecutionDataByThreadId { get => _executionDataByThread; set => _executionDataByThread = value; }
 		public IEnumerable<object> GetContexts() => ExecutionDataAccess.Keys;
@@ -86,7 +86,7 @@ namespace RunCmd {
 		}
 
 		public float Progress(object context) {
-			CommandExecution data = GetExecutionData(context);
+			ProcedureExecution data = GetExecutionData(context);
 			if (data == null) {
 				return -1;
 			}
@@ -100,8 +100,8 @@ namespace RunCmd {
 
 		public ICommandProcessor GetCurrentCommand(object context) => GetExecutionData(context).CurrentCommand();
 
-		public CommandExecution CreateEmptyContextEntry(object context) {
-			CommandExecution execution = GetCommandExecutor().CreateEmptyContextEntry(context);//new CommandExecution(context, GetCommandExecutor());
+		public ProcedureExecution CreateEmptyContextEntry(object context) {
+			ProcedureExecution execution = GetCommandExecutor().CreateEmptyContextEntry(context);//new CommandExecution(context, GetCommandExecutor());
 			return execution;
 		}
 
@@ -110,7 +110,7 @@ namespace RunCmd {
 		/// </summary>
 		/// <param name="context"></param>
 		/// <returns></returns>
-		public CommandExecution GetExecutionData(object context) => GetCommandExecutor().GetExecutionData(context);
+		public ProcedureExecution GetExecutionData(object context) => GetCommandExecutor().GetExecutionData(context);
 
 		public OperatingSystemCommandShell GetShell(object context) => GetExecutionData(context).Shell;
 

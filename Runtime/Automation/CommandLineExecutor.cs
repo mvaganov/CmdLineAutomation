@@ -13,7 +13,7 @@ namespace RunCmd {
 	/// * can be fed commands in the Unity Editor, or from runtime methods
 	/// </summary>
 [System.Serializable]
-	public partial class CommandLineExecutor : CommandRunner<CommandExecution>, ICommandAutomation, ICommandExecutor {
+	public partial class CommandLineExecutor : CommandRunner<ProcedureExecution>, ICommandAutomation, ICommandExecutor {
 		[SerializeField] protected CommandLineSettings _settings;
 
 		/// <summary>
@@ -66,8 +66,8 @@ namespace RunCmd {
 			set { _onOutputChange = value; }
 		}
 
-		private Dictionary<object, CommandExecution> _executionData = new Dictionary<object, CommandExecution>();
-		public Dictionary<object, CommandExecution> ExecutionDataAccess { get => _executionData; set => _executionData = value; }
+		private Dictionary<object, ProcedureExecution> _executionData = new Dictionary<object, ProcedureExecution>();
+		public Dictionary<object, ProcedureExecution> ExecutionDataAccess { get => _executionData; set => _executionData = value; }
 		//private Dictionary<int, object> _executionDataByThread = new Dictionary<int, object>();
 		//public Dictionary<int, object> ExecutionDataByThreadId { get => _executionDataByThread; set => _executionDataByThread = value; }
 
@@ -100,7 +100,7 @@ namespace RunCmd {
 			OnOutputChange?.Invoke(_inspectorCommandOutput);
 		}
 
-		public CommandExecution GetExecutionData(object context) => ((CommandRunner<CommandExecution>)this).GetExecutionData(context);
+		public ProcedureExecution GetExecutionData(object context) => ((CommandRunner<ProcedureExecution>)this).GetExecutionData(context);
 
 		public float Progress(object context) => GetExecutionData(context).Progress;
 
@@ -110,8 +110,8 @@ namespace RunCmd {
 
 		public ICommandProcessor GetCurrentCommand(object context) => GetExecutionData(context).CurrentCommand();
 
-		public CommandExecution CreateEmptyContextEntry(object context) {
-			CommandExecution execution = new CommandExecution(context, this);
+		public ProcedureExecution CreateEmptyContextEntry(object context) {
+			ProcedureExecution execution = new ProcedureExecution(context, this);
 			//Debug.Log($"$$$$$$$$$$$$$$$$$$ HEY! I'm {this}({this.GetHashCode()}), for {context}({context.GetHashCode()})");
 			return execution;
 		}
@@ -159,13 +159,13 @@ namespace RunCmd {
 		}
 
 		public void RunCommands(object context, PrintCallback print) {
-			CommandExecution e = this.GetExecutionData(context);
+			ProcedureExecution e = this.GetExecutionData(context);
 			e.print = print;
 			e.StartRunningEachCommandInSequence(CommandsToDo);
 		}
 
 		public void InsertNextCommandToExecute(object context, string command) {
-			CommandExecution e = this.GetExecutionData(context);
+			ProcedureExecution e = this.GetExecutionData(context);
 			e.InsertNextCommandToExecute(command);
 		}
 

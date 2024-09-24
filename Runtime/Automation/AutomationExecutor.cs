@@ -8,7 +8,7 @@ namespace RunCmd {
 	public class AutomationExecutor : ICommandAssetExecutor, ICommandAssetAutomation, ICommandProcessReference {
 		public CommandAssetSettings _settings;
 		public int commandExecutingIndex = 0;
-		int filterIndex; // TODO rename commandAssetIndex
+		private int commandAssetIndex;
 		public List<string> _currentCommands = new List<string>();
 		public bool cancelled;
 		/// <summary>
@@ -66,7 +66,7 @@ namespace RunCmd {
 			if (currentCommand is CommandRunnerBase runner) {
 				runner.RemoveExecutionData(Context);
 			}
-			filterIndex = 0;
+			commandAssetIndex = 0;
 			currentCommand = null;
 		}
 
@@ -91,7 +91,7 @@ namespace RunCmd {
 			this.print = print;
 			currentCommandText = command;
 			currentCommandAfterFilter = command;
-			filterIndex = 0;
+			commandAssetIndex = 0;
 			DoCurrentCommand();
 		}
 
@@ -105,7 +105,7 @@ namespace RunCmd {
 				return;
 			}
 			currentCommand = null;
-			filterIndex = 0;
+			commandAssetIndex = 0;
 		}
 
 		private bool IsExecutionStoppedByFilterFunction() {
@@ -116,7 +116,7 @@ namespace RunCmd {
 				throw new System.Exception($"missing filters {source}");
 			}
 			int loopguard = 0;
-			while (filterIndex < CommandAssets.Count) {
+			while (commandAssetIndex < CommandAssets.Count) {
 				if (loopguard++ > 100) {
 					throw new System.Exception("executor loop guard");
 				}
@@ -124,7 +124,7 @@ namespace RunCmd {
 					currentCommand = null;
 				}
 				if (currentCommand == null) {
-					ICommandAsset commandAsset = CommandAssets[filterIndex];
+					ICommandAsset commandAsset = CommandAssets[commandAssetIndex];
 					currentCommand = commandAsset.GetCommandCreateIfMissing(Context);
 					if (currentCommand == null) {
 						Debug.LogError($"failed to create process from: {commandAsset}");
@@ -147,24 +147,24 @@ namespace RunCmd {
 					if (filter != null) {
 						ICommandProcessor subCommand = filter.GetReferencedCommand(Context);
 						Object subCommandObj = subCommand as Object;
-						Debug.Log($"~~~ executing [{filterIndex}] {commandObj.name} -> {subCommandObj.name}\n\n{currentCommandText}\n\n");
+						Debug.Log($"~~~ executing [{commandAssetIndex}] {commandObj.name} -> {subCommandObj.name}\n\n{currentCommandText}\n\n");
 					} else {
-						Debug.Log($"~~~ executing [{filterIndex}] {commandObj.name}\n\n{currentCommandText}\n\n");
+						Debug.Log($"~~~ executing [{commandAssetIndex}] {commandObj.name}\n\n{currentCommandText}\n\n");
 					}
 					return true;
 				}
 				ICommandFilter commandFilter = currentCommand as ICommandFilter;
 				currentCommandAfterFilter = (commandFilter != null) ? commandFilter.FilterResult(Context) : null;
-				Debug.Log($"{filterIndex} {CommandAssets[filterIndex]}     {currentCommandText} -> {currentCommandAfterFilter}");
+				Debug.Log($"{commandAssetIndex} {CommandAssets[commandAssetIndex]}     {currentCommandText} -> {currentCommandAfterFilter}");
 				if (currentCommandAfterFilter == null) {
-					Debug.Log($"@@@@@ {currentCommandText} consumed by {CommandAssets[filterIndex]}");
+					Debug.Log($"@@@@@ {currentCommandText} consumed by {CommandAssets[commandAssetIndex]}");
 					return false;
 				} else if (currentCommandAfterFilter != currentCommandText) {
-					Debug.Log($"@@@@@ {currentCommandText} changed into {currentCommandAfterFilter} by {CommandAssets[filterIndex]} {currentCommand}  (ctx {Context})");
+					Debug.Log($"@@@@@ {currentCommandText} changed into {currentCommandAfterFilter} by {CommandAssets[commandAssetIndex]} {currentCommand}  (ctx {Context})");
 					currentCommandText = currentCommandAfterFilter;
 				}
 				currentCommand = null;
-				++filterIndex;
+				++commandAssetIndex;
 			}
 			//Debug.Log($"{currentCommandText} NOT consumed");
 			return false;

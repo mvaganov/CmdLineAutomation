@@ -4,9 +4,8 @@ using UnityEngine;
 namespace RunCmd {
 	/// <summary>
 	/// This is the memory required to run a command instruction list
-	/// TODO rename ProcedureExecution?
 	/// </summary>
-	public class CommandExecution {
+	public class ProcedureExecution {
 		/// <summary>
 		/// What object counts as the owner of this command
 		/// </summary>
@@ -254,7 +253,7 @@ namespace RunCmd {
 
 		public string FunctionResult() => currentCommand != null ? currentCommand.FilterResult(context) : currentCommandResult;
 
-		public CommandExecution(object context, ICommandExecutor commandExecutor) {
+		public ProcedureExecution(object context, ICommandExecutor commandExecutor) {
 			//UnityEngine.Debug.LogWarning($"######## new Execution {context} by {commandExecutor}");
 			source = commandExecutor;
 			if (source == null) {
