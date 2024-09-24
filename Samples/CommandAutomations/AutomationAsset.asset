@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6597ab6bf7e2628448df4b1b7f6ac17a, type: 3}
   m_Name: AutomationAsset
   m_EditorClassIdentifier: 
-  _settings: {fileID: 11400000, guid: 0e953e990e34af54eadaed24f3b88238, type: 2}
+  _settings: {fileID: 11400000, guid: 4c26ba9a2264c8c46a7fa9e3bb68ac13, type: 2}
   _command:
     Description: 
     Text: '# getchoice
@@ -60,41 +60,11 @@ MonoBehaviour:
     - Text: echo done!
       Ignore: 0
   _executor:
-    _settings: {fileID: 11400000, guid: 0e953e990e34af54eadaed24f3b88238, type: 2}
+    _settings: {fileID: 11400000, guid: 4c26ba9a2264c8c46a7fa9e3bb68ac13, type: 2}
     commandExecutingIndex: 83
     _currentCommands: []
     cancelled: 1
-    currentCommandText: sleep 3
-    commandOutput: 'Microsoft Windows [Version 10.0.19045.4894]
-
-      (c) Microsoft
-      Corporation. All rights reserved.
-
-      
-
-      C:\Users\mvaga\Developer\CmdLineAutomation\SampleProjects~\CmdLineAutomation>hi
-
-      
-
-      C:\Users\mvaga\Developer\CmdLineAutomation\SampleProjects~\CmdLineAutomation>cd
-      ..
-
-      
-
-      C:\Users\mvaga\Developer\CmdLineAutomation\SampleProjects~>cd
-      ..
-
-      
-
-      C:\Users\mvaga\Developer\CmdLineAutomation>cd ..
-
-      
-
-      C:\Users\mvaga\Developer>sleep
-      3
-
-      ~~~waiting 3 seconds~~~
-
-'
-    currentCommandAfterFilter: sleep 3
+    currentCommandText: hi
+    commandOutput: 
+    currentCommandAfterFilter: hi
   _progressing: 1
