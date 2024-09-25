@@ -12,13 +12,13 @@ namespace RunCmd {
 		internal enum RegexGroupId { None = -1, Variable = 0, HideNextOutputLine = 1, DisableOutputOnRead = 2, EnableOutputOnRead = 3 }
 		/// <summary>
 		/// List of the possible custom commands written as C# <see cref="ICommandAsset"/>s
-		/// </summary> TODO rename _commandAssets
-		[SerializeField] protected UnityEngine.Object[] _commandFilters;
+		/// </summary>
+		[SerializeField] protected UnityEngine.Object[] _commandAssets;
 
 		/// <summary>
-		/// List if command assets to feed input into, which may or may not consume a command. This is the type disambiguated version of <see cref="_commandFilters"/>
-		/// </summary> TODO rename _iCommandAssets
-		private List<ICommandAsset> _commandAssets;
+		/// List if command assets to feed input into, which may or may not consume a command. This is the type disambiguated version of <see cref="_commandAssets"/>
+		/// </summary>
+		private List<ICommandAsset> _iCommandAssets;
 
 		[System.Serializable]
 		public class MutableValues {
@@ -92,18 +92,18 @@ namespace RunCmd {
 				if (NeedsInitialization()) {
 					Initialize();
 				}
-				return _commandAssets;
+				return _iCommandAssets;
 			}
 		} 
 
-		private bool NeedsInitialization() => _commandAssets == null;
+		private bool NeedsInitialization() => _iCommandAssets == null;
 
 		public void Initialize() {
-			_commandAssets = new List<ICommandAsset>();
-			foreach (UnityEngine.Object obj in _commandFilters) {
+			_iCommandAssets = new List<ICommandAsset>();
+			foreach (UnityEngine.Object obj in _commandAssets) {
 				switch (obj) {
 					case ICommandAsset iAsset:
-						_commandAssets.Add(iAsset);
+						_iCommandAssets.Add(iAsset);
 						break;
 					default:
 						Debug.LogError($"unexpected asset type {obj.GetType().Name}, " +
