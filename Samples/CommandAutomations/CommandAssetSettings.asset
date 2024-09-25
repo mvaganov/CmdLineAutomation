@@ -12,7 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23d82878d18769e4a85f6e7b9cae841a, type: 3}
   m_Name: CommandAssetSettings
   m_EditorClassIdentifier: 
-  _commandFilters: []
+  _commandAssets:
+  - {fileID: 11400000, guid: 16fedd41ea311bf4ca18e7b5df7da7e7, type: 2}
+  - {fileID: 11400000, guid: a5e9cd423b4aa3942bf68a30e88fa041, type: 2}
   _runtimeSettings:
     _regexTriggerProcessor:
       _regexTriggers:
