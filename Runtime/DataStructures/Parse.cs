@@ -154,7 +154,7 @@ namespace RunCmd {
 
 		public struct ParseResult {
 			public enum Kind {
-				None, Success, UnexpectedInitialToken, MissingEndToken, UnexpectedDelimiter, MissingDictionaryKey, MissingDictionaryValue, UnexpectedToken
+				None, Success, UnexpectedInitialToken, MissingEndToken, UnexpectedDelimiter, MissingDictionaryKey, MissingDictionaryAssignment, UnexpectedToken
 			}
 			public Kind ResultKind;
 			public int TextIndex;
@@ -307,7 +307,7 @@ namespace RunCmd {
 		private static object ParseDelimDictionaryValue(ref Token token, IList<Token> tokens, ref int tokenIndex, ref ParseResult error) {
 			switch (token.Text) {
 				case ":": ++tokenIndex; return null;
-				case ",": error = new ParseResult(ParseResult.Kind.MissingDictionaryValue, token.TextIndex); return null;
+				case ",": error = new ParseResult(ParseResult.Kind.MissingDictionaryAssignment, token.TextIndex); return null;
 				default: return ParseDelimKnownStructure(tokens, ref tokenIndex, out error);
 			}
 		}
@@ -339,6 +339,7 @@ namespace RunCmd {
 				case Token token:      ToStringToken(sb, token); break;
 				case IList list:       ToStringArray(sb, list, indent, includeWhitespace); break;
 				case IDictionary dict: ToStringDictionary(sb, dict, indent, includeWhitespace); break;
+				default: sb.Append($"unexpected {parsedToken}"); break;
 			}
 			return sb.ToString();
 		}
