@@ -1,170 +1,202 @@
-using RunCmd;
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
-using static RunCmd.Parse;
 
-public class ParseObject : MonoBehaviour {
-	[System.Serializable]
-	public class OptionData {
-		public string name;
-		public int id;
-		public float time;
-		public string[] effects;
-	}
-	public string title;
-	public OptionData[] options;
-
-	public string testData =
-@"{
-	title : 'the data',
-	options : [
-		{name:'option0',id:10, effects : ['dooption 0', 'advance']},
-		{name:'option1',time:3.1415,effects : ['dooption 1', 'advance']},
-	]
-";
-
-	[ContextMenu(nameof(TestParse))]
-	public void TestParse() {
-		object self = this;
-		TryParse(testData, out Parse.ParseResult resultData, ref self);
-	}
-
-	public static bool TryParse(string text, out Parse.ParseResult resultData, ref object parsedObject) {
-		object result = ParseText(text, out resultData);
-		if (resultData.IsError) {
-			Debug.LogWarning(resultData.ToString());
-			return false;
-		}
-		Assign(ref parsedObject, parsedObject.GetType(), result);
-		return true;
-	}
-
-	public static void Assign(ref object targetObject, Type targetType, object data) {
-		bool isString = targetType == typeof(string);
-		if (targetType.IsClass && !isString && !targetType.IsArray) {
-			bool isPrimitive = targetType.IsPrimitive || isString;
-			if (targetObject == null && !isPrimitive) {
-				targetObject = Activator.CreateInstance(targetType);
-			}
-			CompileObject(ref targetObject, data);
-		} else if (targetType.IsArray) {
-			targetObject = CompileArray(targetType, data);
-		} else if (targetType.IsValueType || isString) {
-			targetObject = CompilePrimitiveValue(data, targetType);
-		} else {
-			Debug.LogError($"??? {targetType}");
-		}
-	}
-
-	private static void CompileObject(ref object targetObject, object data) {
-		if (!(data is IDictionary dict)) {
-			return;
-		}
-		foreach (DictionaryEntry kvp in dict) {
-			string name = kvp.Key.ToString();
-			if (!TryGetValue(targetObject, name, out object value, out Type valueType)) {
-				Debug.LogError($"missing {name} in type {targetObject.GetType()}");
-			}
-			Assign(ref value, valueType, kvp.Value);
-			TrySetValue(targetObject, name, value);
-		}
-	}
-
-	private static object CompilePrimitiveValue(object data, Type targetType) {
-		if (data is RunCmd.Parse.Token token) {
-			return Convert.ChangeType(token.Text, targetType);
-		}
-		return Convert.ChangeType(data.ToString(), targetType);
-	}
-
-	private static object CompileArray(Type objectType, object data) {
-		if (!(data is IList iList)) {
-			return null;
-		}
-		Type elementType = objectType.GetElementType();
-		Array arr = Array.CreateInstance(elementType, iList.Count);
-		for (int i = 0; i < iList.Count; ++i) {
-			object elementData = iList[i];
-			object elementObject = null;
-			if (elementType.IsValueType || elementType == typeof(string)) {
-				elementObject = CompilePrimitiveValue(elementData, elementType);
-			} else {
-				elementObject = Activator.CreateInstance(elementType);
-				Assign(ref elementObject, elementType, elementData);
-			}
-			arr.SetValue(elementObject, i);
-		}
-		return arr;
-	}
-
+namespace RunCmd {
 	/// <summary>
-	/// Use reflection to get a value by the member name
+	/// Reflectively applies parsed data to compiled objects.
+	/// Use this sparingly, because C# reflection caches reflection tables, akin
+	/// to creating a memory leak for the entire app's lifecycle.
 	/// </summary>
-	/// <param name="self"></param>
-	/// <param name="memberName"></param>
-	/// <param name="memberType"></param>
-	/// <returns></returns>
-	private static bool TryGetValue(object self, string memberName, out object memberValue, out Type memberType) {
-		if (self == null) {
-			memberType = typeof(int);
-			memberValue = null;
-			return false;
-		}
-		Type type = self.GetType();
-		BindingFlags bindFlags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance;
-		while (type != null) {
-			FieldInfo field = type.GetField(memberName, bindFlags);
-			if (field != null) {
-				memberType = field.FieldType;
-				memberValue = field.GetValue(self);
+	public static partial class Parse {
+		public static partial class Object {
+			/// <param name="targetObject">cannot be null</param>
+			/// <param name="text"></param>
+			/// <param name="resultData"></param>
+			/// <returns></returns>
+			public static bool TryParse(ref object targetObject, string text, out Parse.ParseResult resultData) {
+				if (targetObject == null) {
+					resultData = new Parse.ParseResult(ParseResult.Kind.MissingTarget, -1);
+					return false;
+				}
+				return TryParse(ref targetObject, targetObject.GetType(), text, out resultData);
+			}
+
+			/// <param name="targetObject">can be null</param>
+			/// <param name="text"></param>
+			/// <param name="resultData"></param>
+			/// <returns></returns>
+			public static bool TryParse(ref object targetObject, Type targetType, string textToParse, out Parse.ParseResult parseResult) {
+				object parsedData = ParseText(textToParse, out parseResult);
+				Debug.Log(Parse.ToString(parsedData));
+				if (parseResult.IsError) {
+					Debug.Log(parseResult);
+					return false;
+				}
+				TryAssign(ref targetObject, targetType, parsedData);
 				return true;
 			}
-			PropertyInfo prop = type.GetProperty(memberName, bindFlags | BindingFlags.IgnoreCase);
-			if (prop != null) {
-				memberType = prop.PropertyType;
-				memberValue = prop.GetValue(self, null);
+
+			/// <summary>
+			/// Applies parsed data (a combination of IDictionary, IList, and Token, from
+			/// <see cref="ParseText(string, out ParseResult)"/>) to the given target object
+			/// </summary>
+			/// <param name="targetObject"></param>
+			/// <param name="targetType"></param>
+			/// <param name="parsedData"></param>
+			/// <returns></returns>
+			public static bool TryAssign(ref object targetObject, Type targetType, object parsedData) {
+				bool isString = targetType == typeof(string);
+				if (targetType.IsClass && !isString && !targetType.IsArray) {
+					bool isPrimitive = targetType.IsPrimitive || isString;
+					if (targetObject == null && !isPrimitive) {
+						targetObject = Activator.CreateInstance(targetType);
+					}
+					return TryCompileObject(ref targetObject, targetType, parsedData);
+				} else if (targetType.IsArray) {
+					return TryCompileArray(ref targetObject, targetType, parsedData);
+				} else if (isString || targetType.IsValueType) {
+					return TryCompilePrimitive(ref targetObject, targetType, parsedData);
+				} else {
+					Debug.LogError($"??? {targetType}");
+				}
+				return false;
+			}
+
+			/// <summary>
+			/// Applies parsed data (an IDictionary from
+			/// <see cref="ParseText(string, out ParseResult)"/>) to the given target object
+			/// </summary>
+			/// <param name="targetObject"></param>
+			/// <param name="targetType"></param>
+			/// <param name="parsedData"></param>
+			/// <returns></returns>
+			private static bool TryCompileObject(ref object targetObject, Type targetType, object parsedData) {
+				if (!(parsedData is IDictionary dict)) {
+					return false;
+				}
+				foreach (DictionaryEntry kvp in dict) {
+					string name = kvp.Key.ToString();
+					if (!TryGetValue(targetObject, name, out object value, out Type valueType)) {
+						Debug.LogError($"missing {name} in type {targetType}");
+					}
+					TryAssign(ref value, valueType, kvp.Value);
+					TrySetValue(targetObject, name, value);
+				}
 				return true;
 			}
-			type = type.BaseType;
-		}
-		memberType = typeof(byte);
-		memberValue = null;
-		return false;
-	}
 
-	private static bool TrySetValue(object source, string name, object value) {
-		if (source == null) { return false; }
-		System.Type type = source.GetType();
-		BindingFlags bindFlags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance;
-		while (type != null) {
-			FieldInfo field = type.GetField(name, bindFlags);
-			if (field != null) {
-				field.SetValue(source, value);
+			/// <summary>
+			/// Applies parsed data (an IList from
+			/// <see cref="ParseText(string, out ParseResult)"/>) to the given target object
+			/// </summary>
+			/// <param name="targetObject"></param>
+			/// <param name="targetType"></param>
+			/// <param name="data"></param>
+			/// <returns></returns>
+			private static bool TryCompileArray(ref object targetObject, Type targetType, object data) {
+				if (!(data is IList iList)) {
+					return false;
+				}
+				Type elementType = targetType.GetElementType();
+				Array arr = Array.CreateInstance(elementType, iList.Count);
+				bool allSuccess = true;
+				for (int i = 0; i < iList.Count; ++i) {
+					object elementData = iList[i];
+					object elementObject = null;
+					if (elementType.IsValueType || elementType == typeof(string)) {
+						if (!TryCompilePrimitive(ref elementObject, elementType, elementData)) {
+							allSuccess = false;
+						}
+					} else {
+						elementObject = Activator.CreateInstance(elementType);
+						TryAssign(ref elementObject, elementType, elementData);
+					}
+					arr.SetValue(elementObject, i);
+				}
+				targetObject = arr;
+				return allSuccess;
 			}
-			PropertyInfo prop = type.GetProperty(name, bindFlags | BindingFlags.IgnoreCase);
-			if (prop != null) {
-				prop.SetValue(source, null);
+
+			/// <summary>
+			/// Applies parsed data (a Token from
+			/// <see cref="ParseText(string, out ParseResult)"/>) to the given target object
+			/// </summary>
+			/// <param name="targetObject"></param>
+			/// <param name="targetType"></param>
+			/// <param name="parsedData"></param>
+			/// <returns></returns>
+			private static bool TryCompilePrimitive(ref object targetObject, Type targetType, object parsedData) {
+				if (parsedData is Token token) {
+					targetObject = Convert.ChangeType(token.Text, targetType);
+					return true;
+				}
+				targetObject = Convert.ChangeType(parsedData.ToString(), targetType);
+				return true;
 			}
-			type = type.BaseType;
+
+			/// <summary>
+			/// Use reflection to get a value by the member name
+			/// </summary>
+			/// <param name="self"></param>
+			/// <param name="memberName"></param>
+			/// <param name="memberType"></param>
+			/// <returns></returns>
+			private static bool TryGetValue(object self, string memberName, out object memberValue, out Type memberType) {
+				if (self == null) {
+					memberType = typeof(int);
+					memberValue = null;
+					return false;
+				}
+				Type type = self.GetType();
+				BindingFlags bindFlags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance;
+				while (type != null) {
+					FieldInfo field = type.GetField(memberName, bindFlags);
+					if (field != null) {
+						memberType = field.FieldType;
+						memberValue = field.GetValue(self);
+						return true;
+					}
+					PropertyInfo prop = type.GetProperty(memberName, bindFlags | BindingFlags.IgnoreCase);
+					if (prop != null) {
+						memberType = prop.PropertyType;
+						memberValue = prop.GetValue(self, null);
+						return true;
+					}
+					type = type.BaseType;
+				}
+				memberType = typeof(byte);
+				memberValue = null;
+				return false;
+			}
+
+			/// <summary>
+			/// Use reflection to set a value by the member name
+			/// </summary>
+			/// <param name="self"></param>
+			/// <param name="memberName"></param>
+			/// <param name="memberType"></param>
+			/// <returns></returns>
+			private static bool TrySetValue(object source, string name, object value) {
+				if (source == null) { return false; }
+				Type type = source.GetType();
+				BindingFlags bindFlags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance;
+				while (type != null) {
+					FieldInfo field = type.GetField(name, bindFlags);
+					if (field != null) {
+						field.SetValue(source, value);
+						return true;
+					}
+					PropertyInfo prop = type.GetProperty(name, bindFlags | BindingFlags.IgnoreCase);
+					if (prop != null) {
+						prop.SetValue(source, null);
+						return true;
+					}
+					type = type.BaseType;
+				}
+				return true;
+			}
 		}
-		return true;
-	}
-
-	public static bool IsList(object o) {
-		if (o == null) return false;
-		return o is IList &&
-					 o.GetType().IsGenericType &&
-					 o.GetType().GetGenericTypeDefinition().IsAssignableFrom(typeof(List<>));
-	}
-	void Start() {
-
-	}
-
-	// Update is called once per frame
-	void Update() {
-
 	}
 }
