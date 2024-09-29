@@ -41,36 +41,48 @@ public class ParseObject : MonoBehaviour {
 		Assign(ref parsedObject, parsedObject.GetType(), result);
 		return true;
 	}
+
 	public static void Assign(ref object targetObject, Type targetType, object data) {
 		bool isString = targetType == typeof(string);
 		if (targetType.IsClass && !isString && !targetType.IsArray) {
-			if (data is IDictionary dict) {
-				foreach (DictionaryEntry kvp in dict) {
-					string name = kvp.Key.ToString();
-					TryGetValue(targetObject, name, out object value, out Type valueType);
-					Assign(ref value, valueType, kvp.Value);
-					TrySetValue(targetObject, name, value);
-				}
+			bool isPrimitive = targetType.IsPrimitive || isString;
+			if (targetObject == null && !isPrimitive) {
+				targetObject = Activator.CreateInstance(targetType);
 			}
+			CompileObject(ref targetObject, data);
 		} else if (targetType.IsArray) {
-			SetArray(targetType, data, ref targetObject);
+			targetObject = CompileArray(targetType, data);
 		} else if (targetType.IsValueType || isString) {
-			targetObject = GetPrimitiveValue(data, targetType);
+			targetObject = CompilePrimitiveValue(data, targetType);
 		} else {
-			Debug.Log($"??? {targetType}");
+			Debug.LogError($"??? {targetType}");
 		}
 	}
 
-	private static object GetPrimitiveValue(object data, Type targetType) {
+	private static void CompileObject(ref object targetObject, object data) {
+		if (!(data is IDictionary dict)) {
+			return;
+		}
+		foreach (DictionaryEntry kvp in dict) {
+			string name = kvp.Key.ToString();
+			if (!TryGetValue(targetObject, name, out object value, out Type valueType)) {
+				Debug.LogError($"missing {name} in type {targetObject.GetType()}");
+			}
+			Assign(ref value, valueType, kvp.Value);
+			TrySetValue(targetObject, name, value);
+		}
+	}
+
+	private static object CompilePrimitiveValue(object data, Type targetType) {
 		if (data is RunCmd.Parse.Token token) {
 			return Convert.ChangeType(token.Text, targetType);
 		}
 		return Convert.ChangeType(data.ToString(), targetType);
 	}
 
-	private static void SetArray(Type objectType, object data, ref object parsedObject) {
+	private static object CompileArray(Type objectType, object data) {
 		if (!(data is IList iList)) {
-			return;
+			return null;
 		}
 		Type elementType = objectType.GetElementType();
 		Array arr = Array.CreateInstance(elementType, iList.Count);
@@ -78,14 +90,14 @@ public class ParseObject : MonoBehaviour {
 			object elementData = iList[i];
 			object elementObject = null;
 			if (elementType.IsValueType || elementType == typeof(string)) {
-				elementObject = GetPrimitiveValue(elementData, elementType);
+				elementObject = CompilePrimitiveValue(elementData, elementType);
 			} else {
 				elementObject = Activator.CreateInstance(elementType);
 				Assign(ref elementObject, elementType, elementData);
 			}
 			arr.SetValue(elementObject, i);
 		}
-		parsedObject = arr;
+		return arr;
 	}
 
 	/// <summary>
