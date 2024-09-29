@@ -3,7 +3,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
-using Unity.VisualScripting.YamlDotNet.Core.Tokens;
 using UnityEngine;
 using static RunCmd.Parse;
 
@@ -11,6 +10,8 @@ public class ParseObject : MonoBehaviour {
 	[System.Serializable]
 	public class OptionData {
 		public string name;
+		public int id;
+		public float time;
 		public string[] effects;
 	}
 	public string title;
@@ -20,114 +21,124 @@ public class ParseObject : MonoBehaviour {
 @"{
 	title : 'the data',
 	options : [
-		{name:'option0',effects : ['dooption 0', 'advance']},
-		{name:'option1',effects : ['dooption 1', 'advance']},
+		{name:'option0',id:10, effects : ['dooption 0', 'advance']},
+		{name:'option1',time:3.1415,effects : ['dooption 1', 'advance']},
 	]
 ";
 
 	[ContextMenu(nameof(TestParse))]
 	public void TestParse() {
 		object self = this;
-		Parse(testData, out Parse.ParseResult resultData, ref self);
-		Debug.Log(resultData.ToString());
+		TryParse(testData, out Parse.ParseResult resultData, ref self);
 	}
 
-	public static void Parse(string text, out Parse.ParseResult resultData, ref object parsedObject) {
+	public static bool TryParse(string text, out Parse.ParseResult resultData, ref object parsedObject) {
 		object result = ParseText(text, out resultData);
-		Debug.Log(resultData.ToString());
+		if (resultData.IsError) {
+			Debug.LogWarning(resultData.ToString());
+			return false;
+		}
 		Assign(ref parsedObject, parsedObject.GetType(), result);
-
+		return true;
 	}
-	public static void Assign(ref object parsedObject, Type objectType, object data) {
-		//Type type = parsedObject.GetType();
-		RunCmd.Parse.ToString(data);
-
-		bool isString = objectType == typeof(string);
-
-		if (objectType.IsClass && !isString) {
+	public static void Assign(ref object targetObject, Type targetType, object data) {
+		bool isString = targetType == typeof(string);
+		if (targetType.IsClass && !isString && !targetType.IsArray) {
 			if (data is IDictionary dict) {
-				foreach(DictionaryEntry kvp in dict) {
+				foreach (DictionaryEntry kvp in dict) {
 					string name = kvp.Key.ToString();
-					Debug.Log(kvp.Key);
-					Debug.Log($"getting '{name}' from {parsedObject}");
-					object value = GetValue(parsedObject, name, out Type valueType);
+					TryGetValue(targetObject, name, out object value, out Type valueType);
 					Assign(ref value, valueType, kvp.Value);
-					Debug.Log($"setting {name} = {value}");
-					SetValue(parsedObject, name, value);
-				}
-			} else {
-					Debug.LogError($"can't create class {objectType} with {data}");
-				if (objectType.IsArray) {
-					IList iList = data as IList;
-					Debug.LogWarning("ARRAY! " + IsList(data));
-					if (iList != null) {
-						Debug.LogWarning(iList.Count);
-						Type arrayElementType = objectType.GetElementType();
-						Debug.LogWarning(arrayElementType);
-						Array arr = Array.CreateInstance(arrayElementType, iList.Count);
-						for(int i = 0; i < iList.Count; ++i) {
-							object elementData = iList[i];
-							object element = Activator.CreateInstance(arrayElementType);
-							arr.SetValue(element, i);
-							Assign(ref element, arrayElementType, elementData);
-							arr.SetValue(element, i);
-						}
-						parsedObject = arr;
-					}
+					TrySetValue(targetObject, name, value);
 				}
 			}
-		}
-		else if (objectType.IsArray) {
-			Debug.Log($"array {objectType}");
-		} else if (objectType.IsValueType || isString) {
-			if (data is RunCmd.Parse.Token token) {
-				parsedObject = Convert.ChangeType(token.Text, objectType);
-			} else {
-				Debug.LogError($"unable to set {objectType} to {data}");
-			}
+		} else if (targetType.IsArray) {
+			SetArray(targetType, data, ref targetObject);
+		} else if (targetType.IsValueType || isString) {
+			targetObject = GetPrimitiveValue(data, targetType);
 		} else {
-			Debug.Log($"??? {objectType}");
-		}
-
-		switch (data) {
-			case RunCmd.Parse.Token token:
-				Debug.Log($"set {parsedObject} to {token}");
-				break;
-			case IList list:
-				Debug.Log($"set {parsedObject} to {list.Count} elements");
-				break;
-			case IDictionary dict:
-				Debug.Log($"set {parsedObject} to {dict.Count} values");
-				break;
+			Debug.Log($"??? {targetType}");
 		}
 	}
 
-	private static object GetValue(object source, string name, out Type resultType) {
-		if (source == null) { resultType = typeof(int); return null; }
+	private static object GetPrimitiveValue(object data, Type targetType) {
+		if (data is RunCmd.Parse.Token token) {
+			return Convert.ChangeType(token.Text, targetType);
+		}
+		return Convert.ChangeType(data.ToString(), targetType);
+	}
+
+	private static void SetArray(Type objectType, object data, ref object parsedObject) {
+		if (!(data is IList iList)) {
+			return;
+		}
+		Type elementType = objectType.GetElementType();
+		Array arr = Array.CreateInstance(elementType, iList.Count);
+		for (int i = 0; i < iList.Count; ++i) {
+			object elementData = iList[i];
+			object elementObject = null;
+			if (elementType.IsValueType || elementType == typeof(string)) {
+				elementObject = GetPrimitiveValue(elementData, elementType);
+			} else {
+				elementObject = Activator.CreateInstance(elementType);
+				Assign(ref elementObject, elementType, elementData);
+			}
+			arr.SetValue(elementObject, i);
+		}
+		parsedObject = arr;
+	}
+
+	/// <summary>
+	/// Use reflection to get a value by the member name
+	/// </summary>
+	/// <param name="self"></param>
+	/// <param name="memberName"></param>
+	/// <param name="memberType"></param>
+	/// <returns></returns>
+	private static bool TryGetValue(object self, string memberName, out object memberValue, out Type memberType) {
+		if (self == null) {
+			memberType = typeof(int);
+			memberValue = null;
+			return false;
+		}
+		Type type = self.GetType();
+		BindingFlags bindFlags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance;
+		while (type != null) {
+			FieldInfo field = type.GetField(memberName, bindFlags);
+			if (field != null) {
+				memberType = field.FieldType;
+				memberValue = field.GetValue(self);
+				return true;
+			}
+			PropertyInfo prop = type.GetProperty(memberName, bindFlags | BindingFlags.IgnoreCase);
+			if (prop != null) {
+				memberType = prop.PropertyType;
+				memberValue = prop.GetValue(self, null);
+				return true;
+			}
+			type = type.BaseType;
+		}
+		memberType = typeof(byte);
+		memberValue = null;
+		return false;
+	}
+
+	private static bool TrySetValue(object source, string name, object value) {
+		if (source == null) { return false; }
 		System.Type type = source.GetType();
 		BindingFlags bindFlags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance;
 		while (type != null) {
 			FieldInfo field = type.GetField(name, bindFlags);
-			if (field != null) { resultType = field.FieldType; return field.GetValue(source); }
+			if (field != null) {
+				field.SetValue(source, value);
+			}
 			PropertyInfo prop = type.GetProperty(name, bindFlags | BindingFlags.IgnoreCase);
-			if (prop != null) { resultType = prop.PropertyType; return prop.GetValue(source, null); }
+			if (prop != null) {
+				prop.SetValue(source, null);
+			}
 			type = type.BaseType;
 		}
-		resultType = typeof(byte);
-		return null;
-	}
-
-	private static void SetValue(object source, string name, object value) {
-		if (source == null) { return; }
-		System.Type type = source.GetType();
-		BindingFlags bindFlags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance;
-		while (type != null) {
-			FieldInfo field = type.GetField(name, bindFlags);
-			if (field != null) { field.SetValue(source, value); }
-			PropertyInfo prop = type.GetProperty(name, bindFlags | BindingFlags.IgnoreCase);
-			if (prop != null) { prop.SetValue(source, null); }
-			type = type.BaseType;
-		}
+		return true;
 	}
 
 	public static bool IsList(object o) {
