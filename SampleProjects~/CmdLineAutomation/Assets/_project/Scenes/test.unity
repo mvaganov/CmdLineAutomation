@@ -411,7 +411,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1605746980}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1d031fb987e5461418ea33656646510a, type: 3}
+  m_Script: {fileID: 11500000, guid: 69815c1c7fe642647b80095fc8c75908, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   title: the data
@@ -428,9 +428,9 @@ MonoBehaviour:
     effects:
     - dooption 1
     - advance
-  testData: "{\n\ttitle : 'the data',\n\toptions : [\n\t\t{name:'option0',id:10,
-    effects : ['dooption 0', 'advance']},\n\t\t{name:'option1',time:3.1415,effects
-    : ['dooption 1', 'advance']},\n\t]\n"
+  testData: "{\r\n\ttitle : 'the data',\n\r\toptions : [\n\r\t\t{name:'option0',id:10,
+    effects : ['dooption 0', 'advance']},\n\r\t\t{name:'option1',time:3.1415,effects
+    : ['dooption 1', 'advance']},\n\r\t]"
 --- !u!1001 &1447448046404200381
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -488,7 +488,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1447448046196087468, guid: c29d0eedbaaff714693461ae535ba9bc, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: -0.00000333786
+      value: 0.0007875491
       objectReference: {fileID: 0}
     - target: {fileID: 1447448046196087468, guid: c29d0eedbaaff714693461ae535ba9bc, type: 3}
       propertyPath: m_AnchoredPosition.y
