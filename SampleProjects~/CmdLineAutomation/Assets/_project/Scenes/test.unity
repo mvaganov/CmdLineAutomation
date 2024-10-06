@@ -428,9 +428,9 @@ MonoBehaviour:
     effects:
     - dooption 1
     - advance
-  testData: "{\r\n\ttitle : 'the data',\n\r\toptions : [\n\r\t\t{name:'option0',id:10,
-    effects : ['dooption 0', 'advance']},\n\r\t\t{name:'option1',time:3.1415,effects
-    : ['dooption 1', 'advance']},\n\r\t]"
+  testData: "{\n\ttitle : 'the data',\n\toptions : [\n\t\t{name:'option0',id:10,
+    effects : ['dooption 0', 'advance']},\n\t\t{name:'option1',time:3.1415,effects
+    : ['dooption 1', 'advance']},\n\t]\n}"
 --- !u!1001 &1447448046404200381
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -488,7 +488,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1447448046196087468, guid: c29d0eedbaaff714693461ae535ba9bc, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 0.0007875491
+      value: 0.0000076293945
       objectReference: {fileID: 0}
     - target: {fileID: 1447448046196087468, guid: c29d0eedbaaff714693461ae535ba9bc, type: 3}
       propertyPath: m_AnchoredPosition.y
