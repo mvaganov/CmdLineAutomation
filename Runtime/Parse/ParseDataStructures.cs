@@ -1,10 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 namespace RunCmd {
 	public static partial class Parse {
 		/// <summary>
-		/// String with metadata describing where the text came from in it's source.
+		/// String with metadata describing where the token came from in it's source text body.
 		/// </summary>
 		public struct Token {
 			public enum Kind { None, Text, Delim, TokBeg, TokEnd }
@@ -12,16 +13,25 @@ namespace RunCmd {
 			public Kind TokenKind;
 			public int TextIndex;
 			public int TextEndIndex => TextIndex + Text.Length;
-			public Token(string text, Kind kind, int textIndex) { Text = text; TokenKind = kind; TextIndex = textIndex; }
-			public Token(char letter, Kind kind, int textIndex) : this(letter.ToString(), kind, textIndex) { }
-			public Token(string text, int textIndex) : this(text, Kind.Text, textIndex) { }
+			public Token(string text, Kind kind, int textIndex) {
+				Text = text; TokenKind = kind; TextIndex = textIndex;
+			}
+			public Token(char letter, Kind kind, int textIndex)
+				: this(letter.ToString(), kind, textIndex) { }
+			public Token(string text, int textIndex)
+				: this(text, Kind.Text, textIndex) { }
 			public static implicit operator Token(string text) => new Token(text, -1);
 			public static implicit operator string(Token token) => token.Text;
-			public override string ToString() => TextIndex >= 0 ? $"({TokenKind}){Text}@{TextIndex}" : Text;
+			public override string ToString() =>
+				TextIndex >= 0 ? $"({TokenKind}){Text}@{TextIndex}" : Text;
 			public override int GetHashCode() => Text.GetHashCode();
-			public override bool Equals(object obj) => obj is Token t && t.TokenKind == TokenKind && t.Text == Text;
+			public override bool Equals(object obj) =>
+				obj is Token t && t.TokenKind == TokenKind && t.Text == Text;
 		}
 
+		/// <summary>
+		/// Result of a string parse
+		/// </summary>
 		public struct ParseResult {
 			public enum Kind {
 				None, Success, UnexpectedInitialToken, MissingEndToken, UnexpectedDelimiter,
@@ -40,7 +50,8 @@ namespace RunCmd {
 				this.TextIndex = textIndex;
 			}
 			public static ParseResult None = new ParseResult(Kind.None, -1);
-			public override string ToString() => $"{ResultKind}@{TextIndex}";
+			public override string ToString() =>
+				TextIndex < 0 ? $"{ResultKind}" : $"{ResultKind}@{TextIndex}";
 		}
 
 		/// <summary>
@@ -51,17 +62,29 @@ namespace RunCmd {
 			private char _readingLiteralToken = '\0';
 			private int _index, _start = 0, _end = -1;
 			private readonly List<Token> _tokens = new List<Token>();
-			private readonly string _command;
+			private readonly string _text;
 			private char _currentChar;
-			private readonly Dictionary<char, System.Action<TokenParsing>> _perCharacterAction;
-			private static readonly Dictionary<char, System.Action<TokenParsing>> DefaultPerCharacterAction;
+			private readonly Dictionary<char, Action<TokenParsing>> _perCharacterAction;
+			private static readonly Dictionary<char, Action<TokenParsing>> DefaultPerCharacterAction;
+
+			/// <summary>
+			/// If using <see cref="SplitTokensIncrementally"/>, this value will give a progress when
+			/// compared to <see cref="LastIndex"/>
+			/// </summary>
+			public int CurrentIndex => _index;
+
+			/// <summary>
+			/// If using <see cref="SplitTokensIncrementally"/>, this value will give a progress when
+			/// compared to <see cref="CurrentIndex"/>
+			/// </summary>
+			public int LastIndex => _text.Length;
 
 			static TokenParsing() {
 				DefaultPerCharacterAction = InitializeDefaultActions();
 			}
 
-			private static Dictionary<char, System.Action<TokenParsing>> InitializeDefaultActions() {
-				var actions = new Dictionary<char, System.Action<TokenParsing>>();
+			private static Dictionary<char, Action<TokenParsing>> InitializeDefaultActions() {
+				var actions = new Dictionary<char, Action<TokenParsing>>();
 				InitializeActions(",:{}[]()", actions, ReadDelimiter);
 				InitializeActions(" \t\n\r", actions, ReadWhitespace);
 				InitializeActions("\"\'", actions, ReadLiteralToken);
@@ -69,8 +92,9 @@ namespace RunCmd {
 				return actions;
 			}
 
-			public TokenParsing(string command, string delimiters, string whitespace, string literalTokens, string escapeSequence) {
-				_command = command;
+			public TokenParsing(string command, string delimiters, string whitespace,
+			string literalTokens, string escapeSequence) {
+				_text = command;
 				_perCharacterAction = new Dictionary<char, System.Action<TokenParsing>>();
 				InitializeActions(delimiters, _perCharacterAction, ReadDelimiter);
 				InitializeActions(whitespace, _perCharacterAction, ReadWhitespace);
@@ -78,12 +102,13 @@ namespace RunCmd {
 				InitializeActions(escapeSequence, _perCharacterAction, ReadEscapeSequence);
 			}
 
-			private static void InitializeActions(string characters, Dictionary<char, System.Action<TokenParsing>> actionDictionary, System.Action<TokenParsing> action) {
+			private static void InitializeActions(string characters,
+			Dictionary<char, Action<TokenParsing>> actionDictionary, Action<TokenParsing> action) {
 				foreach (char c in characters) { actionDictionary[c] = action; }
 			}
 
 			public TokenParsing(string command) {
-				_command = command;
+				_text = command;
 				_perCharacterAction = DefaultPerCharacterAction;
 			}
 
@@ -94,20 +119,56 @@ namespace RunCmd {
 
 			private bool IsReadingLiteral => _readingLiteralToken != '\0';
 
+			/// <summary>
+			/// Split all tokens at once, blocking call.
+			/// </summary>
+			/// <returns></returns>
 			public IList<Token> SplitTokens() {
-				for (_index = 0; _index < _command.Length; _index++) {
-					_currentChar = _command[_index];
-					if (_perCharacterAction.TryGetValue(_currentChar, out var action)) {
-						action.Invoke(this);
-					} else {
-						HandleTokenCharacter();
+				for (_index = 0; _index < _text.Length; _index++) {
+					IterateCharacter();
+				}
+				FinishParsing();
+				return _tokens;
+			}
+
+			/// <summary>
+			/// Non-blocking parse method, for halting parse if text is very large
+			/// </summary>
+			/// <param name="tokens">should be null when this is called the first time</param>
+			/// <param name="shouldPause"></param>
+			public bool SplitTokensIncrementally(ref IList<Token> tokens, Func<bool> shouldPause) {
+				if (tokens == null) {
+					_tokens.Clear();
+					_readingLiteralToken = '\0';
+					_index = _start = 0;
+					_end = -1;
+					tokens = _tokens;
+				}
+				while (_index < _text.Length) {
+					IterateCharacter();
+					++_index;
+					if (shouldPause.Invoke()) {
+						return true;
 					}
 				}
+				FinishParsing();
+				return false;
+			}
+
+			private void IterateCharacter() {
+				_currentChar = _text[_index];
+				if (_perCharacterAction.TryGetValue(_currentChar, out var action)) {
+					action.Invoke(this);
+				} else {
+					HandleTokenCharacter();
+				}
+			}
+
+			private void FinishParsing() {
 				if (_start >= 0 && _end < 0) {
 					_readingLiteralToken = '\0';
 					HandleWhitespace();
 				}
-				return _tokens;
 			}
 
 			private void HandleWhitespace() {
@@ -145,7 +206,7 @@ namespace RunCmd {
 			}
 
 			private string GetTokenSubstring(int start, int end) {
-				return _command.Substring(start, end - start);
+				return _text.Substring(start, end - start);
 			}
 
 			private void HandleDelimiter() {

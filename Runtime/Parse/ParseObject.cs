@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
 using System.Reflection;
+#if UNITY_EDITOR
 using UnityEngine;
+#endif
 
 namespace RunCmd {
 	/// <summary>
@@ -29,9 +31,10 @@ namespace RunCmd {
 			/// <returns></returns>
 			public static bool TryParse(ref object targetObject, Type targetType, string textToParse, out Parse.ParseResult parseResult) {
 				object parsedData = ParseText(textToParse, out parseResult);
-				Debug.Log(Parse.ToString(parsedData));
 				if (parseResult.IsError) {
-					Debug.Log(parseResult);
+#if UNITY_EDITOR
+					Debug.LogError(parseResult);
+#endif
 					return false;
 				}
 				TryAssign(ref targetObject, targetType, parsedData);
@@ -59,7 +62,9 @@ namespace RunCmd {
 				} else if (isString || targetType.IsValueType) {
 					return TryCompilePrimitive(ref targetObject, targetType, parsedData);
 				} else {
+#if UNITY_EDITOR
 					Debug.LogError($"??? {targetType}");
+#endif
 				}
 				return false;
 			}
@@ -79,7 +84,9 @@ namespace RunCmd {
 				foreach (DictionaryEntry kvp in dict) {
 					string name = kvp.Key.ToString();
 					if (!TryGetValue(targetObject, name, out object value, out Type valueType)) {
+#if UNITY_EDITOR
 						Debug.LogError($"missing {name} in type {targetType}");
+#endif
 					}
 					TryAssign(ref value, valueType, kvp.Value);
 					TrySetValue(targetObject, name, value);

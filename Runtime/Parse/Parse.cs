@@ -1,7 +1,10 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Text;
+using System.Threading.Tasks;
+using UnityEditor.PackageManager;
 
 namespace RunCmd {
 	/// <summary>
@@ -10,9 +13,6 @@ namespace RunCmd {
 	/// </summary>
 	public static partial class Parse {
 		public static object ParseText(string text, out ParseResult error) {
-			//if (text.IndexOf("\r") >= 0) {
-			//	text = text.Replace("\r", "");
-			//}
 			IList<Token> tokens = new TokenParsing(text).SplitTokens();
 			int tokenIndex = 0;
 			object result = ParseTokens(tokens, ref tokenIndex, out error);
@@ -22,6 +22,7 @@ namespace RunCmd {
 			return result;
 		}
 
+		// TODO create cooperative func. with SplitTokensIncrementally, make a non-blocking compile
 		public static object ParseTokens(IList<Token> tokens, ref int tokenIndex, out ParseResult error) {
 			Token token = tokens[tokenIndex];
 			error = ParseResult.None;
