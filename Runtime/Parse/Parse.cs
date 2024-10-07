@@ -3,8 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Text;
-using System.Threading.Tasks;
-using UnityEditor.PackageManager;
 
 namespace RunCmd {
 	/// <summary>
@@ -65,10 +63,10 @@ namespace RunCmd {
 			if (!IsExpectedDelimiter(token, "[", ref error)) { return null; }
 			++tokenIndex;
 			List<object> arrayValue = new List<object>();
-			int loopguard = 0;
+			//int loopguard = 0;
 			while (tokenIndex < tokens.Count) {
 				token = tokens[tokenIndex];
-				if (++loopguard > 10000) { throw new System.Exception($"Parsing loop exceeded at token {token.TextIndex}!"); }
+				//if (++loopguard > 10000) { throw new Exception($"Parsing loop exceeded at token {token.TextIndex}!"); }
 				ParseArrayElement(arrayValue, tokens, ref tokenIndex, ref error, out bool finished);
 				if (finished) { return arrayValue; }
 			}
@@ -84,10 +82,10 @@ namespace RunCmd {
 			error = ParseResult.None;
 			OrderedDictionary dictionaryValue = new OrderedDictionary();
 			object key = null, value = null;
-			int loopguard = 0;
+			//int loopguard = 0;
 			while (tokenIndex < tokens.Count) {
 				token = tokens[tokenIndex];
-				if (loopguard++ > 10000) { throw new System.Exception($"Parsing loop exceeded at token {token.TextIndex}!"); }
+				//if (loopguard++ > 10000) { throw new System.Exception($"Parsing loop exceeded at token {token.TextIndex}!"); }
 				ParseDictionaryKeyValuePair(ref key, ref value, tokens, ref tokenIndex, ref error, out bool finished);
 				if (finished) { return dictionaryValue; }
 				if (key != null && value != null) {
