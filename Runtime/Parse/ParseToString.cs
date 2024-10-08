@@ -2,7 +2,7 @@ using System.Collections;
 using System.Text;
 
 namespace RunCmd {
-  public static partial class Parse {
+	public static partial class Parse {
 
 		public static string ToString(object parsedToken, int indent = 0, bool includeWhitespace = true) {
 			StringBuilder sb = new StringBuilder();

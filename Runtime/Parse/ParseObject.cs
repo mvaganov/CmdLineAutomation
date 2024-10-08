@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Reflection;
 #if UNITY_EDITOR
 using UnityEngine;
@@ -150,13 +151,19 @@ namespace RunCmd {
 			/// <param name="memberName"></param>
 			/// <param name="memberType"></param>
 			/// <returns></returns>
-			private static bool TryGetValue(object self, string memberName, out object memberValue, out Type memberType) {
+			public static bool TryGetValue(object self, string memberName, out object memberValue, out Type memberType) {
 				if (self == null) {
 					memberType = typeof(int);
 					memberValue = null;
 					return false;
 				}
 				Type type = self.GetType();
+				bool isDict = type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>);
+				if (isDict && self is IDictionary dict && dict.Contains(memberName)) {
+					memberValue = dict[memberName];
+					memberType = memberValue.GetType();
+					return true;
+				}
 				BindingFlags bindFlags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance;
 				while (type != null) {
 					FieldInfo field = type.GetField(memberName, bindFlags);
@@ -185,7 +192,7 @@ namespace RunCmd {
 			/// <param name="memberName"></param>
 			/// <param name="memberType"></param>
 			/// <returns></returns>
-			private static bool TrySetValue(object source, string name, object value) {
+			public static bool TrySetValue(object source, string name, object value) {
 				if (source == null) { return false; }
 				Type type = source.GetType();
 				BindingFlags bindFlags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance;

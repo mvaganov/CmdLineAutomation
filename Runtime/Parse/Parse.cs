@@ -1,8 +1,6 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.Text;
 
 namespace RunCmd {
 	/// <summary>
@@ -10,27 +8,6 @@ namespace RunCmd {
 	/// or a raw token <see cref="IList{T}"/> using type  <see cref="Token"/>
 	/// </summary>
 	public static partial class Parse {
-		public static object ParseText(string text, out ParseResult error) {
-			IList<Token> tokens = new TokenParsing(text).SplitTokens();
-			int tokenIndex = 0;
-			object result = ParseTokens(tokens, ref tokenIndex, out error);
-			if (error.ResultKind == ParseResult.Kind.None) {
-				error.ResultKind = ParseResult.Kind.Success;
-			}
-			return result;
-		}
-
-		// TODO create cooperative func. with SplitTokensIncrementally, make a non-blocking compile
-		public static object ParseTokens(IList<Token> tokens, ref int tokenIndex, out ParseResult error) {
-			Token token = tokens[tokenIndex];
-			error = ParseResult.None;
-			switch (token.TokenKind) {
-				case Token.Kind.Delim: return ParseDelimKnownStructure(tokens, ref tokenIndex, out error);
-				case Token.Kind.Text:  return token;
-			}
-			return SetErrorAndReturnNull(ParseResult.Kind.UnexpectedToken, token, out error);
-		}
-
 		/// <summary>
 		/// Parse strings, without any meta data or data structures.
 		/// Use this to separate string literals from string tokens.
@@ -50,6 +27,41 @@ namespace RunCmd {
 				}
 			}
 			return args;
+		}
+
+		/// <summary>
+		/// Parse JSON-like text into a strucure of <see cref="IDictionary"/>, <see cref="IList"/>, and
+		/// <see cref="Token"/>
+		/// </summary>
+		/// <param name="text"></param>
+		/// <param name="error"></param>
+		/// <returns></returns>
+		public static object ParseText(string text, out ParseResult error) {
+			IList<Token> tokens = new TokenParsing(text).SplitTokens();
+			int tokenIndex = 0;
+			object result = ParseTokens(tokens, ref tokenIndex, out error);
+			if (error.ResultKind == ParseResult.Kind.None) {
+				error.ResultKind = ParseResult.Kind.Success;
+			}
+			return result;
+		}
+
+		/// <summary>
+		/// Convert parsed data (from <see cref="TokenParsing"/>) into a structure of
+		/// <see cref="IDictionary"/>, <see cref="IList"/>, and <see cref="Token"/>
+		/// </summary>
+		/// <param name="tokens"></param>
+		/// <param name="tokenIndex"></param>
+		/// <param name="error"></param>
+		/// <returns></returns>
+		public static object ParseTokens(IList<Token> tokens, ref int tokenIndex, out ParseResult error) {
+			Token token = tokens[tokenIndex];
+			error = ParseResult.None;
+			switch (token.TokenKind) {
+				case Token.Kind.Delim: return ParseDelimKnownStructure(tokens, ref tokenIndex, out error);
+				case Token.Kind.Text:  return token;
+			}
+			return SetErrorAndReturnNull(ParseResult.Kind.UnexpectedToken, token, out error);
 		}
 
 		private static object SetErrorAndReturnNull(ParseResult.Kind kind, Token token, out ParseResult error) {
