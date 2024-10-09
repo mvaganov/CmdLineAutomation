@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System;
+using System.Reflection;
 
 namespace RunCmd {
 	public static partial class Parse {
@@ -13,11 +14,26 @@ namespace RunCmd {
 			public int tokenIndex;
 			public ParseResult error;
 
-			private void SetCurrentData(object data) {
+			private bool SetCurrentData(object data) {
 				if (position.Count == 0) {
 					rootData = data;
+					return true;
 				} else {
-					// TODO use TryTraverse, this one is for setting values just before the end.
+					if (!TryTraverse(rootData, position, out object obj, out Type objType, 0, position.Count - 1)) {
+						return false;
+					}
+					switch (position[position.Count-1]) {
+						case string text:
+							return Object.TrySetValue(obj, text, data);
+						case int index:
+							IList ilist = obj as IList;
+							if (ilist == null) {
+								return false;
+							}
+							ilist[index] = data;
+							return true;
+					}
+					return false;
 				}
 			}
 
