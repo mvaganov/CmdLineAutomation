@@ -2,7 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System;
-using System.Reflection;
 
 namespace RunCmd {
 	public static partial class Parse {
