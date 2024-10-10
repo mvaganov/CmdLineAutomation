@@ -58,7 +58,7 @@ namespace RunCmd {
 		/// Data structure that turns a string into a combination of IList/IDictionary/Token values.
 		/// Roughly modeled on JSON text parsing.
 		/// </summary>
-		private class TokenParsing {
+		public class TokenParsing {
 			private char _readingLiteralToken = '\0';
 			private int _index, _start = 0, _end = -1;
 			private readonly List<Token> _tokens = new List<Token>();

@@ -6,38 +6,47 @@ using System;
 namespace RunCmd {
 	public static partial class Parse {
 
-		private class ParseCoop {
-			public object rootData;
-			public List<object> position = new List<object>();
-			public IList<Token> tokens;
-			public int tokenIndex;
-			public ParseResult error;
-			public int layerIndex = -1;
+		public class ParseCoop {
+			public object Result;
+			public object CurrentPosition = null;
+			public List<object> CurrentPath = new List<object>();
+			public IList<Token> Tokens;
+			public int CurrentTokenIndex;
+			public ParseResult Error;
+			public object currentElement = null;
 
 			private bool SetCurrentData(object data) {
-				if (position.Count == 0) {
-					rootData = data;
+				UnityEngine.Debug.Log($"setting [{string.Join(",", CurrentPath)}]");
+				if (CurrentPath.Count == 0) {
+					Result = data;
 					return true;
 				} else {
-					if (!TryTraverse(rootData, position, out object obj, out Type objType, 0, position.Count - 1)) {
-						return false;
-					}
-					switch (position[position.Count-1]) {
-						case string text:
-							return Object.TrySetValue(obj, text, data);
-						case int index:
-							IList ilist = obj as IList;
-							if (ilist == null) {
-								return false;
-							}
-							ilist[index] = data;
-							return true;
-					}
-					return false;
+					return TrySet(Result, CurrentPath, data);
 				}
 			}
 
-			public static bool TryTraverse(object obj, List<object> ids, out object memberValue, out Type memberType, int idIndexStart = 0, int idIndexEnd = -1) {
+			public static bool TrySet(object obj, IList<object> ids, object value) {
+				if(ids == null || ids.Count == 0) {
+					return false;
+				}
+				if (!TryTraverse(obj, ids, out object lastBranch, out Type branchType, 0, ids.Count - 1)) {
+					return false;
+				}
+				switch (ids[ids.Count - 1]) {
+					case string text:
+						return Object.TrySetValue(obj, text, value);
+					case int index:
+						IList ilist = obj as IList;
+						if (ilist == null) {
+							return false;
+						}
+						ilist[index] = value;
+						return true;
+				}
+				return true;
+			}
+
+			public static bool TryTraverse(object obj, IList<object> ids, out object memberValue, out Type memberType, int idIndexStart = 0, int idIndexEnd = -1) {
 				if (obj == null) {
 					memberValue = memberType = null;
 					return false;
@@ -70,48 +79,105 @@ namespace RunCmd {
 			}
 
 			public ParseCoop(IList<Token> tokens) {
-				this.tokens = tokens;
+				this.Tokens = tokens;
 			}
 
 			// TODO create cooperative func. with SplitTokensIncrementally, make a non-blocking compile
-			public object ParseTokensCoop() {
-				Token token = tokens[tokenIndex];
-				error = ParseResult.None;
-				switch (token.TokenKind) {
-					case Token.Kind.Delim: return ParseDelimKnownStructureCoop();
-					case Token.Kind.Text: return token;
+			public bool ParseTokensIteratively(Func<bool> shouldBreak) {
+				CurrentPosition = null;
+				CurrentPath.Clear();
+
+				int loopguard = 0;
+				while (CurrentTokenIndex < Tokens.Count) {
+					if (shouldBreak != null && shouldBreak.Invoke()) {
+						return true;
+					}
+					if (loopguard > 10000) {
+						throw new Exception($"infinite loop? {CurrentTokenIndex}: {Tokens[CurrentTokenIndex]}");
+					}
+					object nextValue = ParseTokensCoop();
+					if (nextValue != null) {
+						SetCurrentData(nextValue);
+					}
 				}
-				return SetErrorAndReturnNull(ParseResult.Kind.UnexpectedToken, token, out error);
+				return false;
+			}
+
+			private void ContinuePath(object newRoute) {
+				CurrentPath.Add(currentElement);
+				currentElement = newRoute;
+				UnityEngine.Debug.Log($"Path to: {newRoute}");
+			}
+
+			private void BackPath(object oldRoute) {
+				if (currentElement != oldRoute) {
+					throw new Exception("unexpected path traversal?!??!");
+				}
+				if (currentElement != CurrentPath[CurrentPath.Count - 1]) {
+					throw new Exception("unexpected path traversal!!!!");
+				}
+				UnityEngine.Debug.Log($"Finished path: {oldRoute}");
+				CurrentPath.RemoveAt(CurrentPath.Count - 1);
+				if (CurrentPath.Count != 0) {
+					currentElement = CurrentPath[CurrentPath.Count - 1];
+					UnityEngine.Debug.Log($"back to: {currentElement}");
+				} else {
+					UnityEngine.Debug.Log($"back to root!");
+				}
+			}
+
+			public object ParseTokensCoop() {
+				Token token = Tokens[CurrentTokenIndex];
+				Error = ParseResult.None;
+				switch (token.TokenKind) {
+					case Token.Kind.Delim:
+						return ParseDelimKnownStructureCoop();
+					case Token.Kind.Text:
+						return token;
+				}
+				return SetErrorAndReturnNull(ParseResult.Kind.UnexpectedToken, token, out Error);
+			}
+
+			private object ParseDelimKnownStructureCoop() {
+				return Tokens[CurrentTokenIndex].Text switch {
+					"[" => ParseArrayCoop(),
+					"{" => ParseDictionaryCoop(),
+					_ => SetErrorAndReturnNull(ParseResult.Kind.UnexpectedDelimiter, Tokens[CurrentTokenIndex], out Error)
+				};
 			}
 
 			public IList ParseArrayCoop() {
-				Token token = tokens[tokenIndex];
-				error = ParseResult.None;
-				if (!IsExpectedDelimiter(token, "[", ref error)) { return null; }
-				++tokenIndex;
+				Token token = Tokens[CurrentTokenIndex];
+				Error = ParseResult.None;
+				if (!IsExpectedDelimiter(token, "[", ref Error)) { return null; }
+				++CurrentTokenIndex;
 				List<object> arrayValue = new List<object>();
 				//int loopguard = 0;
-				while (tokenIndex < tokens.Count) {
-					token = tokens[tokenIndex];
+				int index = 0;
+				while (CurrentTokenIndex < Tokens.Count) {
+					ContinuePath(index);
+					token = Tokens[CurrentTokenIndex];
 					//if (++loopguard > 10000) { throw new Exception($"Parsing loop exceeded at token {token.TextIndex}!"); }
 					ParseArrayElementCoop(arrayValue, out bool finished);
 					if (finished) { return arrayValue; }
+					BackPath(index);
+					++index;
 				}
-				error = new ParseResult(ParseResult.Kind.MissingEndToken, token.TextEndIndex);
+				Error = new ParseResult(ParseResult.Kind.MissingEndToken, token.TextEndIndex);
 				return arrayValue;
 			}
 
 			public IDictionary ParseDictionaryCoop() {
-				Token token = tokens[tokenIndex];
-				error = ParseResult.None;
-				if (!IsExpectedDelimiter(token, "{", ref error)) { return null; }
-				++tokenIndex;
-				error = ParseResult.None;
+				Token token = Tokens[CurrentTokenIndex];
+				Error = ParseResult.None;
+				if (!IsExpectedDelimiter(token, "{", ref Error)) { return null; }
+				++CurrentTokenIndex;
+				Error = ParseResult.None;
 				OrderedDictionary dictionaryValue = new OrderedDictionary();
 				object key = null, value = null;
 				//int loopguard = 0;
-				while (tokenIndex < tokens.Count) {
-					token = tokens[tokenIndex];
+				while (CurrentTokenIndex < Tokens.Count) {
+					token = Tokens[CurrentTokenIndex];
 					//if (loopguard++ > 10000) { throw new System.Exception($"Parsing loop exceeded at token {token.TextIndex}!"); }
 					ParseDictionaryKeyValuePairCoop(ref key, ref value, out bool finished);
 					if (finished) { return dictionaryValue; }
@@ -119,45 +185,54 @@ namespace RunCmd {
 						dictionaryValue[key] = value;
 						key = value = null;
 					}
+					BackPath(key);
 				}
 				return dictionaryValue;
 			}
 
 			private void ParseArrayElementCoop(List<object> arrayValue, out bool finished) {
-				Token token = tokens[tokenIndex];
+				Token token = Tokens[CurrentTokenIndex];
 				finished = false;
 				switch (token.TokenKind) {
 					case Token.Kind.None:
 					case Token.Kind.TokBeg:
-					case Token.Kind.TokEnd: ++tokenIndex; break;
-					case Token.Kind.Text: arrayValue.Add(token); ++tokenIndex; break;
+					case Token.Kind.TokEnd: ++CurrentTokenIndex; break;
+					case Token.Kind.Text: arrayValue.Add(token); ++CurrentTokenIndex; break;
 					case Token.Kind.Delim:
 						object elementValue = ParseDelimArrayCoop(ref token, out finished);
 						if (elementValue != null) { arrayValue.Add(elementValue); }
 						break;
-					default: error = new ParseResult(ParseResult.Kind.UnexpectedToken, token.TextEndIndex); finished = true; break;
+					default: Error = new ParseResult(ParseResult.Kind.UnexpectedToken, token.TextEndIndex); finished = true; break;
 				}
-				if (error.ResultKind != ParseResult.Kind.None) { finished = true; }
+				if (Error.ResultKind != ParseResult.Kind.None) { finished = true; }
 			}
 
 			private void ParseDictionaryKeyValuePairCoop(ref object key, ref object value, out bool finished) {
-				Token token = tokens[tokenIndex];
+				Token token = Tokens[CurrentTokenIndex];
 				finished = false;
 				switch (token.TokenKind) {
 					case Token.Kind.None:
 					case Token.Kind.TokBeg:
-					case Token.Kind.TokEnd: ++tokenIndex; break;
-					case Token.Kind.Text: if (key == null) { key = token; } else { value = token; } ++tokenIndex; break;
+					case Token.Kind.TokEnd: ++CurrentTokenIndex; break;
+					case Token.Kind.Text:
+						if (key == null) {
+							key = token;
+							ContinuePath(key);
+						} else {
+							value = token;
+						}
+						++CurrentTokenIndex;
+						break;
 					case Token.Kind.Delim: ParseKeyValuePairDelimCoop(ref key, ref value, out finished); break;
-					default: error = new ParseResult(ParseResult.Kind.UnexpectedDelimiter, token.TextIndex); break;
+					default: Error = new ParseResult(ParseResult.Kind.UnexpectedDelimiter, token.TextIndex); break;
 				}
 			}
 
 			private object ParseDelimArrayCoop(ref Token token, out bool finished) {
 				finished = false;
 				switch (token.Text) {
-					case ",": ++tokenIndex; return null;
-					case "]": ++tokenIndex; finished = true; return null;
+					case ",": ++CurrentTokenIndex; return null;
+					case "]": ++CurrentTokenIndex; finished = true; return null;
 					default: return ParseDelimKnownStructureCoop();
 				}
 			}
@@ -165,38 +240,30 @@ namespace RunCmd {
 			private object ParseDelimDictionaryKeyCoop(ref Token token, out bool finished) {
 				finished = false;
 				switch (token.Text) {
-					case ":": error = new ParseResult(ParseResult.Kind.MissingDictionaryKey, token.TextIndex); return null;
-					case ",": ++tokenIndex; return null;
-					case "}": ++tokenIndex; finished = true; return null;
+					case ":": Error = new ParseResult(ParseResult.Kind.MissingDictionaryKey, token.TextIndex); return null;
+					case ",": ++CurrentTokenIndex; return null;
+					case "}": ++CurrentTokenIndex; finished = true; return null;
 					default: return ParseDelimKnownStructureCoop();
 				}
 			}
 
 			private object ParseDelimDictionaryValueCoop(ref Token token) {
 				switch (token.Text) {
-					case ":": ++tokenIndex; return null;
-					case ",": error = new ParseResult(ParseResult.Kind.MissingDictionaryAssignment, token.TextIndex); return null;
+					case ":": ++CurrentTokenIndex; return null;
+					case ",": Error = new ParseResult(ParseResult.Kind.MissingDictionaryAssignment, token.TextIndex); return null;
 					default: return ParseDelimKnownStructureCoop();
 				}
 			}
 
-			private object ParseDelimKnownStructureCoop() {
-				return tokens[tokenIndex].Text switch {
-					"[" => ParseArray(tokens, ref tokenIndex, out error),
-					"{" => ParseDictionary(tokens, ref tokenIndex, out error),
-					_ => SetErrorAndReturnNull(ParseResult.Kind.UnexpectedDelimiter, tokens[tokenIndex], out error)
-				};
-			}
-
 			public void ParseKeyValuePairDelimCoop(ref object key, ref object value, out bool finished) {
-				Token token = tokens[tokenIndex];
+				Token token = Tokens[CurrentTokenIndex];
 				if (key == null) {
-					key = ParseDelimDictionaryKey(ref token, tokens, ref tokenIndex, ref error, out finished);
+					key = ParseDelimDictionaryKey(ref token, Tokens, ref CurrentTokenIndex, ref Error, out finished);
 				} else {
 					finished = false;
-					value = ParseDelimDictionaryValue(ref token, tokens, ref tokenIndex, ref error);
+					value = ParseDelimDictionaryValue(ref token, Tokens, ref CurrentTokenIndex, ref Error);
 				}
-				if (error.IsError) {
+				if (Error.IsError) {
 					finished = true;
 				}
 			}

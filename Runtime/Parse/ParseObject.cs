@@ -188,23 +188,23 @@ namespace RunCmd {
 			/// <summary>
 			/// Use reflection to set a value by the member name
 			/// </summary>
-			/// <param name="self"></param>
+			/// <param name="obj"></param>
 			/// <param name="memberName"></param>
-			/// <param name="memberType"></param>
+			/// <param name="value"></param>
 			/// <returns></returns>
-			public static bool TrySetValue(object source, string name, object value) {
-				if (source == null) { return false; }
-				Type type = source.GetType();
+			public static bool TrySetValue(object obj, string memberName, object value) {
+				if (obj == null) { return false; }
+				Type type = obj.GetType();
 				BindingFlags bindFlags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance;
 				while (type != null) {
-					FieldInfo field = type.GetField(name, bindFlags);
+					FieldInfo field = type.GetField(memberName, bindFlags);
 					if (field != null) {
-						field.SetValue(source, value);
+						field.SetValue(obj, value);
 						return true;
 					}
-					PropertyInfo prop = type.GetProperty(name, bindFlags | BindingFlags.IgnoreCase);
+					PropertyInfo prop = type.GetProperty(memberName, bindFlags | BindingFlags.IgnoreCase);
 					if (prop != null) {
-						prop.SetValue(source, null);
+						prop.SetValue(obj, null);
 						return true;
 					}
 					type = type.BaseType;
