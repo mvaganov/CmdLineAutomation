@@ -2,6 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System;
+using System.Diagnostics;
+using System.Runtime.Serialization;
 
 namespace RunCmd {
 	public static partial class Parse {
@@ -13,10 +15,10 @@ namespace RunCmd {
 			public IList<Token> Tokens;
 			public int CurrentTokenIndex;
 			public ParseResult Error;
-			public object currentElement = null;
+			public object currentElementIndex = null;
 
 			private bool SetCurrentData(object data) {
-				UnityEngine.Debug.Log($"setting [{string.Join(",", CurrentPath)}]");
+				UnityEngine.Debug.Log($"setting [{string.Join(",", CurrentPath)}]({CurrentPath.Count})\n{Parse.ToString(data)}");
 				if (CurrentPath.Count == 0) {
 					Result = data;
 					return true;
@@ -105,24 +107,25 @@ namespace RunCmd {
 
 			private void ContinuePath(object newRoute) {
 				CurrentPath.Add(newRoute);
-				currentElement = newRoute;
-				UnityEngine.Debug.Log($"Path to: {newRoute}       [{string.Join(",",CurrentPath)}]");
+				currentElementIndex = newRoute;
+				UnityEngine.Debug.Log($"Path to: {newRoute}       [{string.Join(",",CurrentPath)}]({CurrentPath.Count})");
 			}
 
 			private void BackPath(object oldRoute) {
-				if (currentElement != oldRoute) {
-					throw new Exception("unexpected path traversal?!??!");
+				if (currentElementIndex != oldRoute) {
+					throw new Exception($"unexpected path back traversal?!??!   '{currentElementIndex}' vs '{oldRoute}'    [{string.Join(",", CurrentPath)}]({CurrentPath.Count})");
 				}
-				if (currentElement != CurrentPath[CurrentPath.Count - 1]) {
-					throw new Exception($"unexpected path traversal!!!! {currentElement} vs {CurrentPath[CurrentPath.Count - 1]}");
+				if (currentElementIndex != null && (CurrentPath.Count == 0 || currentElementIndex != CurrentPath[CurrentPath.Count - 1])) {
+					throw new Exception($"unexpected path traversal!!!! {currentElementIndex} vs {CurrentPath[CurrentPath.Count - 1]}");
 				}
 				CurrentPath.RemoveAt(CurrentPath.Count - 1);
-				UnityEngine.Debug.Log($"Finished path: {oldRoute}       [{string.Join(",", CurrentPath)}]");
+				UnityEngine.Debug.Log($"Finished path: {oldRoute}       [{string.Join(",", CurrentPath)}]({CurrentPath.Count})");
 				if (CurrentPath.Count != 0) {
-					currentElement = CurrentPath[CurrentPath.Count - 1];
-					UnityEngine.Debug.Log($"back to: {currentElement}");
+					currentElementIndex = CurrentPath[CurrentPath.Count - 1];
+					UnityEngine.Debug.Log($"back to: {currentElementIndex}");
 				} else {
 					UnityEngine.Debug.Log($"back to root!");
+					currentElementIndex = null;
 				}
 			}
 
@@ -154,14 +157,17 @@ namespace RunCmd {
 				List<object> arrayValue = new List<object>();
 				//int loopguard = 0;
 				int index = 0;
+				UnityEngine.Debug.Log("PARSEARRAY...");
 				while (CurrentTokenIndex < Tokens.Count) {
 					ContinuePath(index);
 					token = Tokens[CurrentTokenIndex];
 					//if (++loopguard > 10000) { throw new Exception($"Parsing loop exceeded at token {token.TextIndex}!"); }
-					ParseArrayElementCoop(arrayValue, out bool finished);
+					ParseArrayElementCoop(arrayValue, out bool finished, out bool ignored);
+					if (!ignored) {
+							BackPath(index);
+						++index;
+					}
 					if (finished) { return arrayValue; }
-					BackPath(index);
-					++index;
 				}
 				Error = new ParseResult(ParseResult.Kind.MissingEndToken, token.TextEndIndex);
 				return arrayValue;
@@ -185,24 +191,23 @@ namespace RunCmd {
 						dictionaryValue[key] = value;
 						key = value = null;
 					}
-					BackPath(key);
 				}
 				return dictionaryValue;
 			}
 
-			private void ParseArrayElementCoop(List<object> arrayValue, out bool finished) {
+			private void ParseArrayElementCoop(List<object> arrayValue, out bool finished, out bool ignored) {
 				Token token = Tokens[CurrentTokenIndex];
 				finished = false;
 				switch (token.TokenKind) {
 					case Token.Kind.None:
 					case Token.Kind.TokBeg:
-					case Token.Kind.TokEnd: ++CurrentTokenIndex; break;
-					case Token.Kind.Text: arrayValue.Add(token); ++CurrentTokenIndex; break;
+					case Token.Kind.TokEnd: ignored = true; ++CurrentTokenIndex; break;
+					case Token.Kind.Text: arrayValue.Add(token); ignored = false; ++CurrentTokenIndex; break;
 					case Token.Kind.Delim:
-						object elementValue = ParseDelimArrayCoop(ref token, out finished);
-						if (elementValue != null) { arrayValue.Add(elementValue); }
+						object elementValue = ParseDelimArrayCoop(ref token, out finished, out ignored);
+						if (!ignored) { arrayValue.Add(elementValue); }
 						break;
-					default: Error = new ParseResult(ParseResult.Kind.UnexpectedToken, token.TextEndIndex); finished = true; break;
+					default: Error = new ParseResult(ParseResult.Kind.UnexpectedToken, token.TextEndIndex); finished = true; ignored = false; break;
 				}
 				if (Error.ResultKind != ParseResult.Kind.None) { finished = true; }
 			}
@@ -222,6 +227,7 @@ namespace RunCmd {
 							ContinuePath(key);
 						} else {
 							value = token;
+							BackPath(key);
 						}
 						++CurrentTokenIndex;
 						break;
@@ -232,41 +238,46 @@ namespace RunCmd {
 				}
 			}
 
-			private object ParseDelimArrayCoop(ref Token token, out bool finished) {
+			private object ParseDelimArrayCoop(ref Token token, out bool finished, out bool ignored) {
 				finished = false;
 				switch (token.Text) {
-					case ",": ++CurrentTokenIndex; return null;
-					case "]": ++CurrentTokenIndex; finished = true; return null;
-					default: return ParseDelimKnownStructureCoop();
+					case ",": ++CurrentTokenIndex; ignored = true; return null;
+					case "]": ++CurrentTokenIndex; finished = true; ignored = true; return null;
+					default: ignored = false; return ParseDelimKnownStructureCoop();
 				}
 			}
 
-			private object ParseDelimDictionaryKeyCoop(ref Token token, out bool finished) {
+			private object ParseDelimDictionaryKeyCoop(ref Token token, out bool finished, out bool ignored) {
 				finished = false;
 				switch (token.Text) {
-					case ":": Error = new ParseResult(ParseResult.Kind.MissingDictionaryKey, token.TextIndex); return null;
-					case ",": ++CurrentTokenIndex; return null;
-					case "}": ++CurrentTokenIndex; finished = true; return null;
-					default: return ParseDelimKnownStructureCoop();
+					case ":": Error = new ParseResult(ParseResult.Kind.MissingDictionaryKey, token.TextIndex); ignored = true; return null;
+					case ",": ++CurrentTokenIndex; ignored = true; return null;
+					case "}": ++CurrentTokenIndex; finished = true; ignored = true; return null;
+					default: ignored = false; return ParseDelimKnownStructureCoop();
 				}
 			}
 
-			private object ParseDelimDictionaryValueCoop(ref Token token) {
+			private object ParseDelimDictionaryValueCoop(ref Token token, out bool ignored) {
 				switch (token.Text) {
-					case ":": ++CurrentTokenIndex; return null;
-					case ",": Error = new ParseResult(ParseResult.Kind.MissingDictionaryAssignment, token.TextIndex); return null;
-					default: return ParseDelimKnownStructureCoop();
+					case ":": ++CurrentTokenIndex; ignored = true; return null;
+					case ",": Error = new ParseResult(ParseResult.Kind.MissingDictionaryAssignment, token.TextIndex); ignored = true; return null;
+					default: ignored = false; return ParseDelimKnownStructureCoop();
 				}
 			}
 
 			public void ParseKeyValuePairDelimCoop(ref object key, ref object value, out bool finished) {
 				Token token = Tokens[CurrentTokenIndex];
 				if (key == null) {
-					key = ParseDelimDictionaryKey(ref token, Tokens, ref CurrentTokenIndex, ref Error, out finished);
-					ContinuePath(key);
+					key = ParseDelimDictionaryKeyCoop(ref token, out finished, out bool ignored);
+					if (!ignored) {
+						ContinuePath(key);
+					}
 				} else {
 					finished = false;
-					value = ParseDelimDictionaryValue(ref token, Tokens, ref CurrentTokenIndex, ref Error);
+					value = ParseDelimDictionaryValueCoop(ref token, out bool ignored);
+					if (!ignored) {
+						BackPath(key);
+					}
 				}
 				if (Error.IsError) {
 					finished = true;
