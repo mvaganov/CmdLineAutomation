@@ -104,9 +104,9 @@ namespace RunCmd {
 			}
 
 			private void ContinuePath(object newRoute) {
-				CurrentPath.Add(currentElement);
+				CurrentPath.Add(newRoute);
 				currentElement = newRoute;
-				UnityEngine.Debug.Log($"Path to: {newRoute}");
+				UnityEngine.Debug.Log($"Path to: {newRoute}       [{string.Join(",",CurrentPath)}]");
 			}
 
 			private void BackPath(object oldRoute) {
@@ -114,10 +114,10 @@ namespace RunCmd {
 					throw new Exception("unexpected path traversal?!??!");
 				}
 				if (currentElement != CurrentPath[CurrentPath.Count - 1]) {
-					throw new Exception("unexpected path traversal!!!!");
+					throw new Exception($"unexpected path traversal!!!! {currentElement} vs {CurrentPath[CurrentPath.Count - 1]}");
 				}
-				UnityEngine.Debug.Log($"Finished path: {oldRoute}");
 				CurrentPath.RemoveAt(CurrentPath.Count - 1);
+				UnityEngine.Debug.Log($"Finished path: {oldRoute}       [{string.Join(",", CurrentPath)}]");
 				if (CurrentPath.Count != 0) {
 					currentElement = CurrentPath[CurrentPath.Count - 1];
 					UnityEngine.Debug.Log($"back to: {currentElement}");
@@ -213,7 +213,9 @@ namespace RunCmd {
 				switch (token.TokenKind) {
 					case Token.Kind.None:
 					case Token.Kind.TokBeg:
-					case Token.Kind.TokEnd: ++CurrentTokenIndex; break;
+					case Token.Kind.TokEnd:
+						++CurrentTokenIndex;
+						break;
 					case Token.Kind.Text:
 						if (key == null) {
 							key = token;
@@ -223,7 +225,9 @@ namespace RunCmd {
 						}
 						++CurrentTokenIndex;
 						break;
-					case Token.Kind.Delim: ParseKeyValuePairDelimCoop(ref key, ref value, out finished); break;
+					case Token.Kind.Delim:
+						ParseKeyValuePairDelimCoop(ref key, ref value, out finished);
+						break;
 					default: Error = new ParseResult(ParseResult.Kind.UnexpectedDelimiter, token.TextIndex); break;
 				}
 			}
@@ -259,6 +263,7 @@ namespace RunCmd {
 				Token token = Tokens[CurrentTokenIndex];
 				if (key == null) {
 					key = ParseDelimDictionaryKey(ref token, Tokens, ref CurrentTokenIndex, ref Error, out finished);
+					ContinuePath(key);
 				} else {
 					finished = false;
 					value = ParseDelimDictionaryValue(ref token, Tokens, ref CurrentTokenIndex, ref Error);
