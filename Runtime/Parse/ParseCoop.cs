@@ -158,13 +158,16 @@ namespace RunCmd {
 				//int loopguard = 0;
 				int index = 0;
 				UnityEngine.Debug.Log("PARSEARRAY...");
+				bool ignoredLastToken = false;
 				while (CurrentTokenIndex < Tokens.Count) {
-					ContinuePath(index);
+					if (!ignoredLastToken) {
+						ContinuePath(index);
+					}
 					token = Tokens[CurrentTokenIndex];
 					//if (++loopguard > 10000) { throw new Exception($"Parsing loop exceeded at token {token.TextIndex}!"); }
-					ParseArrayElementCoop(arrayValue, out bool finished, out bool ignored);
-					if (!ignored) {
-							BackPath(index);
+					ParseArrayElementCoop(arrayValue, out bool finished, out ignoredLastToken);
+					if (!ignoredLastToken) {
+						BackPath(index);
 						++index;
 					}
 					if (finished) { return arrayValue; }
