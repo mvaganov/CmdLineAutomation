@@ -4,6 +4,7 @@ using System.Collections.Specialized;
 using System;
 using System.Diagnostics;
 using System.Runtime.Serialization;
+using System.Reflection;
 
 namespace RunCmd {
 	public static partial class Parse {
@@ -105,28 +106,28 @@ namespace RunCmd {
 				return false;
 			}
 
-			private void ContinuePath(object newRoute) {
+			private void BranchPath(object newRoute) {
 				CurrentPath.Add(newRoute);
 				currentElementIndex = newRoute;
-				UnityEngine.Debug.Log($"Path to: {newRoute}       [{string.Join(",",CurrentPath)}]({CurrentPath.Count})");
+				UnityEngine.Debug.Log($"branch: {newRoute}       [{string.Join(",",CurrentPath)}]({CurrentPath.Count})");
 			}
 
-			private void BackPath(object oldRoute) {
+			private void MergePath(object oldRoute) {
 				if (!currentElementIndex.Equals(oldRoute)) {
 					Type a = currentElementIndex != null ? currentElementIndex.GetType() : null;
 					Type b = oldRoute != null ? oldRoute.GetType() : null;
-					throw new Exception($"unexpected path back traversal?!??!   '{currentElementIndex}'({a}) vs '{oldRoute}'({b})    [{string.Join(",", CurrentPath)}]({CurrentPath.Count})");
+					throw new Exception($"unexpected back traversal?!??!   current '{currentElementIndex}'({a}) vs given '{oldRoute}'({b})    [{string.Join(",", CurrentPath)}]({CurrentPath.Count})");
 				}
 				if (currentElementIndex != null && (CurrentPath.Count == 0 || currentElementIndex != CurrentPath[CurrentPath.Count - 1])) {
-					throw new Exception($"unexpected path traversal!!!! {currentElementIndex} vs {CurrentPath[CurrentPath.Count - 1]}");
+					throw new Exception($"unexpected back traversal!!!! {currentElementIndex} vs {CurrentPath[CurrentPath.Count - 1]}");
 				}
 				CurrentPath.RemoveAt(CurrentPath.Count - 1);
-				UnityEngine.Debug.Log($"Finished path: {oldRoute}       [{string.Join(",", CurrentPath)}]({CurrentPath.Count})");
+				UnityEngine.Debug.Log($"leaving: {oldRoute}       [{string.Join(",", CurrentPath)}]({CurrentPath.Count})");
 				if (CurrentPath.Count != 0) {
 					currentElementIndex = CurrentPath[CurrentPath.Count - 1];
-					UnityEngine.Debug.Log($"back to: {currentElementIndex}");
+					UnityEngine.Debug.Log($"merge: {currentElementIndex}");
 				} else {
-					UnityEngine.Debug.Log($"back to root!");
+					UnityEngine.Debug.Log($"merge root!");
 					currentElementIndex = null;
 				}
 			}
@@ -158,21 +159,15 @@ namespace RunCmd {
 				++CurrentTokenIndex;
 				List<object> arrayValue = new List<object>();
 				//int loopguard = 0;
-				int index = 0;
 				UnityEngine.Debug.Log("PARSEARRAY...");
 				bool ignoredLastToken = false;
 				while (CurrentTokenIndex < Tokens.Count) {
-					if (!ignoredLastToken) {
-						ContinuePath(index);
-					}
 					token = Tokens[CurrentTokenIndex];
 					//if (++loopguard > 10000) { throw new Exception($"Parsing loop exceeded at token {token.TextIndex}!"); }
 					ParseArrayElementCoop(arrayValue, out bool finished, out ignoredLastToken);
-					if (!ignoredLastToken) {
-						BackPath(index);
-						++index;
+					if (finished) {
+						return arrayValue;
 					}
-					if (finished) { return arrayValue; }
 				}
 				Error = new ParseResult(ParseResult.Kind.MissingEndToken, token.TextEndIndex);
 				return arrayValue;
@@ -209,7 +204,9 @@ namespace RunCmd {
 					case Token.Kind.TokEnd: ignored = true; ++CurrentTokenIndex; break;
 					case Token.Kind.Text: arrayValue.Add(token); ignored = false; ++CurrentTokenIndex; break;
 					case Token.Kind.Delim:
+						BranchPath(arrayValue.Count);
 						object elementValue = ParseDelimArrayCoop(ref token, out finished, out ignored);
+						MergePath(arrayValue.Count);
 						if (!ignored) { arrayValue.Add(elementValue); }
 						break;
 					default: Error = new ParseResult(ParseResult.Kind.UnexpectedToken, token.TextEndIndex); finished = true; ignored = false; break;
@@ -229,10 +226,10 @@ namespace RunCmd {
 					case Token.Kind.Text:
 						if (key == null) {
 							key = token;
-							ContinuePath(key);
+							BranchPath(key);
 						} else {
 							value = token;
-							BackPath(key);
+							MergePath(key);
 						}
 						++CurrentTokenIndex;
 						break;
@@ -275,13 +272,13 @@ namespace RunCmd {
 				if (key == null) {
 					key = ParseDelimDictionaryKeyCoop(ref token, out finished, out bool ignored);
 					if (!ignored) {
-						ContinuePath(key);
+						BranchPath(key);
 					}
 				} else {
 					finished = false;
 					value = ParseDelimDictionaryValueCoop(ref token, out bool ignored);
 					if (!ignored) {
-						BackPath(key);
+						MergePath(key);
 					}
 				}
 				if (Error.IsError) {
