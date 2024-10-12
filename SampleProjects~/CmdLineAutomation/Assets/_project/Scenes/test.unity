@@ -414,20 +414,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 69815c1c7fe642647b80095fc8c75908, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  title: the data
-  options:
-  - name: option0
-    id: 10
-    time: 0
-    effects:
-    - dooption 0
-    - advance
-  - name: option1
-    id: 0
-    time: 3.1415
-    effects:
-    - dooption 1
-    - advance
+  title: 
+  options: []
   testData: "{\n\ttitle : 'the data',\n\toptions : [\n\t\t{name:'option0',id:10,
     effects : ['dooption 0', 'advance']},\n\t\t{name:'option1',time:3.1415,effects
     : ['dooption 1', 'advance']},\n\t]\n}"

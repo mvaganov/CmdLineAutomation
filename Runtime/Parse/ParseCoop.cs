@@ -112,8 +112,10 @@ namespace RunCmd {
 			}
 
 			private void BackPath(object oldRoute) {
-				if (currentElementIndex != oldRoute) {
-					throw new Exception($"unexpected path back traversal?!??!   '{currentElementIndex}' vs '{oldRoute}'    [{string.Join(",", CurrentPath)}]({CurrentPath.Count})");
+				if (!currentElementIndex.Equals(oldRoute)) {
+					Type a = currentElementIndex != null ? currentElementIndex.GetType() : null;
+					Type b = oldRoute != null ? oldRoute.GetType() : null;
+					throw new Exception($"unexpected path back traversal?!??!   '{currentElementIndex}'({a}) vs '{oldRoute}'({b})    [{string.Join(",", CurrentPath)}]({CurrentPath.Count})");
 				}
 				if (currentElementIndex != null && (CurrentPath.Count == 0 || currentElementIndex != CurrentPath[CurrentPath.Count - 1])) {
 					throw new Exception($"unexpected path traversal!!!! {currentElementIndex} vs {CurrentPath[CurrentPath.Count - 1]}");
