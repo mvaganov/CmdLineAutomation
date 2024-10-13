@@ -83,14 +83,14 @@ namespace RunCmd {
 					return false;
 				}
 				foreach (DictionaryEntry kvp in dict) {
-					string name = kvp.Key.ToString();
-					if (!TryGetValue(targetObject, name, out object value, out Type valueType)) {
+					object name = kvp.Key.ToString();
+					if (!TryGetValuePossiblyDictionary(targetObject, name, out object value, out Type valueType)) {
 #if UNITY_EDITOR
 						Debug.LogError($"missing {name} in type {targetType}");
 #endif
 					}
 					TryAssign(ref value, valueType, kvp.Value);
-					TrySetValue(targetObject, name, value);
+					TrySetValuePossiblyIDictionary(targetObject, name, value);
 				}
 				return true;
 			}
@@ -151,7 +151,7 @@ namespace RunCmd {
 			/// <param name="memberName"></param>
 			/// <param name="memberType"></param>
 			/// <returns></returns>
-			public static bool TryGetValue(object self, string memberName, out object memberValue, out Type memberType) {
+			public static bool TryGetValuePossiblyDictionary(object self, object member, out object memberValue, out Type memberType) {
 				if (self == null) {
 					memberType = typeof(int);
 					memberValue = null;
@@ -159,11 +159,28 @@ namespace RunCmd {
 				}
 				Type type = self.GetType();
 				bool isDict = type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>);
-				if (isDict && self is IDictionary dict && dict.Contains(memberName)) {
-					memberValue = dict[memberName];
+				if (isDict && self is IDictionary dict && dict.Contains(member)) {
+					memberValue = dict[member];
 					memberType = memberValue.GetType();
 					return true;
 				}
+				return TryGetValue(self, member.ToString(), out memberValue, out memberType);
+			}
+
+			/// <summary>
+			/// Use reflection to get a value by the member name
+			/// </summary>
+			/// <param name="self"></param>
+			/// <param name="memberName"></param>
+			/// <param name="memberType"></param>
+			/// <returns></returns>
+			public static bool TryGetValue(object self, string memberName, out object memberValue, out Type memberType) {
+				if (self == null) {
+					memberType = typeof(int);
+					memberValue = null;
+					return false;
+				}
+				Type type = self.GetType();
 				BindingFlags bindFlags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance;
 				while (type != null) {
 					FieldInfo field = type.GetField(memberName, bindFlags);
@@ -192,6 +209,22 @@ namespace RunCmd {
 			/// <param name="memberName"></param>
 			/// <param name="value"></param>
 			/// <returns></returns>
+			public static bool TrySetValuePossiblyIDictionary(object obj, object memberName, object value) {
+				if (obj is IDictionary dict) {
+					Debug.Log($"SETTING '{memberName}'");
+					dict[memberName] = value;
+					return true;
+				}
+				return TrySetValue(obj, memberName.ToString(), value);
+			}
+
+			/// <summary>
+			/// Use reflection to set a value by the member name
+			/// </summary>
+			/// <param name="obj"></param>
+			/// <param name="memberName"></param>
+			/// <param name="value"></param>
+			/// <returns></returns>
 			public static bool TrySetValue(object obj, string memberName, object value) {
 				if (obj == null) { return false; }
 				Type type = obj.GetType();
@@ -209,7 +242,8 @@ namespace RunCmd {
 					}
 					type = type.BaseType;
 				}
-				return true;
+				UnityEngine.Debug.LogError($"could not set ({obj})[{memberName}]");
+				return false;
 			}
 		}
 	}

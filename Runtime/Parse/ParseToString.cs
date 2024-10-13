@@ -7,10 +7,11 @@ namespace RunCmd {
 		public static string ToString(object parsedToken, int indent = 0, bool includeWhitespace = true) {
 			StringBuilder sb = new StringBuilder();
 			switch (parsedToken) {
-				case Token token: ToStringToken(sb, token); break;
+				case string s: sb.Append("\"").Append(s).Append("\""); break;
+				case Token token: sb.Append("`").Append(token.Text).Append("`"); break;
 				case IList list: ToStringArray(sb, list, indent, includeWhitespace); break;
 				case IDictionary dict: ToStringDictionary(sb, dict, indent, includeWhitespace); break;
-				default: sb.Append($"unexpected {parsedToken}"); break;
+				default: sb.Append($"unexpected {(parsedToken == null ? "null" : parsedToken.GetType().ToString())}"); break;
 			}
 			return sb.ToString();
 		}
