@@ -2,6 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System;
+using Unity.VisualScripting.YamlDotNet.Core.Tokens;
+using System.Diagnostics;
 
 namespace RunCmd {
 	public static partial class Parse {
@@ -17,6 +19,17 @@ namespace RunCmd {
 
 			private string PathToString() => PathToString(CurrentPath);
 			private static string PathToString(IList<object> path) => $"[{string.Join(",", path)}]({path.Count})";
+
+			private bool TryGetCurrentData(out object found) {
+				bool recovered = false;
+				if (CurrentPath.Count == 0) {
+					found = Result;
+					recovered = true;
+				} else {
+					recovered = TryGet(Result, CurrentPath, out found);
+				}
+				return recovered;
+			}
 
 			private bool SetCurrentData(object value) {
 				bool setHappened = false;
@@ -34,53 +47,76 @@ namespace RunCmd {
 					setHappened = TrySet(Result, CurrentPath, value);
 				}
 				UnityEngine.Debug.Log($"CURRENT STATE {PathToString()}\n{Parse.ToString(Result)}");
+
+				if (!TryGetCurrentData(out object found)) {
+					UnityEngine.Debug.LogError($"FAILED set {value}, missing\n{Parse.ToString(Result)}");
+				}
+				else if (found != value) {
+					UnityEngine.Debug.LogError($"FAILED set {value}, incorrect value {found}\n{Parse.ToString(Result)}");
+				}
+				//else {
+				//	UnityEngine.Debug.Log($"SUCCESSFULLY ASSIGNED {value} @ {PathToString()}\n{Parse.ToString(Result)}");
+				//}
 				return setHappened;
 			}
 
 			/// <summary>
 			/// Set a value in a branching data structure
 			/// </summary>
-			/// <param name="obj">Root data structure</param>
+			/// <param name="rootObj">Root data structure</param>
 			/// <param name="ids">Path of member variables to traverse, including member that needs to be set</param>
 			/// <param name="value">value to apply to the member at the end of the given member path</param>
 			/// <returns></returns>
-			public static bool TrySet(object obj, IList<object> ids, object value) {
+			public static bool TrySet(object rootObj, IList<object> ids, object value) {
 				if(ids == null || ids.Count == 0) {
-					UnityEngine.Debug.LogWarning("H!");
+					UnityEngine.Debug.LogError("Is this trying to reset the root object? Shouldn't that be handled in the previous function?");
 					return false;
 				}
-				if (!TryTraverse(obj, ids, out object lastBranch, out Type branchType, 0, ids.Count - 1)) {
+				if (!TryTraverse(rootObj, ids, out object objectWithMember, out Type branchType, 0, ids.Count - 1)) {
 					UnityEngine.Debug.LogWarning("FAIL!");
 					return false;
 				}
-				object memberValue = ids[ids.Count - 1];
-				switch (memberValue) {
-					case Token token: return SetMember(token);
-					case string text: return SetMember(text);
+				object memberIndex = ids[ids.Count - 1];
+				switch (memberIndex) {
+					case Token token:
+					case string text:
+						return SetMember(memberIndex);
 					case int index:
-						IList ilist = obj as IList;
+						IList ilist = objectWithMember as IList;
 						if (ilist == null) {
+							UnityEngine.Debug.LogError($"MISSING LIST {memberIndex}");
 							return false;
 						}
-						if (ilist[index] == value) {
+						if (index < ilist.Count && ilist[index] == value) {
 							UnityEngine.Debug.Log($"{PathToString(ids)} set correctly");
 						} else {
 							UnityEngine.Debug.LogWarning($"Setting {PathToString(ids)}\n{value}");
 						}
-						ilist[index] = value;
+						if (index == ilist.Count) {
+							UnityEngine.Debug.Log("Adding, not setting...");
+							ilist.Add(value);
+						} else {
+							ilist[index] = value;
+						}
 						return true;
+					default:
+						UnityEngine.Debug.LogWarning($"what is this?! {memberIndex} ({memberIndex.GetType()})");
+						break;
 				}
 				bool SetMember(object memberName) {
-					Object.TryGetValuePossiblyDictionary(obj, memberName, out object currentValue, out _);
+					Object.TryGetValuePossiblyDictionary(objectWithMember, memberName, out object currentValue, out _);
 					if (currentValue == value) {
 						UnityEngine.Debug.Log($"{PathToString(ids)} set correctly");
 					} else {
-						UnityEngine.Debug.LogWarning($"Setting {PathToString(ids)}\n{obj}[{memberName}] = {value}");
+						UnityEngine.Debug.LogWarning($"Setting {PathToString(ids)}\n{objectWithMember}[{memberName}] = {value}");
 					}
-					return Object.TrySetValuePossiblyIDictionary(obj, memberName, value);
+					return Object.TrySetValuePossiblyIDictionary(objectWithMember, memberName, value);
 				}
-				UnityEngine.Debug.LogWarning($"what is this?! {memberValue} ({memberValue.GetType()})");
 				return false;
+			}
+
+			public static bool TryGet(object obj, IList<object> ids, out object memberValue) {
+					return TryTraverse(obj, ids, out memberValue, out _);
 			}
 
 			public static bool TryTraverse(object obj, IList<object> ids, out object memberValue, out Type memberType, int idIndexStart = 0, int idIndexEnd = -1) {
@@ -97,16 +133,18 @@ namespace RunCmd {
 				for (int i = idIndexStart; i < idIndexEnd; ++i) {
 					switch (ids[i]) {
 						case string text:
-							if (!Traverse(text, out memberValue, out memberType)) { return false; }
-							break;
 						case Token token:
-							if (!Traverse(token, out memberValue, out memberType)) { return false; }
+							if (!Traverse(ids[i], out memberValue, out memberType)) { return false; }
 							break;
 						case int index:
 							IList ilist = cursor as IList;
 							if (ilist == null) {
 								UnityEngine.Debug.LogError($"{cursor} is not an IList, cannot traverse {index}\n{PathToString(ids)}");
 								memberValue = memberType = null;
+								return false;
+							}
+							if (index < 0 || index >= ilist.Count) {
+								UnityEngine.Debug.LogError($"{index} is OOB ({ilist.Count}), cannot traverse {index}\n{PathToString(ids)}");
 								return false;
 							}
 							memberValue = ilist[index];
@@ -121,9 +159,8 @@ namespace RunCmd {
 					if (cursor is IDictionary dict && dict.Contains(memberName)) {
 						memberValue = dict[memberName];
 						memberType = (memberValue != null) ? memberValue.GetType() : null;
-						return true;
 					}
-					if (!Object.TryGetValuePossiblyDictionary(cursor, memberName, out memberValue, out memberType)) {
+					else if (!Object.TryGetValuePossiblyDictionary(cursor, memberName, out memberValue, out memberType)) {
 						UnityEngine.Debug.LogError($"{cursor} does not have member '{memberName}'\n{PathToString(ids)}");
 						return false;
 					}
@@ -230,6 +267,7 @@ namespace RunCmd {
 				OrderedDictionary dictionaryValue = new OrderedDictionary();
 				UnityEngine.Debug.Log($"CREATING DICTIONARY @ {PathToString()}");
 				SetCurrentData(dictionaryValue);
+
 				object key = null, value = null;
 				//int loopguard = 0;
 				while (CurrentTokenIndex < Tokens.Count) {
