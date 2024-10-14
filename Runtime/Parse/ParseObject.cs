@@ -1,6 +1,5 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Reflection;
 #if UNITY_EDITOR
 using UnityEngine;
@@ -84,13 +83,13 @@ namespace RunCmd {
 				}
 				foreach (DictionaryEntry kvp in dict) {
 					object name = kvp.Key.ToString();
-					if (!TryGetValuePossiblyDictionary(targetObject, name, out object value, out Type valueType)) {
+					if (!TryGetValueStructured(targetObject, name, out object value, out Type valueType)) {
 #if UNITY_EDITOR
 						Debug.LogError($"missing {name} in type {targetType}");
 #endif
 					}
 					TryAssign(ref value, valueType, kvp.Value);
-					TrySetValuePossiblyIDictionary(targetObject, name, value);
+					TrySetValueStructured(targetObject, name, value);
 				}
 				return true;
 			}
@@ -145,23 +144,33 @@ namespace RunCmd {
 			}
 
 			/// <summary>
-			/// Use reflection to get a value by the member name
+			/// Set a value by member name, or possibly <see cref="IDictionary"/>/<see cref="IList"/>
 			/// </summary>
 			/// <param name="self"></param>
-			/// <param name="memberName"></param>
+			/// <param name="member"></param>
 			/// <param name="memberType"></param>
 			/// <returns></returns>
-			public static bool TryGetValuePossiblyDictionary(object self, object member, out object memberValue, out Type memberType) {
+			public static bool TryGetValueStructured(object self, object member, out object memberValue, out Type memberType) {
 				if (self == null) {
-					memberType = typeof(int);
-					memberValue = null;
+					memberValue = memberType = null;
 					return false;
 				}
 				Type type = self.GetType();
-				bool isDict = type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>);
-				if (isDict && self is IDictionary dict && dict.Contains(member)) {
-					memberValue = dict[member];
-					memberType = memberValue.GetType();
+				if (self is IDictionary dict) {
+					if (dict.Contains(member)) {
+						memberValue = dict[member];
+						Type[] arguments = dict.GetType().GetGenericArguments();
+						memberType = arguments.Length > 1 ? arguments[1] : typeof(object);
+						return true;
+					}
+				} else if (self is IList ilist) {
+					int index = Convert.ToInt32(member);
+					if (index < 0 || index >= ilist.Count) {
+						memberValue = memberType = null;
+						return false;
+					}
+					memberValue = ilist[index];
+					memberType = ilist.GetType().GetElementType();
 					return true;
 				}
 				return TryGetValue(self, member.ToString(), out memberValue, out memberType);
@@ -203,17 +212,31 @@ namespace RunCmd {
 			}
 
 			/// <summary>
-			/// Use reflection to set a value by the member name
+			/// Set a value by member name, or possibly <see cref="IDictionary"/>/<see cref="IList"/>
 			/// </summary>
 			/// <param name="obj"></param>
 			/// <param name="memberName"></param>
 			/// <param name="value"></param>
 			/// <returns></returns>
-			public static bool TrySetValuePossiblyIDictionary(object obj, object memberName, object value) {
+			public static bool TrySetValueStructured(object obj, object memberName, object value) {
 				if (obj is IDictionary dict) {
-					Debug.Log($"SETTING '{memberName}'");
+					// Debug.Log($"SETTING '{memberName}'");
 					dict[memberName] = value;
 					return true;
+				} else if (obj is IList list) {
+					int index = Convert.ToInt32(memberName);
+					if (index == list.Count) {
+						if (list.IsFixedSize) {
+							Debug.LogError("probably unable to add to end of list");
+						}
+						list.Add(value);
+						return true;
+					} else if (index >= 0 && index < list.Count) {
+						list[index] = value;
+						return true;
+					}
+					Debug.LogError($"{index} is OOB ({list.Count})");
+					return false;
 				}
 				return TrySetValue(obj, memberName.ToString(), value);
 			}
