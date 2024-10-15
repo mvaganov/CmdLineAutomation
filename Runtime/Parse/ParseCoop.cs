@@ -2,7 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System;
-using Unity.VisualScripting.YamlDotNet.Core.Tokens;
 
 namespace RunCmd {
 	public static partial class Parse {
@@ -16,23 +15,19 @@ namespace RunCmd {
 			public ParseResult Error;
 			public object currentElementIndex = null;
 
-			private string PathToString() => PathToString(CurrentPath);
-			// TODO move to ParseObject?
-			private static string PathToString(IList<object> path) => $"[{string.Join(",", path)}] {(path.Count == 0 ? "empty" : "")}";
+			private string PathToString() => Object.ShowList(CurrentPath);
 
-			// TODO move to ParseObject?
 			private bool TryGetCurrentData(out object found) {
 				bool recovered = false;
 				if (CurrentPath.Count == 0) {
 					found = Result;
 					recovered = true;
 				} else {
-					recovered = TryGet(Result, CurrentPath, out found);
+					recovered = Object.TryGet(Result, CurrentPath, out found);
 				}
 				return recovered;
 			}
 
-			// TODO move to ParseObject?
 			private bool SetCurrentData(object value) {
 				bool setHappened = false;
 				if (CurrentPath.Count == 0) {
@@ -46,90 +41,16 @@ namespace RunCmd {
 					setHappened = true;
 				} else {
 					UnityEngine.Debug.Log($"setting {PathToString()}\n{Parse.ToString(value)}");
-					setHappened = TrySet(Result, CurrentPath, value);
+					setHappened = Object.TrySet(Result, CurrentPath, value);
 				}
 				UnityEngine.Debug.Log($"CURRENT STATE {PathToString()}\n{Parse.ToString(Result)}");
 
 				if (!TryGetCurrentData(out object found)) {
 					UnityEngine.Debug.LogError($"FAILED set {value}, missing\n{Parse.ToString(Result)}");
-				}
-				else if (found != value) {
+				} else if (found != value) {
 					UnityEngine.Debug.LogError($"FAILED set {value}, incorrect value {found}\n{Parse.ToString(Result)}");
 				}
 				return setHappened;
-			}
-
-			// TODO move to ParseObject?
-			/// <summary>
-			/// Set a value in a branching data structure
-			/// </summary>
-			/// <param name="rootObj">Root data structure</param>
-			/// <param name="ids">Path of member variables to traverse, including member that needs to be set</param>
-			/// <param name="value">value to apply to the member at the end of the given member path</param>
-			/// <returns></returns>
-			public static bool TrySet(object rootObj, IList<object> ids, object value) {
-				if(ids == null || ids.Count == 0) {
-					UnityEngine.Debug.LogError("Is this trying to reset the root object? Shouldn't that be handled in the previous function?");
-					return false;
-				}
-				if (!TryTraverse(rootObj, ids, out object objectWithMember, out Type branchType, 0, ids.Count - 1)) {
-					UnityEngine.Debug.LogWarning("FAIL!");
-					return false;
-				}
-				object memberId = ids[ids.Count - 1];
-				switch (memberId) {
-					case Token token:
-					case string text:
-					case int index:
-						Object.TryGetValueStructured(objectWithMember, memberId, out object currentValue, out _);
-						if (currentValue == value) {
-							UnityEngine.Debug.Log($"{PathToString(ids)} set correctly");
-						} else {
-							UnityEngine.Debug.LogWarning($"Setting {PathToString(ids)}\n{objectWithMember}[{memberId}] = {value}");
-						}
-						return Object.TrySetValueStructured(objectWithMember, memberId, value);
-					default:
-						UnityEngine.Debug.LogWarning($"what is this?! {memberId} ({memberId.GetType()})");
-						break;
-				}
-				return false;
-			}
-
-			// TODO move to ParseObject?
-			public static bool TryGet(object obj, IList<object> ids, out object memberValue) {
-					return TryTraverse(obj, ids, out memberValue, out _);
-			}
-
-			// TODO move to ParseObject?
-			public static bool TryTraverse(object rootObject, IList<object> ids, out object memberValue, out Type memberType, int idIndexStart = 0, int idIndexEnd = -1) {
-				if (rootObject == null) {
-					memberValue = memberType = null;
-					UnityEngine.Debug.LogError($"cannot traverse from null object\n{PathToString(ids)}");
-					return false;
-				}
-				if (idIndexEnd < 0) {
-					idIndexEnd = ids.Count;
-				}
-				object cursor = memberValue = rootObject;
-				memberType = memberValue != null ? memberValue.GetType() : null;
-				for (int i = idIndexStart; i < idIndexEnd; ++i) {
-					switch (ids[i]) {
-						case string text:
-						case Token token:
-						case int index:
-							object memberName = ids[i];
-							if (!Object.TryGetValueStructured(cursor, memberName, out memberValue, out memberType)) {
-								UnityEngine.Debug.LogError($"{Parse.ToString(cursor)} does not have member '{Parse.ToString(memberName)}'\n{PathToString(ids)}");
-								return false;
-							}
-							cursor = memberValue;
-							break;
-						default:
-							UnityEngine.Debug.LogError($"{ids[i]} is not a traversable type ({ids[i].GetType()})\n{PathToString(ids)}");
-							return false;
-					}
-				}
-				return true;
 			}
 
 			public ParseCoop(IList<Token> tokens) {
@@ -149,10 +70,8 @@ namespace RunCmd {
 					if (loopguard > 10000) {
 						throw new Exception($"infinite loop? {CurrentTokenIndex}: {Tokens[CurrentTokenIndex]}");
 					}
-					object nextValue = ParseTokensCoop();
-					if (nextValue != null) {
-						SetCurrentData(nextValue);
-					}
+					ParseTokensCoop();
+
 				}
 				return false;
 			}
@@ -179,16 +98,19 @@ namespace RunCmd {
 				}
 			}
 
-			public object ParseTokensCoop() {
+			public void ParseTokensCoop() {
 				Token token = Tokens[CurrentTokenIndex];
 				Error = ParseResult.None;
 				switch (token.TokenKind) {
 					case Token.Kind.Delim:
-						return ParseDelimKnownStructureCoop();
+						ParseDelimKnownStructureCoop();
+						return;
 					case Token.Kind.Text:
-						return token;
+						++CurrentTokenIndex;
+						SetCurrentData(token);
+						return;
 				}
-				return SetErrorAndReturnNull(ParseResult.Kind.UnexpectedToken, token, out Error);
+				SetErrorAndReturnNull(ParseResult.Kind.UnexpectedToken, token, out Error);
 			}
 
 			private object ParseDelimKnownStructureCoop() {

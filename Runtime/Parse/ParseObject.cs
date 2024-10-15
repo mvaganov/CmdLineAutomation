@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Reflection;
 #if UNITY_EDITOR
 using UnityEngine;
@@ -13,6 +14,24 @@ namespace RunCmd {
 	/// </summary>
 	public static partial class Parse {
 		public static partial class Object {
+			private static void UnityLog(object message) {
+#if UNITY_EDITOR
+				Debug.Log(message);
+#endif
+			}
+
+			private static void UnityWarn(object message) {
+#if UNITY_EDITOR
+				Debug.LogWarning(message);
+#endif
+			}
+
+			private static void UnityErr(object message) {
+#if UNITY_EDITOR
+				Debug.LogError(message);
+#endif
+			}
+
 			/// <param name="targetObject">cannot be null</param>
 			/// <param name="text"></param>
 			/// <param name="resultData"></param>
@@ -32,9 +51,7 @@ namespace RunCmd {
 			public static bool TryParse(ref object targetObject, Type targetType, string textToParse, out Parse.ParseResult parseResult) {
 				object parsedData = ParseText(textToParse, out parseResult);
 				if (parseResult.IsError) {
-#if UNITY_EDITOR
-					Debug.LogError(parseResult);
-#endif
+					UnityErr(parseResult);
 					return false;
 				}
 				TryAssign(ref targetObject, targetType, parsedData);
@@ -62,9 +79,7 @@ namespace RunCmd {
 				} else if (isString || targetType.IsValueType) {
 					return TryCompilePrimitive(ref targetObject, targetType, parsedData);
 				} else {
-#if UNITY_EDITOR
-					Debug.LogError($"??? {targetType}");
-#endif
+					UnityErr($"??? {targetType}");
 				}
 				return false;
 			}
@@ -84,9 +99,7 @@ namespace RunCmd {
 				foreach (DictionaryEntry kvp in dict) {
 					object name = kvp.Key.ToString();
 					if (!TryGetValueStructured(targetObject, name, out object value, out Type valueType)) {
-#if UNITY_EDITOR
-						Debug.LogError($"missing {name} in type {targetType}");
-#endif
+						UnityErr($"missing {name} in type {targetType}");
 					}
 					TryAssign(ref value, valueType, kvp.Value);
 					TrySetValueStructured(targetObject, name, value);
@@ -227,7 +240,7 @@ namespace RunCmd {
 					int index = Convert.ToInt32(memberName);
 					if (index == list.Count) {
 						if (list.IsFixedSize) {
-							Debug.LogError("probably unable to add to end of list");
+							UnityErr("probably unable to add to end of list");
 						}
 						list.Add(value);
 						return true;
@@ -235,7 +248,7 @@ namespace RunCmd {
 						list[index] = value;
 						return true;
 					}
-					Debug.LogError($"{index} is OOB ({list.Count})");
+					UnityErr($"{index} is OOB ({list.Count})");
 					return false;
 				}
 				return TrySetValue(obj, memberName.ToString(), value);
@@ -265,8 +278,88 @@ namespace RunCmd {
 					}
 					type = type.BaseType;
 				}
-				UnityEngine.Debug.LogError($"could not set ({obj})[{memberName}]");
+				UnityErr($"could not set ({obj})[{memberName}]");
 				return false;
+			}
+
+			/// <summary>
+			/// List 
+			/// </summary>
+			/// <param name="path"></param>
+			/// <returns></returns>
+			public static string ShowList(IList<object> path) {
+				string listStr = string.Join(",", path);
+				return $"[{listStr}]{(listStr.Length == 0 && path.Count != 0 ? "(NOT EMPTY)" : "")}";
+			} 
+
+			/// <summary>
+			/// Set a value in a branching data structure
+			/// </summary>
+			/// <param name="rootObj">Root data structure</param>
+			/// <param name="ids">Path of member variables to traverse, including member that needs to be set</param>
+			/// <param name="value">value to apply to the member at the end of the given member path</param>
+			/// <returns></returns>
+			public static bool TrySet(object rootObj, IList<object> ids, object value) {
+				if (ids == null || ids.Count == 0) {
+					UnityErr("Is this trying to reset the root object? Shouldn't that be handled in the previous function?");
+					return false;
+				}
+				if (!TryTraverse(rootObj, ids, out object objectWithMember, out Type branchType, 0, ids.Count - 1)) {
+					UnityErr("FAIL!");
+					return false;
+				}
+				object memberId = ids[ids.Count - 1];
+				switch (memberId) {
+					case Token token:
+					case string text:
+					case int index:
+						Object.TryGetValueStructured(objectWithMember, memberId, out object currentValue, out _);
+						if (currentValue == value) {
+							UnityLog($"{ShowList(ids)} set correctly");
+						} else {
+							UnityWarn($"Setting {ShowList(ids)}\n{objectWithMember}[{memberId}] = {value}");
+						}
+						return Object.TrySetValueStructured(objectWithMember, memberId, value);
+					default:
+						UnityWarn($"what is this?! {memberId} ({memberId.GetType()})");
+						break;
+				}
+				return false;
+			}
+
+			public static bool TryGet(object obj, IList<object> memberPath, out object memberValue) {
+				return TryTraverse(obj, memberPath, out memberValue, out _);
+			}
+
+			public static bool TryTraverse(object rootObject, IList<object> ids, out object memberValue, out Type memberType, int idIndexStart = 0, int idIndexEnd = -1) {
+				if (rootObject == null) {
+					memberValue = memberType = null;
+					UnityErr($"cannot traverse from null object\n{ShowList(ids)}");
+					return false;
+				}
+				if (idIndexEnd < 0) {
+					idIndexEnd = ids.Count;
+				}
+				object cursor = memberValue = rootObject;
+				memberType = memberValue != null ? memberValue.GetType() : null;
+				for (int i = idIndexStart; i < idIndexEnd; ++i) {
+					switch (ids[i]) {
+						case string text:
+						case Token token:
+						case int index:
+							object memberName = ids[i];
+							if (!Object.TryGetValueStructured(cursor, memberName, out memberValue, out memberType)) {
+								UnityErr($"{Parse.ToString(cursor)} does not have member '{Parse.ToString(memberName)}'\n{ShowList(ids)}");
+								return false;
+							}
+							cursor = memberValue;
+							break;
+						default:
+							UnityErr($"{ids[i]} is not a traversable type ({ids[i].GetType()})\n{ShowList(ids)}");
+							return false;
+					}
+				}
+				return true;
 			}
 		}
 	}
