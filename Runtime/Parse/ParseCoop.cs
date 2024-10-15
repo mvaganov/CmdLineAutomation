@@ -15,6 +15,8 @@ namespace RunCmd {
 			public ParseResult Error;
 			public object currentElementIndex = null;
 
+			private Token CurrentToken => Tokens[CurrentTokenIndex];
+			private object CurrentIndex => CurrentPath[CurrentPath.Count - 1];
 			private string PathToString() => Object.ShowList(CurrentPath);
 
 			private bool TryGetCurrentData(out object found) {
@@ -54,7 +56,7 @@ namespace RunCmd {
 			}
 
 			public ParseCoop(IList<Token> tokens) {
-				this.Tokens = tokens;
+				Tokens = tokens;
 			}
 
 			// TODO create cooperative func. with SplitTokensIncrementally, make a non-blocking compile
@@ -71,7 +73,6 @@ namespace RunCmd {
 						throw new Exception($"infinite loop? {CurrentTokenIndex}: {Tokens[CurrentTokenIndex]}");
 					}
 					ParseTokensCoop();
-
 				}
 				return false;
 			}
@@ -87,30 +88,30 @@ namespace RunCmd {
 					Type b = oldRoute != null ? oldRoute.GetType() : null;
 					throw new Exception($"unexpected back traversal?!??!   current '{currentElementIndex}'({a}) vs given '{oldRoute}'({b})    [{string.Join(",", CurrentPath)}]({CurrentPath.Count})");
 				}
-				if (currentElementIndex != null && (CurrentPath.Count == 0 || currentElementIndex != CurrentPath[CurrentPath.Count - 1])) {
-					throw new Exception($"unexpected back traversal!!!! {currentElementIndex} vs {CurrentPath[CurrentPath.Count - 1]}");
+				if (currentElementIndex != null && (CurrentPath.Count == 0 || currentElementIndex != CurrentIndex)) {
+					throw new Exception($"unexpected back traversal!!!! {currentElementIndex} vs {CurrentIndex}");
 				}
 				CurrentPath.RemoveAt(CurrentPath.Count - 1);
 				if (CurrentPath.Count != 0) {
-					currentElementIndex = CurrentPath[CurrentPath.Count - 1];
+					currentElementIndex = CurrentIndex;
 				} else {
 					currentElementIndex = null;
 				}
 			}
 
 			public void ParseTokensCoop() {
-				Token token = Tokens[CurrentTokenIndex];
+				//Token token = Tokens[CurrentTokenIndex];
 				Error = ParseResult.None;
-				switch (token.TokenKind) {
+				switch (CurrentToken.TokenKind) {
 					case Token.Kind.Delim:
 						ParseDelimKnownStructureCoop();
 						return;
 					case Token.Kind.Text:
+						SetCurrentData(CurrentToken);
 						++CurrentTokenIndex;
-						SetCurrentData(token);
 						return;
 				}
-				SetErrorAndReturnNull(ParseResult.Kind.UnexpectedToken, token, out Error);
+				SetError(ParseResult.Kind.UnexpectedToken, CurrentToken);
 			}
 
 			private object ParseDelimKnownStructureCoop() {
@@ -123,57 +124,46 @@ namespace RunCmd {
 
 			enum ArrayChange { None, FinishedArray, ParsedElement, Error }
 			public IList ParseArrayCoop() {
-				Token token = Tokens[CurrentTokenIndex];
+				Token token = CurrentToken;
 				Error = ParseResult.None;
 				if (!IsExpectedDelimiter(token, "[", ref Error)) { return null; }
 				++CurrentTokenIndex;
 				List<object> arrayValue = new List<object>();
 				SetCurrentData(arrayValue);
 				while (CurrentTokenIndex < Tokens.Count) {
-					if (ParseArrayElementCoop(arrayValue) == ArrayChange.FinishedArray) {
-						return arrayValue;
+					switch (ParseArrayElementCoop(arrayValue)) {
+						case ArrayChange.FinishedArray:
+						case ArrayChange.Error:
+							return arrayValue;
 					}
 				}
-				Error = new ParseResult(ParseResult.Kind.MissingEndToken, token.TextEndIndex);
+				SetError(ParseResult.Kind.MissingEndToken, token);
 				return arrayValue;
 			}
 
-			enum DictionaryChange { None, FinishedDictionary, ParsedKey, ParsedaValue, Error }
+			enum DictionaryChange { None, FinishedDictionary, ParsedKey, ParsedValue, Error }
 			public IDictionary ParseDictionaryCoop() {
-				Token token = Tokens[CurrentTokenIndex];
+				Token token = CurrentToken;
 				Error = ParseResult.None;
 				if (!IsExpectedDelimiter(token, "{", ref Error)) { return null; }
 				++CurrentTokenIndex;
 				Error = ParseResult.None;
 				OrderedDictionary dictionaryValue = new OrderedDictionary();
 				SetCurrentData(dictionaryValue);
-				object key = null, value = null;
+				bool needToParseKey = true;
 				while (CurrentTokenIndex < Tokens.Count) {
-					if (ParseDictionaryElement(ref key, ref value) == DictionaryChange.FinishedDictionary) {
-						return dictionaryValue;
+					switch(ParseDictionaryKeyValuePairCoop(ref needToParseKey)){
+						case DictionaryChange.FinishedDictionary:
+						case DictionaryChange.Error:
+							return dictionaryValue;
 					}
 				}
-				Error = new ParseResult(ParseResult.Kind.MissingEndToken, token.TextEndIndex);
+				SetError(ParseResult.Kind.MissingEndToken, token);
 				return dictionaryValue;
 			}
 
-			private DictionaryChange ParseDictionaryElement(ref object key, ref object value) {
-				DictionaryChange change = ParseDictionaryKeyValuePairCoop(ref key, ref value);
-				switch (change) {
-					case DictionaryChange.ParsedKey:
-						BranchPath(key);
-						break;
-					case DictionaryChange.ParsedaValue:
-						SetCurrentData(value);
-						MergePath(key);
-						key = value = null;
-						break;
-				}
-				return change;
-			}
-
 			private ArrayChange ParseArrayElementCoop(List<object> arrayValue) {
-				Token token = Tokens[CurrentTokenIndex];
+				Token token = CurrentToken;
 				switch (token.TokenKind) {
 					case Token.Kind.None:
 					case Token.Kind.TokBeg:
@@ -181,25 +171,26 @@ namespace RunCmd {
 						++CurrentTokenIndex;
 						return ArrayChange.None;
 					case Token.Kind.Text:
-						BranchPath(arrayValue.Count);
+						int arrayIndex = arrayValue.Count;
+						BranchPath(arrayIndex);
 						SetCurrentData(token);
-						MergePath(arrayValue.Count-1);
+						MergePath(arrayIndex);
 						++CurrentTokenIndex;
 						return ArrayChange.ParsedElement;
 					case Token.Kind.Delim:
 						int index = arrayValue.Count;
 						BranchPath(index);
-						ArrayChange change = ParseDelimArrayCoop(token, out object elementValue);
+						ArrayChange change = ParseDelimArrayCoop();
 						MergePath(index);
 						return change;
 					default:
-						Error = new ParseResult(ParseResult.Kind.UnexpectedToken, token.TextEndIndex);
+						SetError(ParseResult.Kind.UnexpectedToken, token);
 						return ArrayChange.Error;
 				}
 			}
 
-			private DictionaryChange ParseDictionaryKeyValuePairCoop(ref object key, ref object value) {
-				Token token = Tokens[CurrentTokenIndex];
+			private DictionaryChange ParseDictionaryKeyValuePairCoop(ref bool needToParseKey) {
+				Token token = CurrentToken;
 				switch (token.TokenKind) {
 					case Token.Kind.None:
 					case Token.Kind.TokBeg:
@@ -208,53 +199,78 @@ namespace RunCmd {
 						return DictionaryChange.None;
 					case Token.Kind.Text:
 						++CurrentTokenIndex;
-						if (key == null) {
-							key = token;
+						if (needToParseKey) {
+							BranchPath(token);
+							needToParseKey = false;
 							return DictionaryChange.ParsedKey;
 						}
-						value = token;
-						return DictionaryChange.ParsedaValue;
+						SetCurrentData(token);
+						MergePath(CurrentIndex);
+						needToParseKey = true;
+						return DictionaryChange.ParsedValue;
 					case Token.Kind.Delim:
-						return ParseKeyValuePairDelimCoop(ref key, ref value);
+						return ParseKeyValuePairDelimCoop(ref needToParseKey);
 					default:
-						Error = new ParseResult(ParseResult.Kind.UnexpectedDelimiter, token.TextIndex);
+						SetError(ParseResult.Kind.UnexpectedDelimiter, token);
 						return DictionaryChange.Error;
 				}
 			}
 
-			private DictionaryChange ParseKeyValuePairDelimCoop(ref object key, ref object value) {
-				Token token = Tokens[CurrentTokenIndex];
-				return (key == null)
-					? ParseDelimDictionaryKeyCoop(ref token, out key)
-					: ParseDelimDictionaryValueCoop(ref token, out value);
+			private DictionaryChange ParseKeyValuePairDelimCoop(ref bool needToParseKey) {
+				DictionaryChange result;
+				if (needToParseKey) {
+					result = ParseDelimDictionaryKeyCoop();
+					needToParseKey = (result != DictionaryChange.ParsedKey);
+					return result;
+				}
+				result = ParseDelimDictionaryValueCoop();
+				needToParseKey = (result == DictionaryChange.ParsedValue);
+				return result;
 			}
 
-			private ArrayChange ParseDelimArrayCoop(Token token, out object result) {
-				switch (token.Text) {
-					case ",": ++CurrentTokenIndex; result = null; return ArrayChange.None;
-					case "]": ++CurrentTokenIndex; result = null; return ArrayChange.FinishedArray;
-					default: result = ParseDelimKnownStructureCoop(); return ArrayChange.ParsedElement;
+			private ArrayChange ParseDelimArrayCoop() {
+				switch (CurrentToken.Text) {
+					case ",": ++CurrentTokenIndex; return ArrayChange.None;
+					case "]": ++CurrentTokenIndex; return ArrayChange.FinishedArray;
+					default: ParseDelimKnownStructureCoop(); return ArrayChange.ParsedElement;
 				}
 			}
 
-			private DictionaryChange ParseDelimDictionaryKeyCoop(ref Token token, out object result) {
+			private DictionaryChange ParseDelimDictionaryKeyCoop() {
+				Token token = CurrentToken;
 				switch (token.Text) {
-					case ":": Error = new ParseResult(ParseResult.Kind.MissingDictionaryKey, token.TextIndex);
-						result = null; return DictionaryChange.Error;
-					case ",": ++CurrentTokenIndex; result = null; return DictionaryChange.None;
-					case "}": ++CurrentTokenIndex; result = null;  return DictionaryChange.FinishedDictionary;
-					default:result = ParseDelimKnownStructureCoop(); return DictionaryChange.ParsedKey;
+					case ":": SetError(ParseResult.Kind.MissingDictionaryKey, token);
+						return DictionaryChange.Error;
+					case ",": ++CurrentTokenIndex; return DictionaryChange.None;
+					case "}": ++CurrentTokenIndex; return DictionaryChange.FinishedDictionary;
+					default:
+						switch (token.TokenKind) {
+							case Token.Kind.Text:
+							case Token.Kind.Delim:
+								BranchPath(token.Text);
+								++CurrentTokenIndex;
+								return DictionaryChange.ParsedKey;
+							default:
+								SetError(ParseResult.Kind.InvalidKey, token);
+								return DictionaryChange.Error;
+						}
 				}
 			}
 
-			private DictionaryChange ParseDelimDictionaryValueCoop(ref Token token, out object result) {
-				switch (token.Text) {
-					case ":": ++CurrentTokenIndex; result = null; return DictionaryChange.None;
-					case ",":
-						Error = new ParseResult(ParseResult.Kind.MissingDictionaryAssignment, token.TextIndex);
-						result = null; return DictionaryChange.None;
-					default: result = ParseDelimKnownStructureCoop(); return DictionaryChange.ParsedaValue;
+			private DictionaryChange ParseDelimDictionaryValueCoop() {
+				switch (CurrentToken.Text) {
+					case ":": ++CurrentTokenIndex; return DictionaryChange.None;
+					case ",": SetError(ParseResult.Kind.MissingValue, CurrentToken);
+						return DictionaryChange.None;
+					default:
+						ParseDelimKnownStructureCoop();
+						MergePath(CurrentIndex);
+						return DictionaryChange.ParsedValue;
 				}
+			}
+
+			private void SetError(ParseResult.Kind errorKind, Token token) {
+				Error = new ParseResult(errorKind, token.TextIndex);
 			}
 		}
 	}

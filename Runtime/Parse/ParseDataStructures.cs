@@ -35,8 +35,8 @@ namespace RunCmd {
 		public struct ParseResult {
 			public enum Kind {
 				None, Success, UnexpectedInitialToken, MissingEndToken, UnexpectedDelimiter,
-				MissingDictionaryKey, MissingDictionaryAssignment, UnexpectedToken, UnknownError,
-				MissingTarget
+				MissingDictionaryKey, MissingValue, UnexpectedToken, UnknownError,
+				MissingTarget, InvalidKey
 			}
 			public Kind ResultKind;
 			public int TextIndex;

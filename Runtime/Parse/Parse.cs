@@ -166,7 +166,7 @@ namespace RunCmd {
 		private static object ParseDelimDictionaryValue(ref Token token, IList<Token> tokens, ref int tokenIndex, ref ParseResult error) {
 			switch (token.Text) {
 				case ":": ++tokenIndex; return null;
-				case ",": error = new ParseResult(ParseResult.Kind.MissingDictionaryAssignment, token.TextIndex); return null;
+				case ",": error = new ParseResult(ParseResult.Kind.MissingValue, token.TextIndex); return null;
 				default: return ParseDelimKnownStructure(tokens, ref tokenIndex, out error);
 			}
 		}
