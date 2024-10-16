@@ -114,12 +114,12 @@ namespace RunCmd {
 				SetError(ParseResult.Kind.UnexpectedToken, CurrentToken);
 			}
 
-			private object ParseDelimKnownStructureCoop() {
-				return Tokens[CurrentTokenIndex].Text switch {
-					"[" => ParseArrayCoop(),
-					"{" => ParseDictionaryCoop(),
-					_ => SetErrorAndReturnNull(ParseResult.Kind.UnexpectedDelimiter, Tokens[CurrentTokenIndex], out Error)
-				};
+			private void ParseDelimKnownStructureCoop() {
+				switch (CurrentToken.Text) {
+					case "[": ParseArrayCoop(); break;
+					case "{": ParseDictionaryCoop(); break;
+					default: SetError(ParseResult.Kind.UnexpectedDelimiter, CurrentToken); break;
+				}
 			}
 
 			enum ArrayChange { None, FinishedArray, ParsedElement, Error }
