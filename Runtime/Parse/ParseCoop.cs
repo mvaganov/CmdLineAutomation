@@ -8,7 +8,6 @@ namespace RunCmd {
 
 		public class ParseCoop {
 			public object Result;
-			public object CurrentPosition = null;
 			public List<object> CurrentPath = new List<object>();
 			public IList<Token> Tokens;
 			public int CurrentTokenIndex;
@@ -61,9 +60,7 @@ namespace RunCmd {
 
 			// TODO create cooperative func. with SplitTokensIncrementally, make a non-blocking compile
 			public bool ParseTokensIteratively(Func<bool> shouldBreak) {
-				CurrentPosition = null;
 				CurrentPath.Clear();
-
 				int loopguard = 0;
 				while (CurrentTokenIndex < Tokens.Count) {
 					if (shouldBreak != null && shouldBreak.Invoke()) {
@@ -100,14 +97,14 @@ namespace RunCmd {
 			}
 
 			public void ParseTokensCoop() {
-				//Token token = Tokens[CurrentTokenIndex];
+				Token token = CurrentToken;
 				Error = ParseResult.None;
-				switch (CurrentToken.TokenKind) {
+				switch (token.TokenKind) {
 					case Token.Kind.Delim:
 						ParseDelimKnownStructureCoop();
 						return;
 					case Token.Kind.Text:
-						SetCurrentData(CurrentToken);
+						SetCurrentData(token);
 						++CurrentTokenIndex;
 						return;
 				}
@@ -115,10 +112,11 @@ namespace RunCmd {
 			}
 
 			private void ParseDelimKnownStructureCoop() {
-				switch (CurrentToken.Text) {
+				Token token = CurrentToken;
+				switch (token.Text) {
 					case "[": ParseArrayCoop(); break;
 					case "{": ParseDictionaryCoop(); break;
-					default: SetError(ParseResult.Kind.UnexpectedDelimiter, CurrentToken); break;
+					default: SetError(ParseResult.Kind.UnexpectedDelimiter, token); break;
 				}
 			}
 
