@@ -314,11 +314,11 @@ namespace RunCmd {
 					case string text:
 					case int index:
 						Object.TryGetValueStructured(objectWithMember, memberId, out object currentValue, out _);
-						if (currentValue == value) {
-							UnityLog($"{ShowList(ids)} set correctly");
-						} else {
-							UnityWarn($"Setting {ShowList(ids)}\n{objectWithMember}[{memberId}] = {value}");
-						}
+						//if (currentValue == value) {
+						//	UnityLog($"{ShowList(ids)} set correctly");
+						//} else {
+						//	UnityWarn($"Setting {ShowList(ids)}\n{objectWithMember}[{memberId}] = {value}");
+						//}
 						return Object.TrySetValueStructured(objectWithMember, memberId, value);
 					default:
 						UnityWarn($"what is this?! {memberId} ({memberId.GetType()})");

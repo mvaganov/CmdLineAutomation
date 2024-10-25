@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System;
@@ -9,13 +8,27 @@ namespace RunCmd {
 		public class ParseCoop {
 			public object Result;
 			public List<object> CurrentPath = new List<object>();
+			public List<DataStructureLayer> StructureLayers = new List<DataStructureLayer>();
 			public IList<Token> Tokens;
 			public int CurrentTokenIndex;
 			public ParseResult Error;
 			public object currentElementIndex = null;
+			public bool needToParseKey = true;
+
+			public class DataStructureLayer {
+				public enum Type { None, List, Object }
+				public object DataStructure;
+				public Type Kind;
+				public DataStructureLayer(object dataStructure, Type kind) {
+					DataStructure = dataStructure;
+					Kind = kind;
+				}
+				public override string ToString() => Kind.ToString();
+			}
 
 			private Token CurrentToken => Tokens[CurrentTokenIndex];
-			private object CurrentIndex => CurrentPath[CurrentPath.Count - 1];
+			private object CurrentIndex => CurrentPath.Count > 0 ? CurrentPath[CurrentPath.Count - 1] : null;
+			private DataStructureLayer CurrentLayer => StructureLayers.Count > 0 ? StructureLayers[StructureLayers.Count - 1] : null;
 			private string PathToString() => Object.ShowList(CurrentPath);
 
 			private bool TryGetCurrentData(out object found) {
@@ -32,25 +45,25 @@ namespace RunCmd {
 			private bool SetCurrentData(object value) {
 				bool setHappened = false;
 				if (CurrentPath.Count == 0) {
-					if (Result == value) {
-						UnityEngine.Debug.Log("root already set correctly");
-					} else {
-						UnityEngine.Debug.LogWarning($"Setting root\n{Parse.ToString(value)}");
-					}
+					//if (Result == value) {
+					//	UnityEngine.Debug.Log("root already set correctly");
+					//} else {
+					//	UnityEngine.Debug.LogWarning($"Setting root\n{Parse.ToString(value)}");
+					//}
 					Result = value;
-					UnityEngine.Debug.Log($"setting {PathToString()}\n{Parse.ToString(value)}");
+					//UnityEngine.Debug.Log($"setting {PathToString()}\n{Parse.ToString(value)}");
 					setHappened = true;
 				} else {
-					UnityEngine.Debug.Log($"setting {PathToString()}\n{Parse.ToString(value)}");
+					//UnityEngine.Debug.Log($"setting {PathToString()}\n{Parse.ToString(value)}");
 					setHappened = Object.TrySet(Result, CurrentPath, value);
 				}
 				UnityEngine.Debug.Log($"CURRENT STATE {PathToString()}\n{Parse.ToString(Result)}");
 
-				if (!TryGetCurrentData(out object found)) {
-					UnityEngine.Debug.LogError($"FAILED set {value}, missing\n{Parse.ToString(Result)}");
-				} else if (found != value) {
-					UnityEngine.Debug.LogError($"FAILED set {value}, incorrect value {found}\n{Parse.ToString(Result)}");
-				}
+				//if (!TryGetCurrentData(out object found)) {
+				//	UnityEngine.Debug.LogError($"FAILED set {value}, missing\n{Parse.ToString(Result)}");
+				//} else if (found != value) {
+				//	UnityEngine.Debug.LogError($"FAILED set {value}, incorrect value {found}\n{Parse.ToString(Result)}");
+				//}
 				return setHappened;
 			}
 
@@ -121,46 +134,90 @@ namespace RunCmd {
 			}
 
 			enum ArrayChange { None, FinishedArray, ParsedElement, Error }
-			public IList ParseArrayCoop() {
+			public void ParseArrayCoop() {
 				Token token = CurrentToken;
 				Error = ParseResult.None;
-				if (!IsExpectedDelimiter(token, "[", ref Error)) { return null; }
+				if (!IsExpectedDelimiter(token, "[", ref Error)) { return; }
 				++CurrentTokenIndex;
 				List<object> arrayValue = new List<object>();
 				SetCurrentData(arrayValue);
+				StructureLayers.Add(new DataStructureLayer(arrayValue, DataStructureLayer.Type.List));
 				while (CurrentTokenIndex < Tokens.Count) {
-					switch (ParseArrayElementCoop(arrayValue)) {
-						case ArrayChange.FinishedArray:
-						case ArrayChange.Error:
-							return arrayValue;
+					if (!ArrayIteration()) {
+						return;
 					}
 				}
 				SetError(ParseResult.Kind.MissingEndToken, token);
-				return arrayValue;
+			}
+
+			private bool ArrayIteration() {
+				if (CurrentTokenIndex >= Tokens.Count) {
+					SetError(ParseResult.Kind.MissingEndToken, CurrentToken);
+					return false;
+				}
+				ArrayChange result = ParseArrayElementCoop();//arrayValue);
+				UnityEngine.Debug.Log($"## Array: {CurrentIndex} : {result}");
+				switch (result) {
+					case ArrayChange.FinishedArray:
+					case ArrayChange.Error:
+						FinishedArray(CurrentLayer.DataStructure);//arrayValue);
+						return false;
+				}
+				return true;
+			}
+
+			private void FinishedArray(object arrayValue) {
+				if (CurrentLayer.DataStructure != arrayValue) {
+					throw new Exception($"unexpected type! found {CurrentLayer.DataStructure}, was looking for {arrayValue}");
+				}
+				StructureLayers.RemoveAt(StructureLayers.Count - 1);
 			}
 
 			enum DictionaryChange { None, FinishedDictionary, ParsedKey, ParsedValue, Error }
-			public IDictionary ParseDictionaryCoop() {
+			public void ParseDictionaryCoop() {
 				Token token = CurrentToken;
 				Error = ParseResult.None;
-				if (!IsExpectedDelimiter(token, "{", ref Error)) { return null; }
+				if (!IsExpectedDelimiter(token, "{", ref Error)) { return; }
 				++CurrentTokenIndex;
 				Error = ParseResult.None;
 				OrderedDictionary dictionaryValue = new OrderedDictionary();
 				SetCurrentData(dictionaryValue);
-				bool needToParseKey = true;
+				needToParseKey = true;
+				StructureLayers.Add(new DataStructureLayer(dictionaryValue, DataStructureLayer.Type.Object));
 				while (CurrentTokenIndex < Tokens.Count) {
-					switch(ParseDictionaryKeyValuePairCoop(ref needToParseKey)){
-						case DictionaryChange.FinishedDictionary:
-						case DictionaryChange.Error:
-							return dictionaryValue;
+					if (!DictionaryIteration()) {
+						return;
 					}
 				}
 				SetError(ParseResult.Kind.MissingEndToken, token);
-				return dictionaryValue;
+				return;
 			}
 
-			private ArrayChange ParseArrayElementCoop(List<object> arrayValue) {
+			private bool DictionaryIteration() {
+				if (CurrentTokenIndex >= Tokens.Count) {
+					SetError(ParseResult.Kind.MissingEndToken, CurrentToken);
+					return false;
+				}
+				DictionaryChange result = ParseDictionaryKeyValuePairCoop();// ref needToParseKey);
+				UnityEngine.Debug.Log($"## Dictionary: {CurrentIndex} : {result}");
+				switch (result) {
+					case DictionaryChange.FinishedDictionary:
+					case DictionaryChange.Error:
+						FinishedDictionary(CurrentLayer.DataStructure);// dictionaryValue);
+						return false;
+				}
+				return true;
+			}
+
+			private void FinishedDictionary(object dictionaryValue) {
+				if (CurrentLayer.DataStructure != dictionaryValue) {
+					throw new Exception($"unexpected type! found {CurrentLayer.DataStructure}, was looking for {dictionaryValue}");
+				}
+				StructureLayers.RemoveAt(StructureLayers.Count - 1);
+			}
+
+			private ArrayChange ParseArrayElementCoop() { //IList<object> arrayValue) {
+				IList<object> arrayValue = CurrentLayer.DataStructure as IList<object>;
 				Token token = CurrentToken;
 				switch (token.TokenKind) {
 					case Token.Kind.None:
@@ -187,7 +244,7 @@ namespace RunCmd {
 				}
 			}
 
-			private DictionaryChange ParseDictionaryKeyValuePairCoop(ref bool needToParseKey) {
+			private DictionaryChange ParseDictionaryKeyValuePairCoop() { //ref bool needToParseKey) {
 				Token token = CurrentToken;
 				switch (token.TokenKind) {
 					case Token.Kind.None:
