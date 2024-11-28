@@ -58,6 +58,10 @@ namespace RunCmd {
 			_command.Parse();
 		}
 
+		public void UseParsedCommands() {
+			_executor.SetCommands(_command.GetCommands());
+		}
+
 		public void ExecuteCurrentCommand() {
 			_executor._settings = _settings;
 			_executor.currentCommandText = _commandInput;
