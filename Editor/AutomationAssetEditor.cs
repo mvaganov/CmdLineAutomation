@@ -232,7 +232,6 @@ namespace RunCmd {
 			Target.UseParsedCommands();
 			// TODO feed the list of commands to the Executor/_shell?
 
-			//CommandExecutor.
 			//CommandLineExecutor executor = Target.GetCommandExecutor();
 			//executor.CommandsToDo = Target.CommandsToDo;
 			//executor.RunCommands(_context, Print);
