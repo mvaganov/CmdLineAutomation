@@ -49,7 +49,6 @@ namespace RunCmd {
 			Debug.Log($"({context}) canceling [{_executor.CurrentCommandEnd}]");
 			_executor.CancelProcess(context);
 		}
-
 		public void InsertNextCommandToExecute(object context, string command) {
 			throw new System.NotImplementedException();
 		}

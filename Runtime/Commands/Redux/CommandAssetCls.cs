@@ -5,6 +5,7 @@ namespace RunCmd {
 	public class CommandAssetCls : ScriptableObject, ICommandAsset {
 		public ICommandProcess CreateCommand(object context) {
 			Proc proc = new Proc(this, context);
+			Debug.Log("created cls proc " + proc);
 			CommandManager.Instance.Add(context, this, proc);
 			return proc;
 		}

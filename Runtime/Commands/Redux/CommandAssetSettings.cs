@@ -101,6 +101,12 @@ namespace RunCmd {
 		public void Initialize() {
 			_iCommandAssets = new List<ICommandAsset>();
 			foreach (UnityEngine.Object obj in _commandAssets) {
+				//if (obj is ICommandAsset commandAsset) {
+				//	_iCommandAssets.Add(commandAsset);
+				//} else {
+				//	Debug.LogError($"unexpected asset type {obj.GetType().Name}, " +
+				//		$"{name} expects only {nameof(ICommandAsset)} entries");
+				//}
 				switch (obj) {
 					case ICommandAsset iAsset:
 						_iCommandAssets.Add(iAsset);

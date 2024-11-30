@@ -64,7 +64,7 @@ MonoBehaviour:
     commandExecutingIndex: 83
     _currentCommands: []
     cancelled: 1
-    currentCommandText: hi
+    currentCommandText: echo hello
     commandOutput: 
-    currentCommandAfterFilter: hi
+    currentCommandAfterFilter: 
   _progressing: 1
