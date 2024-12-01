@@ -72,7 +72,9 @@ namespace RunCmd {
 
 		public void ExecuteCurrentCommand() {
 			Debug.Log($"executing {currentCommandText}");
-			// TODO
+			// TODO TODO TODO do ne next
+			// TODO go through filters, including the filter that finds named commands
+
 			StartCooperativeFunction(currentCommandText, print);
 			if (IsCancelled()) {
 				//Debug.Log("----------CANCELLED");
