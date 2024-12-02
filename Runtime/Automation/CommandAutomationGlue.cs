@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
+using RunCmdRedux;
 
 namespace RunCmd {
 	/// <summary>

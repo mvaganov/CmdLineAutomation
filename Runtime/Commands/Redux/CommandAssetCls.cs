@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace RunCmd {
+namespace RunCmdRedux {
 	[CreateAssetMenu(fileName = "cls", menuName = "ScriptableObjects/CommandAsset/cls")]
 	public class CommandAssetCls : ScriptableObject, ICommandAsset {
 		public ICommandProcess CreateCommand(object context) {
@@ -20,7 +20,7 @@ namespace RunCmd {
 			public bool IsExecutionFinished => true;
 			public float GetProgress() => 1;
 			public void StartCooperativeFunction(string command, PrintCallback print) {
-				if (context is ICommandAutomation automation) {
+				if (context is RunCmd.ICommandAutomation automation) {
 					// clear the screen just after this command is processed
 					CommandDelay.DelayCall(ClearOnNextUpdate);
 					void ClearOnNextUpdate() {

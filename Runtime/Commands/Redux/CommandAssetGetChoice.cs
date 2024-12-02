@@ -5,11 +5,13 @@ using UnityEngine.UIElements;
 using System.Collections;
 using System.Collections.Specialized;
 using UnityEngine.EventSystems;
+using RunCmd;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
 
-namespace RunCmd {
+namespace RunCmdRedux {
 	// TODO make choice UI that can execute during runtime
 	[CreateAssetMenu(fileName = "getchoice", menuName = "ScriptableObjects/CommandAsset/getchoice")]
 	public class CommandAssetGetChoice : ScriptableObject, ICommandAsset {

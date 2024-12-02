@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 
-namespace RunCmd {
+namespace RunCmdRedux {
 	/// <summary>
 	/// Editor for lists of <see cref="AutomationAsset"/>s, commands to execute.
 	/// </summary>

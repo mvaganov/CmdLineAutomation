@@ -1,6 +1,6 @@
 using System;
 
-namespace RunCmd {
+namespace RunCmdRedux {
 	[Serializable]
 	public class KeyValuePairStrings {
 		public string Key, Value;

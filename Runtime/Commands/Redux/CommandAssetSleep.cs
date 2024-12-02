@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace RunCmd {
+namespace RunCmdRedux {
 
 	[CreateAssetMenu(fileName = "sleep", menuName = "ScriptableObjects/CommandAsset/sleep")]
 	public class CommandAssetSleep : ScriptableObject, ICommandAsset {

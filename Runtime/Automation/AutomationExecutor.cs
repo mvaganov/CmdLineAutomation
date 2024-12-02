@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace RunCmd {
+namespace RunCmdRedux {
 	// redux
 	[System.Serializable]
 	public class AutomationExecutor : ICommandAssetExecutor, ICommandAssetAutomation, ICommandProcessReference {
@@ -63,16 +63,17 @@ namespace RunCmd {
 		}
 
 		private void EndCurrentCommand() {
-			if (currentCommand is CommandRunnerBase runner) {
-				runner.RemoveExecutionData(Context);
-			}
-			commandAssetIndex = 0;
-			currentCommand = null;
+			throw new System.Exception("implement me");
+			//if (currentCommand is CommandRunnerBase runner) {
+			//	runner.RemoveExecutionData(Context);
+			//}
+			//commandAssetIndex = 0;
+			//currentCommand = null;
 		}
 
 		public void ExecuteCurrentCommand() {
 			Debug.Log($"executing {currentCommandText}");
-			// TODO TODO TODO do ne next
+			// TODO TODO TODO do me next
 			// TODO go through filters, including the filter that finds named commands
 
 			StartCooperativeFunction(currentCommandText, print);
@@ -138,9 +139,11 @@ namespace RunCmd {
 					//	Debug.Log($"~~~ CANCEL [{filterIndex}] {commandObj.name}\n\n{currentCommandText}\n\n");
 					//	return true;
 					//}
-					if ((_shell == null || !_shell.IsRunning) && currentCommand is FilterOperatingSystemCommandShell osShell) {
-						_shell = osShell.Shell;
-					}
+
+					// TODO implement the redux version of FilterOperatingSystemCommandShell
+					//if ((_shell == null || !_shell.IsRunning) && currentCommand is FilterOperatingSystemCommandShell osShell) {
+					//	_shell = osShell.Shell;
+					//}
 				}
 				bool currentCommandStillExecuting = currentCommand != null && !currentCommand.IsExecutionFinished;
 				if (currentCommandStillExecuting) {

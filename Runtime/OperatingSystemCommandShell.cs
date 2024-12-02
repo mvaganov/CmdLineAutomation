@@ -4,7 +4,7 @@ using System;
 using System.IO;
 using System.Text;
 
-namespace RunCmd {
+namespace RunCmdRedux {
 	public class OperatingSystemCommandShell {
 		/// <summary>
 		/// What object owns this shell, which might be used to get scope-specific data

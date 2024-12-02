@@ -1,3 +1,4 @@
+using RunCmdRedux;
 using System.Collections.Generic;
 
 namespace RunCmd {
@@ -36,7 +37,8 @@ namespace RunCmd {
 
 		public void CancelProcess(object context);
 	}
-
+}
+namespace RunCmdRedux {
 	// redux
 	public interface ICommandAssetAutomation {
 		public ICommandAssetExecutor CommandExecutor { get; }

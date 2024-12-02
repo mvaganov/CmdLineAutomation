@@ -1,3 +1,5 @@
+using RunCmdRedux;
+
 namespace RunCmd {
 	public interface INamedCommand : ICommandProcessor {
 		/// <summary>

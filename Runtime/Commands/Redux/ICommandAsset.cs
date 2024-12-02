@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace RunCmd {
+namespace RunCmdRedux {
 	public interface ICommandAsset {
 		public ICommandProcess CreateCommand(object context);
 	}

@@ -1,4 +1,4 @@
-namespace RunCmd {
+namespace RunCmdRedux {
 	/// <summary>
 	/// Processing logic to respond to a string command input. The main method is a non-blocking
 	/// cooperative-multithreaded function. This is a base command processing interface.

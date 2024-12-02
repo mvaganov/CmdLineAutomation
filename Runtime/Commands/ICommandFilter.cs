@@ -1,4 +1,4 @@
-namespace RunCmd
+namespace RunCmdRedux
 {
 	public interface ICommandFilter : ICommandProcessor {
 		/// <summary>

@@ -1,7 +1,9 @@
+using RunCmdRedux;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace RunCmd {
+	// TODO reimplement in redux
 	[CreateAssetMenu(fileName = "reimportfolder", menuName = "ScriptableObjects/Commands/reimportfolder")]
 	public class CommandReimportFolder : ScriptableObject, CommandRunner<string>, INamedCommand {
 		public string CommandToken => this.name;

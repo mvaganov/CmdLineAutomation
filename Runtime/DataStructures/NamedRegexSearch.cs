@@ -2,7 +2,7 @@ using System;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace RunCmd {
+namespace RunCmdRedux {
 	[Serializable]
 	public class NamedRegexSearch {
 		public const string CommandPromptRegexWindows =

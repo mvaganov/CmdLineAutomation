@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace RunCmd {
+namespace RunCmdRedux {
 	[System.Serializable]
 	public class RegexMatrix {
 

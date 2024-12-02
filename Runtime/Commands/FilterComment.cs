@@ -1,7 +1,9 @@
+using RunCmdRedux;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace RunCmd {
+	// TODO create in redux
 	/// <summary>
 	/// Removes a command from the command set if it begins with a given prefix
 	/// </summary>

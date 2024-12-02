@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace RunCmd {
+namespace RunCmdRedux {
 	public class CommandManager {
 		private static CommandManager _instance;
 		private HashSet<Procedure> _procIds = new HashSet<Procedure>();

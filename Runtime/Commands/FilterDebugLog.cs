@@ -1,7 +1,9 @@
+using RunCmdRedux;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace RunCmd {
+	// TODO make redux version of this
 	/// <summary>
 	/// Prints each command into the Unity console. This is mostly useful as a sample implementation of
 	/// <see cref="ICommandProcessor"/>

@@ -1,6 +1,7 @@
+using RunCmd;
 using UnityEngine;
 
-namespace RunCmd {
+namespace RunCmdRedux {
 	[CreateAssetMenu(fileName = "exit", menuName = "ScriptableObjects/CommandAsset/exit")]
 	public class CommandAssetExit : ScriptableObject, ICommandAsset {
 		public ICommandProcess CreateCommand(object context) {
@@ -21,6 +22,7 @@ namespace RunCmd {
 			public float GetProgress() => 1;
 
 			public void StartCooperativeFunction(string command, PrintCallback print) {
+				// TODO replace with redux version of ICommandExecutor
 				if (context is ICommandExecutor automation) {
 					automation.CancelProcess(context);
 				}

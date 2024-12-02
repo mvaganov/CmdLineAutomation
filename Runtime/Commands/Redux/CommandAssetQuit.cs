@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace RunCmd {
+namespace RunCmdRedux {
 	[CreateAssetMenu(fileName = "quit", menuName = "ScriptableObjects/CommandAsset/quit")]
 	public class CommandAssetQuit : ScriptableObject, ICommandAsset {
 		public string webplayerQuitURL;

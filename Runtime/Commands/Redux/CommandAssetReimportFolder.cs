@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace RunCmd {
+namespace RunCmdRedux {
 	[CreateAssetMenu(fileName = "reimportfolder", menuName = "ScriptableObjects/CommandAsset/reimportfolder")]
 	public class CommandAssetReimportFolder : ScriptableObject, ICommandAsset {
 		public ICommandProcess CreateCommand(object context) {

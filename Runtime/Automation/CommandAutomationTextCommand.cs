@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace RunCmd {
+namespace RunCmdRedux {
 	//public partial class CommandAutomation {
 	/// <summary>
 	/// Exposed information about what commands to automate

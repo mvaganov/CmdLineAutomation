@@ -1,7 +1,8 @@
+using RunCmd;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace RunCmd {
+namespace RunCmdRedux {
 	/// <summary>
 	/// CommandAssetListing: has all of the settings of a command line, like what commands it accepts and what variables it looks for
 	/// * Metadata/description about why this object exists

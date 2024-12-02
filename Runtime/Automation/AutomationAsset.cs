@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace RunCmd {
+namespace RunCmdRedux {
 
 	[CreateAssetMenu(fileName = "AutomationAsset", menuName = "ScriptableObjects/AutomationAsset", order = 1)]
 	public class AutomationAsset : ScriptableObject, ICommandAssetExecutor, ICommandAssetAutomation, ICommandProcessReference {
