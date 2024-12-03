@@ -76,7 +76,7 @@ namespace RunCmdRedux {
 			// TODO TODO TODO do me next
 			// TODO go through filters, including the filter that finds named commands
 
-			StartCooperativeFunction(currentCommandText, print);
+			//StartCooperativeFunction(currentCommandText, print);
 			if (IsCancelled()) {
 				//Debug.Log("----------CANCELLED");
 				EndCurrentCommand();
@@ -90,6 +90,7 @@ namespace RunCmdRedux {
 			//if (HaveCommandToDo() && !_currentCommand.IsExecutionFinished()) { Debug.Log("       still doing it!"); }
 		}
 
+		// TODO replace
 		public void StartCooperativeFunction(string command, PrintCallback print) {
 			this.print = print;
 			currentCommandText = command;
@@ -98,6 +99,7 @@ namespace RunCmdRedux {
 			DoCurrentCommand();
 		}
 
+		// TODO replace
 		private void DoCurrentCommand() {
 			if (currentCommand != null && !currentCommand.IsExecutionFinished) {
 				Debug.Log($"still processing {currentCommand}");
@@ -111,6 +113,7 @@ namespace RunCmdRedux {
 			commandAssetIndex = 0;
 		}
 
+		// TODO replace
 		private bool IsExecutionStoppedByFilterFunction() {
 			if (source == null) {
 				throw new System.Exception("Missing execution source");
@@ -175,6 +178,7 @@ namespace RunCmdRedux {
 			return false;
 		}
 
+		// TODO replace
 		private void OutputAnalysis(string fromProcess) {
 			source.AddToCommandOutput(fromProcess); // this is where the printing happens.
 			print?.Invoke(fromProcess);

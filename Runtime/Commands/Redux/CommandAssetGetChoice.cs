@@ -35,7 +35,7 @@ namespace RunCmdRedux {
 			return proc;
 		}
 
-		public class Proc : INamedProcess {
+		public class Proc : BaseNamedProcess {
 			public CommandAssetGetChoice source;
 			public object context;
 			public bool finished;
@@ -47,10 +47,10 @@ namespace RunCmdRedux {
 #endif
 			public Proc(object context, CommandAssetGetChoice source) { this.context = context; this.source = source; }
 
-			public string name => source.name;
+			public override string name => source.name;
 			public int TimeoutEnd => timeoutStart + timeoutDuration;
 
-			public bool IsExecutionFinished {
+			public override bool IsExecutionFinished {
 				get {
 					if (source._blockUntilChoiceIsMade || finished) {
 						return finished;
@@ -61,7 +61,7 @@ namespace RunCmdRedux {
 				}
 			}
 
-			public float GetProgress() {
+			public override float GetProgress() {
 				if (finished) {
 					return 1;
 				}
@@ -73,7 +73,7 @@ namespace RunCmdRedux {
 				return normalizedProgress;
 			}
 
-			public void StartCooperativeFunction(string command, PrintCallback print) {
+			public override void StartCooperativeFunction(string command, PrintCallback print) {
 				UpdateMousePosition();
 				object parsed = Parse.ParseText($"[{command}]", out Parse.ParseResult err);
 				if (err.IsError) {

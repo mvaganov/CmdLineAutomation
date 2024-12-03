@@ -10,18 +10,18 @@ namespace RunCmdRedux {
 			return proc;
 		}
 
-		public class Proc : INamedProcess {
+		public class Proc : BaseNamedProcess {
 			public CommandAssetExit source;
 			public object context;
 			public Proc(object context, CommandAssetExit source) { this.source = source; this.context = context; }
 
-			public string name => source.name;
+			public override string name => source.name;
 
-			public bool IsExecutionFinished => true;
+			public override bool IsExecutionFinished => true;
 
-			public float GetProgress() => 1;
+			public override float GetProgress() => 1;
 
-			public void StartCooperativeFunction(string command, PrintCallback print) {
+			public override void StartCooperativeFunction(string command, PrintCallback print) {
 				// TODO replace with redux version of ICommandExecutor
 				if (context is ICommandExecutor automation) {
 					automation.CancelProcess(context);

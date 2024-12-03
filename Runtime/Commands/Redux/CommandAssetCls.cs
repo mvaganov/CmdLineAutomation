@@ -9,17 +9,17 @@ namespace RunCmdRedux {
 			CommandManager.Instance.Add(context, this, proc);
 			return proc;
 		}
-		public class Proc : INamedProcess {
+		public class Proc : BaseNamedProcess {
 			public CommandAssetCls source;
 			public object context;
-			public string name => source.name;
+			public override string name => source.name;
 			public Proc(CommandAssetCls source, object context) {
 				this.source = source;
 				this.context = context;
 			}
-			public bool IsExecutionFinished => true;
-			public float GetProgress() => 1;
-			public void StartCooperativeFunction(string command, PrintCallback print) {
+			public override bool IsExecutionFinished => true;
+			public override float GetProgress() => 1;
+			public override void StartCooperativeFunction(string command, PrintCallback print) {
 				if (context is RunCmd.ICommandAutomation automation) {
 					// clear the screen just after this command is processed
 					CommandDelay.DelayCall(ClearOnNextUpdate);

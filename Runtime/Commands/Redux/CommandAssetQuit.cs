@@ -20,17 +20,17 @@ namespace RunCmdRedux {
 			return proc;
 		}
 
-		public class Proc : INamedProcess {
+		public class Proc : BaseNamedProcess {
 			public CommandAssetQuit source;
 			public Proc(CommandAssetQuit source) { this.source = source; }
 
-			public string name => source.name;
+			public override string name => source.name;
 
-			public bool IsExecutionFinished => true;
+			public override bool IsExecutionFinished => true;
 
-			public float GetProgress() => 1;
+			public override float GetProgress() => 1;
 
-			public void StartCooperativeFunction(string command, PrintCallback print) {
+			public override void StartCooperativeFunction(string command, PrintCallback print) {
 				print(command);
 				Quit();
 			}

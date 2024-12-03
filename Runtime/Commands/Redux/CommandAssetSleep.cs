@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using static UnityEngine.Networking.UnityWebRequest;
 
 namespace RunCmdRedux {
 
@@ -11,22 +12,28 @@ namespace RunCmdRedux {
 			return proc;
 		}
 
-		public class Proc : INamedProcess {
+		public class Proc : BaseNamedProcess {
 			public CommandAssetSleep source;
 			public int started, finished;
+			public string err;
 			public Proc(CommandAssetSleep source) { this.source = source; }
 
-			public string name => source.name;
+			public override string name => source.name;
 
-			public bool IsExecutionFinished {
+			public override object Error => err;
+
+			public override bool IsExecutionFinished {
 				get {
+					if (err != null) {
+						return true;
+					}
 					int now = Environment.TickCount;
 					Debug.Log($"now {now} >= {finished} finish");
 					return now >= finished;
 				}
 			}
 
-			public float GetProgress() {
+			public override float GetProgress() {
 				int duration = finished - started;
 				int waited = Environment.TickCount - started;
 				float normalizedProgress = (float)waited / duration;
@@ -34,9 +41,10 @@ namespace RunCmdRedux {
 				return normalizedProgress;
 			}
 
-			public void StartCooperativeFunction(string command, PrintCallback print) {
+			public override void StartCooperativeFunction(string command, PrintCallback print) {
 				int now = started = finished = Environment.TickCount;
 				string[] args = command.Split();
+				err = null;
 				Debug.Log("STARTING SLEEP");
 				if (args.Length > 1) {
 					if (float.TryParse(args[1], out float seconds)) {
@@ -44,10 +52,12 @@ namespace RunCmdRedux {
 						print.Invoke($"{name} {seconds}\n~~~waiting {seconds} seconds~~~\n");
 						//Debug.LogWarning($"waiting '{args[1]}' seconds!!!!!!!! [{print.Method}]");
 					} else {
-						Debug.LogWarning($"unable to wait '{args[1]}' seconds");
+						err = $"unable to wait '{args[1]}' seconds";
+						Debug.LogWarning(err);
 					}
 				} else {
-					Debug.LogWarning($"'{name}' missing time parameter");
+					err = $"'{name}' missing time parameter";
+					Debug.LogWarning(err);
 				}
 			}
 		}

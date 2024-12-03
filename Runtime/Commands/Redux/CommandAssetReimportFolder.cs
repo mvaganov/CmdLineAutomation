@@ -9,19 +9,19 @@ namespace RunCmdRedux {
 			return proc;
 		}
 
-		public class Proc : INamedProcess {
+		public class Proc : BaseNamedProcess {
 			public CommandAssetReimportFolder source;
 			public string folder;
 			public bool finished;
 			public Proc(CommandAssetReimportFolder source) { this.source = source; }
 
-			public string name => source.name;
+			public override string name => source.name;
 
-			public bool IsExecutionFinished => finished;
+			public override bool IsExecutionFinished => finished;
 
-			public float GetProgress() => finished ? 1 : 0;
+			public override float GetProgress() => finished ? 1 : 0;
 
-			public void StartCooperativeFunction(string command, PrintCallback print) {
+			public override void StartCooperativeFunction(string command, PrintCallback print) {
 				string[] args = command.Split();
 				if (args.Length > 1) {
 					folder = args[1];

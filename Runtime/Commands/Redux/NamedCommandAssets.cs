@@ -6,7 +6,7 @@ using UnityEngine;
 /// <summary>
 /// Command filter used to call named commands from a list
 /// </summary>
-[CreateAssetMenu(fileName = "NamedCommandAssets", menuName = "ScriptableObjects/Filters/NamedCommandAssets")]
+[CreateAssetMenu(fileName = "NamedCommandAssets", menuName = "ScriptableObjects/CommandAsset/NamedCommandAssets")]
 public class NamedCommandAssets : ScriptableObject {
 	/// <summary>
 	/// List of the possible custom commands written as C# <see cref="ICommandProcessor"/>s
