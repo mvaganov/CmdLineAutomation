@@ -5,7 +5,7 @@ namespace RunCmd {
 	/// <summary>
 	/// Removes a command from the command set if it begins with a given prefix
 	/// </summary>
-	[CreateAssetMenu(fileName = "Comment", menuName = "ScriptableObjects/Filters/CommentAsset")]
+	[CreateAssetMenu(fileName = "Comment", menuName = "ScriptableObjects/FilterAssets/Comment")]
 	public class FilterAssetComment : ScriptableObject, ICommandAsset {
 		[SerializeField] protected bool _enabled = true;
 		[SerializeField] protected string _prefix = "#";

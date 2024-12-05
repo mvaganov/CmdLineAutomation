@@ -4,15 +4,15 @@ namespace RunCmdRedux {
 	/// <summary>
 	/// Command filter used to call named commands from a list
 	/// </summary>
-	[CreateAssetMenu(fileName = "NamedCommandAssets", menuName = "ScriptableObjects/CommandAsset/NamedCommandAssets")]
-	public class NamedCommandAssets : ScriptableObject, ICommandAsset {
+	[CreateAssetMenu(fileName = "NamedCommand", menuName = "ScriptableObjects/FilterAssets/NamedCommand")]
+	public class FilterAssetNamedCommand: ScriptableObject, ICommandAsset {
 		/// <summary>
 		/// List of the possible custom commands written as C# <see cref="ICommandProcessor"/>s
 		/// </summary>
 		[SerializeField] protected Object[] _commandListing;
 
 		public class Proc : BaseNamedProcess {
-			private NamedCommandAssets _source;
+			private FilterAssetNamedCommand _source;
 			private ICommandProcess _currentProcess;
 			public override string name {
 				get {
@@ -23,7 +23,7 @@ namespace RunCmdRedux {
 
 			public override bool IsExecutionFinished => _currentProcess != null ? _currentProcess.IsExecutionFinished : true;
 
-			public Proc(NamedCommandAssets source) { _source = source; }
+			public Proc(FilterAssetNamedCommand source) { _source = source; }
 
 			public override float GetProgress() => _currentProcess != null ? _currentProcess.GetProgress() : 1;
 
