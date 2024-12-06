@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2134763f8457f1648a992c1d6f7ffda1, type: 3}
-  m_Name: NamedCommand
+  m_Name: NamedCommands
   m_EditorClassIdentifier: 
   _commandListing:
   - {fileID: 11400000, guid: 16fedd41ea311bf4ca18e7b5df7da7e7, type: 2}

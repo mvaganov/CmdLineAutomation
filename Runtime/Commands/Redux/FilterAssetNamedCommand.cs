@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace RunCmdRedux {
@@ -5,11 +6,38 @@ namespace RunCmdRedux {
 	/// Command filter used to call named commands from a list
 	/// </summary>
 	[CreateAssetMenu(fileName = "NamedCommand", menuName = "ScriptableObjects/FilterAssets/NamedCommand")]
-	public class FilterAssetNamedCommand: ScriptableObject, ICommandAsset {
+	public class FilterAssetNamedCommand: ScriptableObject, ICommandAsset, ICommandAssetBranch {
 		/// <summary>
 		/// List of the possible custom commands written as C# <see cref="ICommandProcessor"/>s
 		/// </summary>
 		[SerializeField] protected Object[] _commandListing;
+
+		bool FoundRecursion() => FoundRecursion(this, null);
+
+		bool FoundRecursion(ICommandAssetBranch self, List<int> list) {
+			for(int i = 0; i < GetProcessCount(); ++i) {
+				ICommandProcess proc = GetProcessByIndex(i);
+				if (proc == null) {
+					continue;
+				}
+				ICommandAssetBranch branch = proc as ICommandAssetBranch;
+				if (list == null) {
+					list = new List<int> { i };
+				} else {
+					list.Add(i);
+				}
+				if (FoundRecursion(branch, list)) {
+					return true;
+				}
+				list.Remove(list.Count - 1);
+			}
+			return list != null && list.Count > 0;
+		}
+
+		public ICommandProcess GetProcessByIndex(int index) =>
+			_commandListing[index] as ICommandProcess;
+
+		public int GetProcessCount() => _commandListing.Length;
 
 		public class Proc : BaseNamedProcess {
 			private FilterAssetNamedCommand _source;
@@ -43,7 +71,7 @@ namespace RunCmdRedux {
 		}
 
 		public ICommandProcess CreateCommand(object context) {
-			throw new System.NotImplementedException();
+			return new Proc(this);
 		}
 	}
 }

@@ -3,6 +3,11 @@ namespace RunCmdRedux {
 		public ICommandProcess CreateCommand(object context);
 	}
 
+	public interface ICommandAssetBranch {
+		public ICommandProcess GetProcessByIndex(int index);
+		public int GetProcessCount();
+	}
+
 	public static class ICommandAssetExtension {
 		public static ICommandProcess GetCommand(this ICommandAsset self, object context) =>
 			CommandManager.Instance.TryGet(context, self, out var proc) ? proc.process : null;
