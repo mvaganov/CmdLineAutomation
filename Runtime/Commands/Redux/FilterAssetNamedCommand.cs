@@ -81,11 +81,15 @@ namespace RunCmdRedux {
 			public override void StartCooperativeFunction(string command, PrintCallback print) {
 				string firstToken = GetFirstToken(command);
 				if (!_source._namedCommands.TryGetValue(firstToken, out ICommandAsset _currentAsset)) {
+					_currentProcess = null;
+					Debug.LogError($"unknown command {firstToken}\n{command}\n" +
+						$"Valid options:{string.Join("\n",_source._namedCommands.Keys)}");
 					return;
 				}
 				_currentProcess = _currentAsset.CreateCommand(_context);
 				if (_currentProcess != null) {
 					_currentProcess.StartCooperativeFunction(command, print);
+					ValidateCurrentProcess();
 				} else {
 					Debug.LogError($"unable to create process for {_currentAsset}");
 				}
@@ -98,7 +102,17 @@ namespace RunCmdRedux {
 					return;
 				}
 				_currentProcess.ContinueCooperativeFunction();
+				ValidateCurrentProcess();
 			}
+			private void ValidateCurrentProcess() {
+				if (_currentProcess == null) {
+					return;
+				}
+				if (_currentProcess.IsExecutionFinished) {
+					_currentProcess = null;
+				}
+			}
+
 		}
 
 		public ICommandProcess CreateCommand(object context) {
