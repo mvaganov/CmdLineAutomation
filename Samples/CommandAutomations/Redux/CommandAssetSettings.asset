@@ -16,9 +16,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 9233699c129e8dc42ad6258138cc790a, type: 2}
   - {fileID: 11400000, guid: 188d37271e2cb804dbc64d9845d12678, type: 2}
   - {fileID: 11400000, guid: 0a2e0a20f5f3a104996bd131ef12ff89, type: 2}
-  - {fileID: 11400000, guid: 0a2e0a20f5f3a104996bd131ef12ff89, type: 2}
-  - {fileID: 11400000, guid: 7ae18cca76cf3664da5d748036cf900c, type: 2}
-  - {fileID: 11400000, guid: 3278c26931e911d48a6f6422777d595c, type: 2}
+  - {fileID: 11400000, guid: 275d909ddd1d2724c924b5c09a1e1595, type: 2}
+  - {fileID: 11400000, guid: d21cb1e73a7b0774ebab8c2a6cfe160b, type: 2}
   _runtimeSettings:
     _regexTriggerProcessor:
       _regexTriggers:
