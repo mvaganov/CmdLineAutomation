@@ -8,7 +8,7 @@ namespace RunCmdRedux {
 	[CreateAssetMenu(fileName = "NamedCommand", menuName = "ScriptableObjects/FilterAssets/NamedCommand")]
 	public class FilterAssetNamedCommand: ScriptableObject, ICommandAsset, ICommandAssetBranch {
 		/// <summary>
-		/// List of the possible custom commands written as C# <see cref="ICommandProcessor"/>s
+		/// List of the possible custom commands written as C# <see cref="ICommandProcessor"/>
 		/// </summary>
 		[SerializeField] protected Object[] _commandListing;
 		Dictionary<string, ICommandAsset> _namedCommands = new Dictionary<string, ICommandAsset>();
