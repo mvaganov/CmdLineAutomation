@@ -19,12 +19,12 @@ namespace RunCmdRedux {
 			for (int i = 0; i < GetProcessCount(); ++i) {
 				ICommandAsset asset = _commandListing[i] as ICommandAsset;
 				if (asset == null) {
-					Debug.LogWarning($"unable to add {_commandListing[i]}, not a {nameof(ICommandAsset)}");
+					Debug.LogWarning($"{this}[{i}]: unable to add {_commandListing[i]}, not a {nameof(ICommandAsset)}");
 					continue;
 				}
 				Object namedObject = asset as Object;
 				if (namedObject == null) {
-					Debug.LogWarning($"unable to add {_commandListing[i]}, not a {nameof(UnityEngine.Object)}");
+					Debug.LogWarning($"{this}[{i}]: unable to add {_commandListing[i]}, not a {nameof(UnityEngine.Object)}");
 					continue;
 				}
 				_namedCommands[namedObject.name] = asset;
