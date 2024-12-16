@@ -127,6 +127,7 @@ namespace RunCmdRedux {
 
 		public void ExecuteCommand(string command) {
 			Target.CurrentCommandInput = command;
+			// TODO make sure this command isn't marked as being a member of the command list. this should not advance the list.
 			Target.ExecuteCurrentCommand();
 		}
 
