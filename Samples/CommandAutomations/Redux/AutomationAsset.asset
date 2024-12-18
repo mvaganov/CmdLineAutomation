@@ -75,7 +75,7 @@ MonoBehaviour:
     - sleep 3
     - echo done!
     cancelled: 1
-    currentCommandText: asd
+    currentCommandText: 
     commandOutput: 
     currentCommandAfterFilter: 
   _progressing: 1
