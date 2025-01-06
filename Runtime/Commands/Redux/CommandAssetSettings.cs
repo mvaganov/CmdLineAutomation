@@ -119,5 +119,21 @@ namespace RunCmdRedux {
 				}
 			}
 		}
+
+		// TODO keep working here.
+		public bool Iterate(string command, PrintCallback print, object context, int start, int end, ref int index) {
+			IList<ICommandAsset> assets = CommandAssets;
+			for (index = start; index < end; ++index) {
+				ICommandAsset asset = assets[index];
+				ICommandProcess proc = asset.GetCommandCreateIfMissing(context);
+				// TODO if this command hasn't been run yet, start it.
+				proc.StartCooperativeFunction(command, print);
+					// return true if still working
+				// if it has been run and it's iterating, continue iterating
+				// if it has been run and it's finished, advance to the next one...
+			}
+			// return false when finished
+			return false;
+		}
 	}
 }
