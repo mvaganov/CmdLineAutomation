@@ -1,5 +1,6 @@
 using RunCmd;
 using System.Collections.Generic;
+using System.Runtime.InteropServices.WindowsRuntime;
 using UnityEngine;
 
 namespace RunCmdRedux {
@@ -120,20 +121,44 @@ namespace RunCmdRedux {
 			}
 		}
 
-		// TODO keep working here.
-		public bool Iterate(string command, PrintCallback print, object context, int start, int end, ref int index) {
-			IList<ICommandAsset> assets = CommandAssets;
-			for (index = start; index < end; ++index) {
-				ICommandAsset asset = assets[index];
-				ICommandProcess proc = asset.GetCommandCreateIfMissing(context);
-				// TODO if this command hasn't been run yet, start it.
-				proc.StartCooperativeFunction(command, print);
-					// return true if still working
-				// if it has been run and it's iterating, continue iterating
-				// if it has been run and it's finished, advance to the next one...
+		public class CommandAssetSettingsExecution {
+			public int index = -1;
+			public bool stillExecutingCurrentIndex = false;
+			public IList<ICommandAsset> _assets;
+			ICommandProcess proc;
+			public object context;
+			public string command;
+			public PrintCallback print;
+			public CommandAssetSettingsExecution(string command, PrintCallback print, object context, IList<ICommandAsset> assets) {
+				this.command = command; this.print = print; this.context = context; _assets = assets;
 			}
-			// return false when finished
-			return false;
+			public bool Iterate() {
+				bool isNewCommand = false;
+				if (index < 0) {
+					index = 0;
+					isNewCommand = true;
+				} else if (proc == null || proc.IsExecutionFinished) {
+					++index;
+					isNewCommand = true;
+				}
+				if (isNewCommand) {
+					if (index >= _assets.Count) {
+						return false;
+					}
+					ICommandAsset asset = _assets[index];
+					proc = (asset != null) ? asset.GetCommandCreateIfMissing(context) : null;
+					proc.StartCooperativeFunction(command, print);
+				} else if (proc != null) {
+					proc.ContinueCooperativeFunction();
+				}
+				return true;
+			}
+		}
+
+		public bool Execute(string command, PrintCallback print, object context) {
+			CommandAssetSettingsExecution exec = CommandAssetExecutionStack.GetDataIfMissing(this, context,
+				() => new CommandAssetSettingsExecution(command, print, context, CommandAssets));
+			return exec.Iterate();
 		}
 	}
 }

@@ -75,6 +75,11 @@ namespace RunCmdRedux {
 			Debug.Log($"executing {currentCommandText}");
 			// TODO TODO TODO do me next
 			// TODO go through filters, including the filter that finds named commands
+			//if (_settings.NeedsInitialization()) {
+			//}
+
+			// TODO test me out!
+			_settings.Execute(currentCommandText, this.print, this);
 
 			//StartCooperativeFunction(currentCommandText, print);
 			if (IsCancelled()) {
