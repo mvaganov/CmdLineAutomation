@@ -79,7 +79,7 @@ namespace RunCmdRedux {
 			//}
 
 			// TODO test me out!
-			_settings.Execute(currentCommandText, this.print, this);
+			_settings.Execute(currentCommandText, print, this);
 
 			//StartCooperativeFunction(currentCommandText, print);
 			if (IsCancelled()) {
