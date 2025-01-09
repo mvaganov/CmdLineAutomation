@@ -128,10 +128,12 @@ namespace RunCmdRedux {
 			ICommandProcess proc;
 			public object context;
 			public string command;
+			public string firstToken;
 			public PrintCallback print;
 			public CommandAssetSettingsExecution(string command, PrintCallback print, object context, IList<ICommandAsset> assets) {
 				this.command = command; this.print = print; this.context = context; _assets = assets;
 			}
+
 			public bool Iterate() {
 				bool isNewCommand = false;
 				if (index < 0) {
@@ -141,11 +143,13 @@ namespace RunCmdRedux {
 					++index;
 					isNewCommand = true;
 				}
+				Debug.Log("INDEX: " + index);
 				if (isNewCommand) {
 					if (index >= _assets.Count) {
 						return false;
 					}
 					ICommandAsset asset = _assets[index];
+					Debug.Log("ASSET " + asset);
 					proc = (asset != null) ? asset.GetCommandCreateIfMissing(context) : null;
 					proc.StartCooperativeFunction(command, print);
 				} else if (proc != null) {

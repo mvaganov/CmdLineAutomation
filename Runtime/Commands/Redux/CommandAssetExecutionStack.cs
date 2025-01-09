@@ -29,6 +29,6 @@ public static class CommandAssetExecutionStack
 		if (!TryGetData(asset, context, out object data)) {
 			data = howToCreateIfMissing();
 		}
-		return data;
+		return data as TYPE;
 	}
 }
