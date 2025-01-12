@@ -68,7 +68,7 @@ public class ElementState {
 
 	public void RefreshHeight() {
 		int depth = 0;
-		GetRoot().CalculateHeight(0, ref depth);
+		GetRoot().CalculateHeight(0, ref depth, row);
 	}
 
 	private ElementState GetRoot() {
@@ -83,22 +83,24 @@ public class ElementState {
 		return root;
 	}
 
-	public int CalculateHeight(int depth, ref int maxDepth) {
+	public int CalculateHeight(int depth, ref int maxDepth, int maintainRowsBefore) {
 		if (depth > maxDepth) {
 			maxDepth = depth;
 		}
 		height = target != null ? 1 : 0;
-		if (children.Count == 0) {
+		if (children.Count == 0 || !_expanded) {
 			return height;
 		}
-		if (_expanded) {
-			int rowCursor = row + height;
-			for (int i = 0; i < children.Count; i++) {
-				children[i].row = rowCursor;
-				int elementHeight = children[i].CalculateHeight(depth + 1, ref maxDepth);
-				height += elementHeight;
-				rowCursor += elementHeight;
-			}
+		int rowCursor = row + height;
+		if (target != null) {
+			depth += 1;
+		}
+		for (int i = 0; i < children.Count; i++) {
+			children[i].row = rowCursor;
+			int elementHeight = rowCursor < maintainRowsBefore ? children[i].height :
+				children[i].CalculateHeight(depth, ref maxDepth, row);
+			height += elementHeight;
+			rowCursor += elementHeight;
 		}
 		return height;
 	}
