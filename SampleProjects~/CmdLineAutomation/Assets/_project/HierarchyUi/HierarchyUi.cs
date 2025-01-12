@@ -1,101 +1,14 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Xml.Linq;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 [ExecuteInEditMode]
 public class HierarchyUi : MonoBehaviour {
-	//[System.Serializable]
-	public class ElementState {
-		[HideInInspector]
-		public string name;
-		public int column, row, height;
-		public ElementState parent;
-		[HideInInspector]
-		public Transform target;
-		//public HierarchyElement ui;
-		private Button _label, _expand;
-		[HideInInspector]
-		public Button Label {
-			get => _label;
-			set {
-				_label = value;
-			}
-		}
-		[HideInInspector]
-		public Button Expand {
-			get => _expand;
-			set {
-				_expand = value;
-			}
-		}
-		public bool expanded;
-		public List<ElementState> children = new List<ElementState>();
+	[System.Serializable] public class UnityEvent_Transform : UnityEvent<Transform> { }
 
-		public ElementState(ElementState parent, Transform target, int column, int row, bool expanded) {
-			this.target = target;
-			this.parent = parent;
-			this.column = column;
-			this.row = row;
-			this.expanded = expanded;
-			this.name = (target != null) ? target.name : "";
-		}
-
-		public void DoExpand() {
-			expanded = true;
-			RefreshHeight();
-		}
-
-		public void DoCollapse() {
-			expanded = false;
-			RefreshHeight();
-		}
-
-		private void RefreshHeight() {
-			int depth = 0;
-			if (parent != null) {
-				parent.CalculateHeight(0, ref depth);
-			} else {
-				CalculateHeight(0, ref depth);
-			}
-		}
-
-		public int CalculateHeight(int depth, ref int maxDepth) {
-			if (depth > maxDepth) {
-				maxDepth = depth;
-			}
-			height = target != null ? 1 : 0;
-			if (children.Count == 0) {
-				return height;
-			}
-			if (expanded) {
-				int r = row + 1;
-				for (int i = 0; i < children.Count; i++) {
-					children[i].row = r;
-					int elementHeight = children[i].CalculateHeight(depth + 1, ref maxDepth);
-					height += elementHeight;
-					r += elementHeight;
-				}
-			}
-			return height;
-		}
-
-		public void AddChildren(bool expanded) {
-			int c = column + 1;
-			int r = row + 1;
-			for(int i = 0; i <target.childCount; ++i) {
-				Transform t =	target.GetChild(i);
-				if (t == null || t.GetComponent<HierarchyIgnore>() != null) {
-					continue;
-				}
-				ElementState es = new ElementState(this, t, c, r, expanded);
-				children.Add(es);
-				es.AddChildren(expanded);
-			}
-		}
-	}
 	public ContentSizeFitter contentPanel;
 	private Transform _contentPanelTransform;
 	public RectTransform innerView;
@@ -110,9 +23,12 @@ public class HierarchyUi : MonoBehaviour {
 
 	private ElementState root;
 	private Rect cullBox;
+	private Rect usedCullBox;
 	private float elementHeight;
 	private float elementWidth;
 	private float indentWidth;
+	public UnityEvent_Transform onElementSelect;
+
 	private void OnValidate() {
 		RectTransform rt = contentPanel.GetComponent<RectTransform>();
 		rt.sizeDelta = contentSize;
@@ -129,21 +45,27 @@ public class HierarchyUi : MonoBehaviour {
 		Vector2 offset = scrollView.normalizedPosition;
 		offset.y = 1 - offset.y;
 		offset.x *= (contentSize.x - viewSize.x);
-		offset.y *= -(contentSize.y - viewSize.y);
-		offset += new Vector2(bevel, -bevel);
+		offset.y *= (contentSize.y - viewSize.y);
+		offset += new Vector2(bevel, bevel);
 		cullBox = new Rect(offset, viewSize - new Vector2(bevel * 2, bevel * 2));
 		innerView.sizeDelta = cullBox.size;
-		innerView.anchoredPosition = cullBox.position;
+		innerView.anchoredPosition = new Vector2(cullBox.position.x, -cullBox.position.y);
 		return cullBox;
 	}
 
 	// Update is called once per frame
 	void Update() {
+		if (root == null) {
+			RefreshHierarchyState(true);
+		}
 		CalcCullBox();
+		if (usedCullBox != cullBox) {
+			RefreshUiElements();
+		}
 	}
 
-	[ContextMenu(nameof(CalculateHierarchy))]
-	private void CalculateHierarchy() {
+	[ContextMenu(nameof(CalculateHierarchySize))]
+	private void CalculateHierarchySize() {
 		elementHeight = prefabElement.GetComponent<RectTransform>().sizeDelta.y;
 		elementWidth = prefabElement.GetComponent<RectTransform>().sizeDelta.x;
 		indentWidth = prefabExpand.GetComponent<RectTransform>().sizeDelta.x;
@@ -155,11 +77,7 @@ public class HierarchyUi : MonoBehaviour {
 		rt.sizeDelta = contentSize;
 	}
 
-	private void ClearAllUi() {
-		//usedElement.ForEach(e => DestroyImmediate(e));
-		//usedElement.Clear();
-		//usedExpand.ForEach(e => DestroyImmediate(e));
-		//usedExpand.Clear();
+	private void FreeCurrentUiElements() {
 		FreeElements();
 		FreeExpands();
 	}
@@ -171,33 +89,33 @@ public class HierarchyUi : MonoBehaviour {
 				continue;
 			}
 			//Debug.Log($"{i} creating {child.name}");
-			CreateElement(child);
+			CreateElement(child, true);
 			CreateAllChildren(child);
 		}
 	}
 
-	private void CreateElement(ElementState es) {
-
-		Vector2 cursor = new Vector2(indentWidth * es.column, -elementHeight * es.row);
-		Vector2 elementPosition = cursor + Vector2.right * indentWidth;
+	private void CreateElement(ElementState es, bool cullOffScreen) {
+		Vector2 cursor = new Vector2(indentWidth * es.column, elementHeight * es.row);
+		Vector2 anchoredPosition = new Vector2(cursor.x, -cursor.y);
+		Vector2 elementPosition = anchoredPosition + Vector2.right * indentWidth;
 		RectTransform rt;
-		Rect fixedCullBox = cullBox;
-		fixedCullBox.position = new Vector2(cullBox.position.x, -cullBox.position.y);
-		Rect expandRect = new Rect(new Vector2(cursor.x, -cursor.y), new Vector2(indentWidth, elementHeight));
-		Rect elementRect = new Rect(new Vector2(elementPosition.x, -elementPosition.y), new Vector2(elementWidth, elementHeight));
-		//if (cullBox.Overlaps(expandRect))
+		Rect expandRect = new Rect(cursor, new Vector2(indentWidth, elementHeight));
+		Rect elementRect = new Rect(cursor + Vector2.right * indentWidth, new Vector2(elementWidth, elementHeight));
+		if (!cullOffScreen || cullBox.Overlaps(expandRect))
 		{
 			if (es.children.Count > 0) {
 				Button expand = GetFreeExpand();
 				rt = expand.GetComponent<RectTransform>();
 				rt.SetParent(_contentPanelTransform, false);
-				rt.anchoredPosition = cursor;
+				rt.anchoredPosition = anchoredPosition;
 				rt.name = $"> {es.name}";
 				es.Expand = expand;
-				if (fixedCullBox.Overlaps(expandRect)) { expand.GetComponent<Image>().color = Color.green; }
+				if (cullBox.Overlaps(expandRect)) { expand.GetComponent<Image>().color = Color.blue; }
+				expand.onClick.RemoveAllListeners();
+				expand.onClick.AddListener(() => ToggleExpand(es));
 			}
 		}
-		//if (cullBox.Overlaps(elementRect))
+		if (!cullOffScreen || cullBox.Overlaps(elementRect))
 		{
 			Button element = GetFreeElement();
 			rt = element.GetComponent<RectTransform>();
@@ -207,12 +125,21 @@ public class HierarchyUi : MonoBehaviour {
 			es.Label = element;
 			TMP_Text text = element.GetComponentInChildren<TMP_Text>();
 			text.text = es.name;
-			if (fixedCullBox.Overlaps(elementRect)) { element.GetComponent<Image>().color = Color.green; }
+			if (cullBox.Overlaps(elementRect)) { element.GetComponent<Image>().color = Color.green; }
+			element.onClick.RemoveAllListeners();
+			element.onClick.AddListener(() => SelectElement(es));
 		}
 	}
 
 	private void ToggleExpand(ElementState es) {
+		Debug.Log($"toggle {es.name}");
+		es.Expanded = !es.Expanded;
+		RefreshUiElements();
+	}
 
+	private void SelectElement(ElementState es) {
+		Debug.Log($"selected {es.name}");
+		onElementSelect.Invoke(es.target);
 	}
 
 	private Button GetFreeElement() => GetFreeFromPools(usedElement, freeElement, prefabElement);
@@ -246,7 +173,11 @@ public class HierarchyUi : MonoBehaviour {
 	}
 
 	private void FreeAllElementFromPools(List<Button> used, List<Button> free) {
-		used.ForEach(b => b.gameObject.SetActive(false));
+		used.ForEach(b => {
+			if (b != null) {
+				b.gameObject.SetActive(false);
+			}
+		});
 		free.AddRange(used);
 		used.Clear();
 	}
@@ -267,26 +198,30 @@ public class HierarchyUi : MonoBehaviour {
 		return list;
 	}
 
-	[ContextMenu(nameof(RefreshRoot))]
-	public void RefreshRoot() {
-		List<Transform> list = GetAllRootElements();
-		bool expanded = true;
-		root = new ElementState(null, null, 0, -1, expanded);
-		for(int i = 0; i < list.Count; ++i) {
-			ElementState es = new ElementState(root, list[i], 0, i, expanded);
-			root.children.Add(es);
-			es.AddChildren(expanded);
-		}
-		//root.CalculateHeight();
-		CalculateHierarchy();
+	[ContextMenu(nameof(RebuildHierarchy))]
+	public void RebuildHierarchy() {
+		RefreshHierarchyState(true);
 		CalcCullBox();
 		RefreshUiElements();
 	}
 
+	private void RefreshHierarchyState(bool expanded) {
+		ElementState oldRoot = root;
+		List<Transform> list = GetAllRootElements();
+		root = new ElementState(null, null, 0, -1, expanded);
+		for (int i = 0; i < list.Count; ++i) {
+			ElementState es = new ElementState(root, list[i], 0, i, expanded);
+			root.children.Add(es);
+			es.AddChildren(expanded);
+		}
+	}
+
+	[ContextMenu(nameof(RefreshUiElements))]
 	private void RefreshUiElements() {
-		ClearAllUi();
-		Debug.Log($"cullbox {cullBox}");
-		_contentPanelTransform = contentPanel.transform;
+		CalculateHierarchySize();
+		FreeCurrentUiElements();
+		_contentPanelTransform = contentPanel.transform; // cache content transform
 		CreateAllChildren(root);
+		usedCullBox = cullBox;
 	}
 }
