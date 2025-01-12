@@ -13,21 +13,18 @@ public class HierarchyUi : MonoBehaviour {
 	private Transform _contentPanelTransform;
 	public RectTransform innerView;
 	public Vector2 contentSize;
-	public List<Button> usedElement = new List<Button>();
-	public List<Button> usedExpand = new List<Button>();
-	public List<Button> freeElement = new List<Button>();
-	public List<Button> freeExpand = new List<Button>();
 	public Button prefabElement;
 	public Button prefabExpand;
+	public UnityEvent_Transform onElementSelect;
+	public ButtonPool elementPool = new ButtonPool();
+	public ButtonPool expandPool = new ButtonPool();
 	private ScrollRect scrollView;
-
 	private ElementState root;
 	private Rect cullBox;
 	private Rect usedCullBox;
 	private float elementHeight;
 	private float elementWidth;
 	private float indentWidth;
-	public UnityEvent_Transform onElementSelect;
 
 	private void OnValidate() {
 		RectTransform rt = contentPanel.GetComponent<RectTransform>();
@@ -39,7 +36,7 @@ public class HierarchyUi : MonoBehaviour {
 		if (scrollView == null) {
 			scrollView = GetComponentInChildren<ScrollRect>();
 		}
-		const float bevel = 10;
+		const float bevel = -10;
 		Vector2 viewSize = scrollView.viewport.rect.size;
 		Vector2 contentSize = scrollView.content.sizeDelta;
 		Vector2 offset = scrollView.normalizedPosition;
@@ -78,11 +75,12 @@ public class HierarchyUi : MonoBehaviour {
 	}
 
 	private void FreeCurrentUiElements() {
-		FreeElements();
-		FreeExpands();
+		elementPool.FreeAllElementFromPools();
+		expandPool.FreeAllElementFromPools();
 	}
 
 	private void CreateAllChildren(ElementState es) {
+		if (!es.Expanded) { return; }
 		for (int i = 0; i < es.children.Count; i++) {
 			ElementState child = es.children[i];
 			if (child.target != null && child.target.GetComponent<HierarchyIgnore>() != null) {
@@ -104,30 +102,30 @@ public class HierarchyUi : MonoBehaviour {
 		if (!cullOffScreen || cullBox.Overlaps(expandRect))
 		{
 			if (es.children.Count > 0) {
-				Button expand = GetFreeExpand();
+				Button expand = expandPool.GetFreeFromPools(prefabExpand);
 				rt = expand.GetComponent<RectTransform>();
 				rt.SetParent(_contentPanelTransform, false);
 				rt.anchoredPosition = anchoredPosition;
 				rt.name = $"> {es.name}";
-				es.Expand = expand;
-				if (cullBox.Overlaps(expandRect)) { expand.GetComponent<Image>().color = Color.blue; }
 				expand.onClick.RemoveAllListeners();
 				expand.onClick.AddListener(() => ToggleExpand(es));
+				es.Expand = expand;
+			} else {
+				es.Expand = null;
 			}
 		}
 		if (!cullOffScreen || cullBox.Overlaps(elementRect))
 		{
-			Button element = GetFreeElement();
+			Button element = elementPool.GetFreeFromPools(prefabElement);
 			rt = element.GetComponent<RectTransform>();
 			rt.SetParent(_contentPanelTransform, false);
 			rt.anchoredPosition = elementPosition;
 			rt.name = $"({es.name})";
-			es.Label = element;
-			TMP_Text text = element.GetComponentInChildren<TMP_Text>();
-			text.text = es.name;
-			if (cullBox.Overlaps(elementRect)) { element.GetComponent<Image>().color = Color.green; }
 			element.onClick.RemoveAllListeners();
 			element.onClick.AddListener(() => SelectElement(es));
+			es.Label = element;
+		} else {
+			es.Label = null;
 		}
 	}
 
@@ -140,46 +138,6 @@ public class HierarchyUi : MonoBehaviour {
 	private void SelectElement(ElementState es) {
 		Debug.Log($"selected {es.name}");
 		onElementSelect.Invoke(es.target);
-	}
-
-	private Button GetFreeElement() => GetFreeFromPools(usedElement, freeElement, prefabElement);
-	private void FreeElement(Button button) => FreeWithPools(button, usedElement, freeElement);
-	private void FreeElements() => FreeAllElementFromPools(usedElement, freeElement);
-	private Button GetFreeExpand() => GetFreeFromPools(usedExpand, freeExpand, prefabExpand);
-	private void FreeExpand(Button button) => FreeWithPools(button, usedExpand, freeExpand);
-	private void FreeExpands() => FreeAllElementFromPools(usedExpand, freeExpand);
-
-	private static Button GetFreeFromPools(List<Button> used, List<Button> free, Button prefab) {
-		Button element = null;
-		while (free.Count > 0 && element == null) {
-			int lastIndex = free.Count - 1;
-			element = free[lastIndex];
-			free.RemoveAt(lastIndex);
-		} 
-		if (element == null) {
-			element = Instantiate(prefab.gameObject).GetComponent<Button>();
-		}
-		used.Add(element);
-		element.gameObject.SetActive(true);
-		return element;
-	}
-
-	private void FreeWithPools(Button element, List<Button> used, List<Button> free) {
-		if (!used.Remove(element)) {
-			throw new System.Exception("freeing unused element");
-		}
-		element.gameObject.SetActive(false);
-		free.Add(element);
-	}
-
-	private void FreeAllElementFromPools(List<Button> used, List<Button> free) {
-		used.ForEach(b => {
-			if (b != null) {
-				b.gameObject.SetActive(false);
-			}
-		});
-		free.AddRange(used);
-		used.Clear();
 	}
 
 	void Start() {
@@ -195,6 +153,7 @@ public class HierarchyUi : MonoBehaviour {
 				list.Add(t);
 			}
 		}
+		list.Sort((a, b) => a.GetSiblingIndex().CompareTo(b.GetSiblingIndex()));
 		return list;
 	}
 
@@ -208,7 +167,7 @@ public class HierarchyUi : MonoBehaviour {
 	private void RefreshHierarchyState(bool expanded) {
 		ElementState oldRoot = root;
 		List<Transform> list = GetAllRootElements();
-		root = new ElementState(null, null, 0, -1, expanded);
+		root = new ElementState(null, null, 0, 0, expanded);
 		for (int i = 0; i < list.Count; ++i) {
 			ElementState es = new ElementState(root, list[i], 0, i, expanded);
 			root.children.Add(es);

@@ -3,7 +3,6 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-//[System.Serializable]
 public class ElementState {
 	[HideInInspector]
 	public string name;
@@ -11,32 +10,51 @@ public class ElementState {
 	public ElementState parent;
 	[HideInInspector]
 	public Transform target;
-	//public HierarchyElement ui;
 	private Button _label, _expand;
 	private bool _expanded;
 	public List<ElementState> children = new List<ElementState>();
+
 	public Button Label {
 		get => _label;
 		set {
 			_label = value;
+			UpdateLabelText();
 		}
 	}
+
 	public Button Expand {
 		get => _expand;
 		set {
 			_expand = value;
+			UpateExpandIcon();
 		}
 	}
+
 	public bool Expanded {
 		get => _expanded;
 		set {
 			if (value != _expanded) {
-				_expanded = value;
 				RefreshHeight();
 			}
-			TMP_Text txt = _expand.GetComponentInChildren<TMP_Text>();
-			txt.text = _expand ? "v" : ">";
+			Debug.Log($"{name} set to {value}");
+			_expanded = value;
+			UpateExpandIcon();
 		}
+	}
+
+	private void UpateExpandIcon() {
+		if (_expand == null) { return; }
+		TMP_Text txt = _expand.GetComponentInChildren<TMP_Text>();
+		txt.text = _expanded ? "v" : ">";
+	}
+
+	private void UpdateLabelText() {
+		if (_label == null) { return; }
+		TMP_Text text = _label.GetComponentInChildren<TMP_Text>();
+		text.text = name;
+		Color textColor = text.color;
+		textColor.a = target.gameObject.activeInHierarchy ? 1 : 0.5f;
+		text.color = textColor;
 	}
 
 	public ElementState(ElementState parent, Transform target, int column, int row, bool expanded) {
@@ -46,16 +64,6 @@ public class ElementState {
 		this.row = row;
 		_expanded = expanded;
 		name = (target != null) ? target.name : "";
-	}
-
-	public void DoExpand() {
-		_expanded = true;
-		RefreshHeight();
-	}
-
-	public void DoCollapse() {
-		_expanded = false;
-		RefreshHeight();
 	}
 
 	public void RefreshHeight() {
