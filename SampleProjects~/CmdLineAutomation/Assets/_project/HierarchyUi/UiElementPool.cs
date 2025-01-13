@@ -8,14 +8,23 @@ using UnityEngine.UI;
 public class UiElementPool<TYPE> where TYPE : Component
 {
 	public List<TYPE> used = new List<TYPE>();
-	public List<TYPE> free = new List<TYPE>();
+	public HashSet<TYPE> free = new HashSet<TYPE>();
 
-	public TYPE GetFreeFromPools(TYPE prefab) {
+	public TYPE GetFreeFromPools(TYPE prefab, TYPE preferred) {
 		TYPE element = null;
-		while (free.Count > 0 && element == null) {
-			int lastIndex = free.Count - 1;
-			element = free[lastIndex];
-			free.RemoveAt(lastIndex);
+		if (preferred != null && free.Contains(preferred)) {
+			element = preferred;
+			free.Remove(preferred);
+		}
+		if (element == null) {
+			using (HashSet<TYPE>.Enumerator enumerator = free.GetEnumerator()) {
+				while (enumerator.MoveNext() && element == null) {
+					element = enumerator.Current;
+				}
+			}
+			if (element != null) {
+				free.Remove(element);
+			}
 		}
 		if (element == null) {
 			element = GameObject.Instantiate(prefab.gameObject).GetComponent<TYPE>();
@@ -39,7 +48,9 @@ public class UiElementPool<TYPE> where TYPE : Component
 				b.gameObject.SetActive(false);
 			}
 		});
-		free.AddRange(used);
+		// move all used into the free set
+		//free.EnsureCapacity(free.Count + used.Count);
+		used.ForEach(e => free.Add(e));
 		used.Clear();
 	}
 }

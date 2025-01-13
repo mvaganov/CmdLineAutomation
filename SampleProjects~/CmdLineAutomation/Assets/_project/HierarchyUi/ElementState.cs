@@ -7,11 +7,15 @@ public class ElementState {
 	[HideInInspector]
 	public string name;
 	public int column, row, height;
+	[HideInInspector]
+	public int _expectedTargetChildren;
 	public ElementState parent;
 	[HideInInspector]
 	public Transform target;
 	private Button _label, _expand;
 	private bool _expanded;
+	[HideInInspector]
+	public bool _markedAsUsed;
 	public List<ElementState> children = new List<ElementState>();
 
 	public Button Label {
@@ -36,10 +40,13 @@ public class ElementState {
 			if (value != _expanded) {
 				RefreshHeight();
 			}
-			Debug.Log($"{name} set to {value}");
-			_expanded = value;
+			SetExpandedNoNotify(value);
 			UpateExpandIcon();
 		}
+	}
+
+	public void SetExpandedNoNotify(bool value) {
+		_expanded = value;
 	}
 
 	private void UpateExpandIcon() {
@@ -52,8 +59,15 @@ public class ElementState {
 		if (_label == null) { return; }
 		TMP_Text text = _label.GetComponentInChildren<TMP_Text>();
 		text.text = name;
+		if (target == null) {
+			text.text = "(deleted) " + text.text;
+		}
 		Color textColor = text.color;
-		textColor.a = target.gameObject.activeInHierarchy ? 1 : 0.5f;
+		if (target != null) {
+			textColor.a = target.gameObject.activeInHierarchy ? 1 : 0.5f;
+		} else {
+			textColor = Color.red;
+		}
 		text.color = textColor;
 	}
 
@@ -63,6 +77,11 @@ public class ElementState {
 		this.column = column;
 		this.row = row;
 		_expanded = expanded;
+		_expectedTargetChildren = (target != null) ? target.childCount : 0;
+		RefreshName();
+	}
+
+	public void RefreshName() {
 		name = (target != null) ? target.name : "";
 	}
 
@@ -103,19 +122,5 @@ public class ElementState {
 			rowCursor += elementHeight;
 		}
 		return height;
-	}
-
-	public void AddChildren(bool expanded) {
-		int c = column + 1;
-		int r = row + 1;
-		for (int i = 0; i < target.childCount; ++i) {
-			Transform t = target.GetChild(i);
-			if (t == null || t.GetComponent<HierarchyIgnore>() != null) {
-				continue;
-			}
-			ElementState es = new ElementState(this, t, c, r, expanded);
-			children.Add(es);
-			es.AddChildren(expanded);
-		}
 	}
 }
