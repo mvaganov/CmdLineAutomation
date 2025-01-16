@@ -10,6 +10,7 @@ namespace RunCmdRedux {
 	public class FilterAssetOperatingSystemCommandShell : ScriptableObject, ICommandAsset {
 		private enum RegexVariable { TerminalVersion, WorkingDirecory }
 
+		[Serializable]
 		public class Proc : BaseNamedProcess {
 			private FilterAssetOperatingSystemCommandShell _source;
 			private object _context;
@@ -27,6 +28,9 @@ namespace RunCmdRedux {
 			/// Function to pass all lines from standard input to
 			/// </summary>
 			private PrintCallback _print;
+			private int _commandStartedMs;
+			private int _commandExpectedFinishMs;
+			private int _defaultCommandDurationMs = 500;
 			public OperatingSystemCommandShell Shell {
 				get => _shell;
 				set {
@@ -37,29 +41,42 @@ namespace RunCmdRedux {
 				}
 			}
 
-			public override string name => throw new NotImplementedException();
+			public override string name => _shell != null ? _shell.Name : null;
 
-			public override bool IsExecutionFinished => throw new NotImplementedException();
+			public override bool IsExecutionFinished => !ShellIsExecutingSomething();
 
 			public Proc(FilterAssetOperatingSystemCommandShell source, object context) {
 				_source = source;
 				_context = context;
 			}
 
-			public override float GetProgress() => 0;
+			public bool ShellIsExecutingSomething() {
+				return Environment.TickCount < _commandExpectedFinishMs;
+			}
+
+			public override float GetProgress() => (float)(Environment.TickCount - _commandStartedMs) / (_commandExpectedFinishMs - _commandStartedMs);
 
 			public override void StartCooperativeFunction(string command, PrintCallback print) {
 				_print = print;
+				CreateShellAsNeeded();
+				_commandStartedMs = Environment.TickCount;
+				_commandExpectedFinishMs = _commandStartedMs + _defaultCommandDurationMs;
+				_shell.Run(command, _print);
+			}
+
+			public void CreateShellAsNeeded() {
 				bool missingShell = Shell == null;
 				bool deadShell = !missingShell && !Shell.IsRunning;
 				if (missingShell || deadShell) {
+					if (this == null) {
+						Debug.Log("THIS IS NULL?");
+					}
 					string name = this.name;
 					if (_context is UnityEngine.Object obj) {
 						name = obj.name;
 					}
 					Shell = CreateShell(name, _context);
 				}
-				_shell.Run(command, _print);
 			}
 
 			private OperatingSystemCommandShell CreateShell(string name, object context) {
@@ -79,8 +96,13 @@ namespace RunCmdRedux {
 
 		}
 
+		private Proc _currentProcess;
+
 		public ICommandProcess CreateCommand(object context) {
-			throw new NotImplementedException();
+			if (_currentProcess != null) {
+				return _currentProcess;
+			}
+			return _currentProcess = new Proc(this, context);
 		}
 	}
 }

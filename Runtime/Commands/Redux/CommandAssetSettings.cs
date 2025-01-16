@@ -1,6 +1,8 @@
 using RunCmd;
+using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices.WindowsRuntime;
+using UnityEditor.VersionControl;
 using UnityEngine;
 
 namespace RunCmdRedux {
@@ -12,6 +14,10 @@ namespace RunCmdRedux {
 	[CreateAssetMenu(fileName = "CommandAssetSettings", menuName = "ScriptableObjects/CommandAssetSettings", order = 1)]
 	public partial class CommandAssetSettings: ScriptableObject {
 		internal enum RegexGroupId { None = -1, Variable = 0, HideNextOutputLine = 1, DisableOutputOnRead = 2, EnableOutputOnRead = 3 }
+		/// <summary>
+		/// if true, execution of commands will be done with an async non-blocking coroutine
+		/// </summary>
+		[SerializeField] protected bool _iterateAsync = true;
 		/// <summary>
 		/// List of the possible custom commands written as C# <see cref="ICommandAsset"/>s
 		/// </summary>
@@ -130,8 +136,10 @@ namespace RunCmdRedux {
 			public string command;
 			public string firstToken;
 			public PrintCallback print;
-			public CommandAssetSettingsExecution(string command, PrintCallback print, object context, IList<ICommandAsset> assets) {
-				this.command = command; this.print = print; this.context = context; _assets = assets;
+			public Action onFinish;
+			public CommandAssetSettingsExecution(string command, PrintCallback print, object context,
+				IList<ICommandAsset> assets, Action onFinish) {
+				this.command = command; this.print = print; this.context = context; _assets = assets; this.onFinish = onFinish;
 			}
 
 			public bool Iterate() {
@@ -143,26 +151,53 @@ namespace RunCmdRedux {
 					++index;
 					isNewCommand = true;
 				}
-				Debug.Log("INDEX: " + index);
 				if (isNewCommand) {
 					if (index >= _assets.Count) {
 						return false;
 					}
 					ICommandAsset asset = _assets[index];
-					Debug.Log("ASSET " + asset);
+					Debug.Log($"ASSET[{index}] {asset}");
 					proc = (asset != null) ? asset.GetCommandCreateIfMissing(context) : null;
 					proc.StartCooperativeFunction(command, print);
 				} else if (proc != null) {
+					Debug.Log($"continue[{index}] {proc}");
 					proc.ContinueCooperativeFunction();
 				}
 				return true;
 			}
 		}
 
-		public bool Execute(string command, PrintCallback print, object context) {
-			CommandAssetSettingsExecution exec = CommandAssetExecutionStack.GetDataIfMissing(this, context,
-				() => new CommandAssetSettingsExecution(command, print, context, CommandAssets));
-			return exec.Iterate();
+		private CommandAssetSettingsExecution currentExecution;
+		public void Execute(string command, PrintCallback print, object context, Action onFinish) {
+			if (currentExecution != null) {
+				Debug.LogError($"cannot execute {command}, still executing {currentExecution.command}");
+				return;// true;
+			}
+			currentExecution = CommandAssetExecutionStack.GetDataIfMissing(this, context,
+				() => new CommandAssetSettingsExecution(command, print, context, CommandAssets, onFinish));
+			IterateLoopPossiblyAsync();
+			//return keepIterating;
+		}
+
+		public void IterateLoopPossiblyAsync() {
+			bool executionActive;
+			int loopGuard = 0;
+			do {
+				executionActive = currentExecution.Iterate();
+				if (_iterateAsync) {
+					if (executionActive) {
+						CommandDelay.DelayCall(IterateLoopPossiblyAsync);
+					} else {
+						Debug.Log("FINISHED");
+						currentExecution.onFinish?.Invoke();
+						currentExecution = null;
+					}
+					return;
+				}
+				if (loopGuard++ > 100000) {
+					throw new Exception($"'{currentExecution.command}' took too long");
+				}
+			} while (executionActive);
 		}
 	}
 }

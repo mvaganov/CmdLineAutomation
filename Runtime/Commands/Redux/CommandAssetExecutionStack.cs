@@ -28,6 +28,8 @@ public static class CommandAssetExecutionStack
 	public static TYPE GetDataIfMissing<TYPE>(object asset, object context, Func<TYPE> howToCreateIfMissing) where TYPE : class {
 		if (!TryGetData(asset, context, out object data)) {
 			data = howToCreateIfMissing();
+			Debug.Log("SetData");
+			SetData(asset, context, data);
 		}
 		return data as TYPE;
 	}
