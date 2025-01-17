@@ -27,7 +27,7 @@ namespace RunCmdRedux {
 
 		public bool IsExecuting => _executor != null && _executor.IsExecuting;
 
-		public bool _progressing;
+		protected bool _progressing;
 
 		public float Progress {
 			get {
