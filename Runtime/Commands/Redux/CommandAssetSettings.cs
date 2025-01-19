@@ -153,18 +153,35 @@ namespace RunCmdRedux {
 				}
 				if (isNewCommand) {
 					if (index >= _assets.Count) {
+						index = -1;
 						return false;
 					}
 					ICommandAsset asset = _assets[index];
 					Debug.Log($"ASSET[{index}] {asset}");
 					proc = (asset != null) ? asset.GetCommandCreateIfMissing(context) : null;
-					proc.StartCooperativeFunction(command, print);
+					try {
+						proc.StartCooperativeFunction(command, print);
+					} catch (Exception e) {
+						Debug.LogError(e);
+						index = -1;
+						return false;
+					}
 				} else if (proc != null) {
 					Debug.Log($"continue[{index}] {proc}");
-					proc.ContinueCooperativeFunction();
+					try {
+						proc.ContinueCooperativeFunction();
+					} catch (Exception e) {
+						Debug.LogError(e);
+						index = -1;
+						return false;
+					}
 				}
 				return true;
 			}
+		}
+
+		public void ClearCurrentExecution() {
+			currentExecution = null;
 		}
 
 		private CommandAssetSettingsExecution currentExecution;
@@ -186,6 +203,7 @@ namespace RunCmdRedux {
 				executionActive = currentExecution.Iterate();
 				if (_iterateAsync) {
 					if (executionActive) {
+						Debug.Log("again?");
 						CommandDelay.DelayCall(IterateLoopPossiblyAsync);
 					} else {
 						Debug.Log("FINISHED");

@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23d82878d18769e4a85f6e7b9cae841a, type: 3}
   m_Name: CommandAssetSettings
   m_EditorClassIdentifier: 
+  _iterateAsync: 1
   _commandAssets:
   - {fileID: 11400000, guid: 9233699c129e8dc42ad6258138cc790a, type: 2}
   - {fileID: 11400000, guid: 188d37271e2cb804dbc64d9845d12678, type: 2}
