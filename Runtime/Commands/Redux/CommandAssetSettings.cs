@@ -136,9 +136,10 @@ namespace RunCmdRedux {
 			public string command;
 			public string firstToken;
 			public PrintCallback print;
-			public Action onFinish;
+			public Action<object> onFinish;
+			public object result;
 			public CommandAssetSettingsExecution(string command, PrintCallback print, object context,
-				IList<ICommandAsset> assets, Action onFinish) {
+				IList<ICommandAsset> assets, Action<object> onFinish) {
 				this.command = command; this.print = print; this.context = context; _assets = assets; this.onFinish = onFinish;
 			}
 
@@ -164,6 +165,7 @@ namespace RunCmdRedux {
 					} catch (Exception e) {
 						Debug.LogError(e);
 						index = -1;
+						result = proc.Result;
 						return false;
 					}
 				} else if (proc != null) {
@@ -173,9 +175,11 @@ namespace RunCmdRedux {
 					} catch (Exception e) {
 						Debug.LogError(e);
 						index = -1;
+						result = proc.Result;
 						return false;
 					}
 				}
+				result = proc.Result;
 				return true;
 			}
 		}
@@ -185,7 +189,7 @@ namespace RunCmdRedux {
 		}
 
 		private CommandAssetSettingsExecution currentExecution;
-		public void Execute(string command, PrintCallback print, object context, Action onFinish) {
+		public void Execute(string command, PrintCallback print, object context, Action<object> onFinish) {
 			if (currentExecution != null) {
 				Debug.LogError($"cannot execute {command}, still executing {currentExecution.command}");
 				return;// true;
@@ -207,7 +211,7 @@ namespace RunCmdRedux {
 						CommandDelay.DelayCall(IterateLoopPossiblyAsync);
 					} else {
 						Debug.Log("FINISHED");
-						currentExecution.onFinish?.Invoke();
+						currentExecution.onFinish?.Invoke(currentExecution.result);
 						currentExecution = null;
 					}
 					return;

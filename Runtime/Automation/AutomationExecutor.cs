@@ -85,9 +85,9 @@ namespace RunCmdRedux {
 			//StartCooperativeFunction(currentCommandText, print);
 		}
 
-		private void FinishedSingleCommand() {
+		private void FinishedSingleCommand(object result) {
 			if (IsCancelled()) {
-				Debug.Log("----------CANCELLED");
+				Debug.Log("----------CANCELLED "+result);
 				EndCurrentCommand();
 				return;
 			}
