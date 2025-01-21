@@ -78,6 +78,7 @@ namespace RunCmdRedux {
 
 			public override float GetProgress() => _currentProcess != null ? _currentProcess.GetProgress() : 1;
 
+			// TODO mark if a command was found or not to the caller...
 			public override void StartCooperativeFunction(string command, PrintCallback print) {
 				string firstToken = GetFirstToken(command);
 				if (!_source._namedCommands.TryGetValue(firstToken, out ICommandAsset _currentAsset)) {
