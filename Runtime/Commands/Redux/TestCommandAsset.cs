@@ -34,7 +34,8 @@ namespace RunCmdRedux {
 
 		public ICommandAsset ReferencedAsset => _commandAsset != null ? _commandAsset : _commandAsset = commandAsset as ICommandAsset;
 
-		public ICommandProcess ReferencedProcess => ReferencedAsset != null ? ReferencedAsset.GetCommand(this) : null;
+		public ICommandProcess ReferencedProcess => ReferencedAsset != null ?
+			ReferencedAsset.GetCommandCreateIfMissing(this) : null;
 
 		public bool UpdateExecution() {
 			float progress = IsExecuting ? Progress : 1;
@@ -62,6 +63,7 @@ namespace RunCmdRedux {
 			//_executor._settings = _settings;
 			//_executor.currentCommandText = _commandInput;
 			//_executor.source = this;
+			Debug.Log($"asset: {_commandAsset} {ReferencedAsset}");
 			ICommandProcess proc = ReferencedProcess;
 			Debug.Log($"proc: [{proc}]");
 			_executor.ReferencedCommand = proc;

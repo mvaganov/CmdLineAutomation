@@ -250,7 +250,7 @@ namespace RunCmdRedux {
 		}
 
 		public void ChoiceMade(object context, int choiceIndex) {
-			Proc proc = this.GetCommand(context) as Proc;
+			Proc proc = this.GetCommandIfCreated(context) as Proc;
 			if (proc == null) {
 				throw new Exception($"can't find {nameof(Proc)} from {this} + {context}");
 			}

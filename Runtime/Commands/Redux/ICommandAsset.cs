@@ -9,10 +9,10 @@ namespace RunCmdRedux {
 	}
 
 	public static class ICommandAssetExtension {
-		public static ICommandProcess GetCommand(this ICommandAsset self, object context) =>
+		public static ICommandProcess GetCommandIfCreated(this ICommandAsset self, object context) =>
 			CommandManager.Instance.TryGet(context, self, out var proc) ? proc.process : null;
 		public static ICommandProcess GetCommandCreateIfMissing(this ICommandAsset self, object context) {
-			ICommandProcess proc = GetCommand(self, context);
+			ICommandProcess proc = GetCommandIfCreated(self, context);
 			if (proc == null) {
 				UnityEngine.Debug.LogWarning($"missing process for {self.ToString()}({context}), creating.\n" +
 					$"only a problem if you see it more than once for {self.ToString()}");

@@ -43,6 +43,7 @@ namespace RunCmdRedux {
 		}
 
 		private void OutputAnalysis(string fromProcess) {
+			Debug.Log("!!!!!!!!!!!! "+fromProcess);
 			AddToCommandOutput(fromProcess); // this is where the printing happens.
 		}
 	}
