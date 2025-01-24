@@ -6,7 +6,7 @@ namespace RunCmdRedux {
 	// redux
 	[System.Serializable]
 	public class TestExecutor : ICommandProcessReference {
-		public string commandText;
+		[SerializeField] private string _executedCommandText;
 		private object _context;
 		private ICommandProcess commandProcess;
 		public string CommandOutput { get; set; }
@@ -26,7 +26,7 @@ namespace RunCmdRedux {
 			_context = null;
 		}
 
-		public string CurrentCommandText { get => commandText; set => commandText = value; }
+		public string CurrentCommandText { get => _executedCommandText; set => _executedCommandText = value; }
 
 		public void ExecuteCurrentCommand() {
 			Debug.Log($"executing \"{CurrentCommandText}\" -> {ReferencedCommand}");
@@ -43,7 +43,6 @@ namespace RunCmdRedux {
 		}
 
 		private void OutputAnalysis(string fromProcess) {
-			Debug.Log("!!!!!!!!!!!! "+fromProcess);
 			AddToCommandOutput(fromProcess); // this is where the printing happens.
 		}
 	}

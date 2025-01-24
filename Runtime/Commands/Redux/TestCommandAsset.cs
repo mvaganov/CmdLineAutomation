@@ -7,24 +7,27 @@ namespace RunCmdRedux {
 	/// </summary>
 	[CreateAssetMenu(fileName = "test", menuName = "ScriptableObjects/CommandAsset/_test")]
 	public class TestCommandAsset : ScriptableObject {
-		public Object commandAsset;
+		[SerializeField] protected Object commandAsset;
 		private ICommandAsset _commandAsset;
-		public string commandInput;
-		private float _progress;
-		private string commandOutput;
-		// TODO replace _executor with a more basic executor.
 		[SerializeField] protected TestExecutor _executor = new TestExecutor();
+		[SerializeField] protected string _command;
+		private float _progress;
 
 		public TestExecutor Executor => _executor;
 		public bool IsExecuting => _executor != null && _executor.IsExecuting;
 		public string CurrentCommandInput {
-			get => commandInput;
-			set => commandInput = value;
+			get => _command;
+			set => _command = value;
 		} 
 
+		public string CommandInput {
+			get => _command;
+			set => _command = value;
+		}
+
 		public string CommandOutput {
-			get => commandOutput;
-			set => commandOutput = value;
+			get => _executor.CommandOutput;
+			set => _executor.CommandOutput = value;
 		}
 
 		public float Progress {
@@ -67,7 +70,7 @@ namespace RunCmdRedux {
 			ICommandProcess proc = ReferencedProcess;
 			Debug.Log($"proc: [{proc}]");
 			_executor.ReferencedCommand = proc;
-			_executor.CurrentCommandText = commandInput;
+			_executor.CurrentCommandText = _command;
 			_executor.ExecuteCurrentCommand();
 		}
 	}
@@ -97,7 +100,7 @@ namespace RunCmdRedux {
 		public override void OnInspectorGUI() {
 			CreateTextStyle();
 			DrawDefaultInspector();
-			InputPromptGUI();
+			//InputPromptGUI();
 			waitingForCommandToFinish = Target.UpdateExecution();
 			if (waitingForCommandToFinish) {
 				RefreshInspector(); // prompt GUI to animate after a change
@@ -147,13 +150,13 @@ namespace RunCmdRedux {
 			GUILayout.BeginHorizontal();
 			GUILayout.Label(">", GUILayout.ExpandWidth(false));
 			try {
-				Target.commandInput = GUILayout.TextField(Target.commandInput, style, GUILayout.ExpandWidth(true));
+				Target.CommandInput = GUILayout.TextField(Target.CommandInput, style, GUILayout.ExpandWidth(true));
 			} catch { }
 			GUILayout.EndHorizontal();
 			Event e = Event.current;
-			if (Target.commandInput != "" && e.type == EventType.KeyUp && e.keyCode == KeyCode.Return) {
-				string result = Target.commandInput;
-				Target.commandInput = "";
+			if (Target.CommandInput != "" && e.type == EventType.KeyUp && e.keyCode == KeyCode.Return) {
+				string result = Target.CommandInput;
+				Target.CommandInput = "";
 				return result;
 			}
 			return null;
@@ -177,7 +180,7 @@ namespace RunCmdRedux {
 			float commandProgress = 0;// Target.Progress(_context);
 			if (commandProgress <= 0) {
 				//ComponentProgressBar.ClearProgressBar();
-				if (GUILayout.Button("Run Commands To Do")) {
+				if (GUILayout.Button("Run Command")) {
 					RunCommands();
 				}
 			} else {
@@ -219,7 +222,7 @@ namespace RunCmdRedux {
 			//executor.CommandsToDo = Target.CommandsToDo;
 			//executor.RunCommands(_context, Print);
 
-			Target.Executor.commandText = Target.commandInput;
+			Target.Executor.CurrentCommandText = Target.CommandInput;
 			Target.ExecuteCurrentCommand();
 
 			RefreshInspector();
