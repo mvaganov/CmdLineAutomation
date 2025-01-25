@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace RunCmdRedux {
@@ -7,39 +5,31 @@ namespace RunCmdRedux {
 	[System.Serializable]
 	public class TestExecutor : ICommandProcessReference {
 		[SerializeField] private string _executedCommandText;
-		private object _context;
-		private ICommandProcess commandProcess;
-		public string CommandOutput { get; set; }
+		[SerializeField] private string _executedCommandOutput;
+		private ICommandProcess _commandProcess;
+		private bool _startedCommand;
+		public string CurrentInput { get => _executedCommandText; set => _executedCommandText = value; }
+
+		public string CurrentOutput { get => _executedCommandOutput; set => _executedCommandOutput = value; }
 
 		public ICommandProcess ReferencedCommand {
-			get => commandProcess;
-			set => commandProcess = value;
+			get => _commandProcess;
+			set {
+				_startedCommand = false;
+				_commandProcess = value;
+			}
 		}
 
-		public bool IsExecuting { get; set; }
+		public bool IsExecuting => _commandProcess != null && _startedCommand;
 
 		public void AddToCommandOutput(string value) {
-			CommandOutput += value;
+			CurrentOutput += value;
 		}
-
-		public void CancelProcess(object context) {
-			_context = null;
-		}
-
-		public string CurrentCommandText { get => _executedCommandText; set => _executedCommandText = value; }
 
 		public void ExecuteCurrentCommand() {
-			Debug.Log($"executing \"{CurrentCommandText}\" -> {ReferencedCommand}");
-			OutputAnalysis($"executing \"{CurrentCommandText}\" -> ReferencedCommand\n");
-			// TODO TODO TODO do me next
-			// TODO go through filters, including the filter that finds named commands
-			//if (_settings.NeedsInitialization()) {
-			//}
-
-			// TODO test me out!
-			ReferencedCommand.StartCooperativeFunction(CurrentCommandText, OutputAnalysis);
-
-			//StartCooperativeFunction(currentCommandText, print);
+			//OutputAnalysis($"executing \"{CurrentInput}\" -> ReferencedCommand\n");
+			_startedCommand = true;
+			ReferencedCommand.StartCooperativeFunction(CurrentInput, OutputAnalysis);
 		}
 
 		private void OutputAnalysis(string fromProcess) {

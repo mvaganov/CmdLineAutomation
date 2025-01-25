@@ -1,3 +1,5 @@
+using RunCmd;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace RunCmdRedux {
@@ -24,14 +26,15 @@ namespace RunCmdRedux {
 			public override float GetProgress() => 1;
 
 			public override void StartCooperativeFunction(string command, PrintCallback print) {
-				string[] args = command.Split();
+				IList<string> args = Parse.ParseArgs(command);
 				err = null;
-				if (args.Length > 0) {
-					for (int i = 1; i < args.Length; ++i) {
+				if (args.Count > 1) {
+					for (int i = 1; i < args.Count; ++i) {
 						print(args[i] + "\n");
 					}
 				} else {
 					err = $"'{name}' missing parameters";
+					print($"{err}\n");
 					Debug.LogWarning(err);
 				}
 			}

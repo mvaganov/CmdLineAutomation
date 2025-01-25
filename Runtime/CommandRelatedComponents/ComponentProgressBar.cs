@@ -65,7 +65,8 @@ public class ComponentProgressBar : MonoBehaviour
 #if UNITY_EDITOR
 		//Debug.Log($"progress {title} {progress}");
 		if (!Application.isPlaying) {
-			return UnityEditor.EditorUtility.DisplayCancelableProgressBar(title, info, progress);
+			bool cancelPressed = UnityEditor.EditorUtility.DisplayCancelableProgressBar(title, info, progress);
+			return cancelPressed;
 		}
 #endif
 		ComponentProgressBar bar = Instance;

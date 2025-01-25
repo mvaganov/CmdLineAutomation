@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using static UnityEngine.Networking.UnityWebRequest;
 
 namespace RunCmdRedux {
 
@@ -28,7 +27,7 @@ namespace RunCmdRedux {
 						return true;
 					}
 					int now = Environment.TickCount;
-					Debug.Log($"now {now} >= {finished} finish");
+					//Debug.Log($"now {now} >= {finished} finish : {now >= finished}");
 					return now >= finished;
 				}
 			}
@@ -45,11 +44,11 @@ namespace RunCmdRedux {
 				int now = started = finished = Environment.TickCount;
 				string[] args = command.Split();
 				err = null;
-				Debug.Log("STARTING SLEEP");
+				//Debug.Log("STARTING SLEEP");
 				if (args.Length > 1) {
 					if (float.TryParse(args[1], out float seconds)) {
 						finished = now + (int)(seconds * 1000);
-						print.Invoke($"{name} {seconds}\n~~~waiting {seconds} seconds~~~\n");
+						//print.Invoke($"{name} {seconds}\n~~~waiting {seconds} seconds~~~\n");
 						//Debug.LogWarning($"waiting '{args[1]}' seconds!!!!!!!! [{print.Method}]");
 					} else {
 						err = $"unable to wait '{args[1]}' seconds";

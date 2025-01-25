@@ -1,5 +1,6 @@
 using UnityEditor;
 using UnityEngine;
+using static UnityEngine.GraphicsBuffer;
 
 namespace RunCmdRedux {
 	/// <summary>
@@ -11,7 +12,6 @@ namespace RunCmdRedux {
 		private ICommandAsset _commandAsset;
 		[SerializeField] protected TestExecutor _executor = new TestExecutor();
 		[SerializeField] protected string _command;
-		private float _progress;
 
 		public TestExecutor Executor => _executor;
 		public bool IsExecuting => _executor != null && _executor.IsExecuting;
@@ -26,13 +26,8 @@ namespace RunCmdRedux {
 		}
 
 		public string CommandOutput {
-			get => _executor.CommandOutput;
-			set => _executor.CommandOutput = value;
-		}
-
-		public float Progress {
-			get => _progress;
-			set => _progress = value;
+			get => _executor.CurrentOutput;
+			set => _executor.CurrentOutput = value;
 		}
 
 		public ICommandAsset ReferencedAsset => _commandAsset != null ? _commandAsset : _commandAsset = commandAsset as ICommandAsset;
@@ -40,38 +35,55 @@ namespace RunCmdRedux {
 		public ICommandProcess ReferencedProcess => ReferencedAsset != null ?
 			ReferencedAsset.GetCommandCreateIfMissing(this) : null;
 
-		public bool UpdateExecution() {
-			float progress = IsExecuting ? Progress : 1;
+		public ICommandProcess CurrentCommand(object context) => ReferencedAsset.GetCommandIfCreated(context);
+
+		public float Progress(object context) {
+			ICommandProcess proc = CurrentCommand(context);
+			if (proc == null) { return 0; }
+			return proc.GetProgress();
+		}
+
+		public bool UpdateExecution(object context) {
+			float progress = IsExecuting ? Progress(context) : 1;
 			bool waitingForCommandToFinish = progress < 1;
 			//waitingForCommandToFinish = !Target.IsExecutionFinished(_context);
 			if (waitingForCommandToFinish) {
 				//Debug.Log($"PROGRESSBAR {progress}");
-				bool stop = ComponentProgressBar.DisplayCancelableProgressBar(name, Executor.CurrentCommandText, progress);
+				bool stop = ComponentProgressBar.DisplayCancelableProgressBar(name, Executor.CurrentInput, progress);
 				if (stop) {
-					Debug.Log("CANCEL");
-					CancelProcess(this);
-					ComponentProgressBar.ClearProgressBar();
+					//Debug.Log("CANCEL");
+					CancelProcess(context);
+					ClearProgressBar();
 				}
-			} else if (ComponentProgressBar.IsProgressBarVisible) {
-				ComponentProgressBar.ClearProgressBar();
+			} else if (ComponentProgressBar.IsProgressBarVisible && progress >= 1) {
+				//ClearProgressBar();
 			}
 			return waitingForCommandToFinish;
 		}
 
 		public void CancelProcess(object context) {
-			Debug.Log($"({context}) canceling [{_executor.ReferencedCommand}]");
-			_executor.CancelProcess(context);
+			Debug.Log($"canceling [{_executor.ReferencedCommand}] ({context})");
+			ICommandProcess proc = CurrentCommand(context);
+			if (proc != _executor.ReferencedCommand) {
+				throw new System.Exception($"unexpected process to cancel. expected to cancel {_executor.ReferencedCommand}, found {proc}");
+			}
+			StopProcess(context, proc);
+		}
+		public void StopProcess(object context, ICommandProcess proc) {
+			if (!ReferencedAsset.RemoveCommand(context, proc)) {
+				throw new System.Exception("NO SUCH PROCESS");
+			}
+			_executor.ReferencedCommand = null;
 		}
 		public void ExecuteCurrentCommand() {
-			//_executor._settings = _settings;
-			//_executor.currentCommandText = _commandInput;
-			//_executor.source = this;
-			Debug.Log($"asset: {_commandAsset} {ReferencedAsset}");
-			ICommandProcess proc = ReferencedProcess;
-			Debug.Log($"proc: [{proc}]");
-			_executor.ReferencedCommand = proc;
-			_executor.CurrentCommandText = _command;
+			_executor.ReferencedCommand = ReferencedProcess;
+			_executor.CurrentInput = _command;
 			_executor.ExecuteCurrentCommand();
+		}
+
+		[ContextMenu(nameof(ClearProgressBar))]
+		public void ClearProgressBar() {
+			ComponentProgressBar.ClearProgressBar();
 		}
 	}
 
@@ -90,7 +102,7 @@ namespace RunCmdRedux {
 		/// Semaphore prevents new command from running
 		/// </summary>
 		private bool waitingForCommandToFinish = false;
-		private object _context;
+		private object Context => Target;
 
 		public TestCommandAsset Target => _target != null ? _target
 			: _target = target as TestCommandAsset;
@@ -101,7 +113,7 @@ namespace RunCmdRedux {
 			CreateTextStyle();
 			DrawDefaultInspector();
 			//InputPromptGUI();
-			waitingForCommandToFinish = Target.UpdateExecution();
+			waitingForCommandToFinish = Target.UpdateExecution(Context);
 			if (waitingForCommandToFinish) {
 				RefreshInspector(); // prompt GUI to animate after a change
 			}
@@ -177,54 +189,60 @@ namespace RunCmdRedux {
 		}
 
 		private void RunCommandsButtonGUI() {
-			float commandProgress = 0;// Target.Progress(_context);
-			if (commandProgress <= 0) {
+			ICommandProcess commandProcessor = Target.CurrentCommand(Context);
+			if (commandProcessor == null || commandProcessor.GetProgress() <= 0) {
 				//ComponentProgressBar.ClearProgressBar();
 				if (GUILayout.Button("Run Command")) {
-					RunCommands();
+					RunCommand();
 				}
 			} else {
-				ICommandProcessor commandProcessor = null;// Target.CurrentCommand(_context);
+				AbortButton();
 				if (commandProcessor != null) {
-					if (commandProcessor.IsExecutionFinished(_context)) {
-						//ComponentProgressBar.ClearProgressBar();
+					if (commandProcessor.IsExecutionFinished) {
+						Target.ClearProgressBar();
+						Target.StopProcess(Context, commandProcessor);
+						//AbortButton();
 					} else {
-						HandleProgressBar(commandProgress);
+						HandleProgressBar(commandProcessor.GetProgress());
 					}
-				} else {
-					AbortButton(false);
+				//} else {
+				//	AbortButton();
 				}
 			}
 		}
 
 		private void HandleProgressBar(float commandProgress) {
 			string title = Target.name;
-			string info = Target.Executor.CurrentCommandText;// Target.CurrentCommandText(_context);
+			string info = Target.Executor.CurrentInput;
 			bool stop = ComponentProgressBar.DisplayCancelableProgressBar(title, info, commandProgress);
-			AbortButton(stop);
+			if (stop) {
+				//Debug.Log("CANCEL ON POPUP");
+				DoAbort();
+			//} else {
+			//	AbortButton(stop);
+			}
 			RefreshInspectorInternal();
 		}
 
-		private void AbortButton(bool abort) {
-			if (GUILayout.Button("Abort Commands") || abort) {
-				Target.CancelProcess(_context);
-				ComponentProgressBar.ClearProgressBar();
-				waitingForCommandToFinish = false;
+		private void AbortButton() {
+			// forceAbort is checked last to ensure the Abort button draws
+			if (GUILayout.Button("Abort Commands")) {
+				DoAbort();
 			}
 		}
 
-		private void RunCommands() {
-			Debug.Log("TODO " + Target.Executor);
-			//Target.UseParsedCommands();
-			// TODO feed the list of commands to the Executor/_shell?
+		private void DoAbort() {
+			Target.CancelProcess(Context);
+			waitingForCommandToFinish = false;
+			EditorApplication.delayCall += ClearProgressBarAgain;
+			void ClearProgressBarAgain(){
+				Target.ClearProgressBar();
+			}
+		}
 
-			//CommandLineExecutor executor = Target.GetCommandExecutor();
-			//executor.CommandsToDo = Target.CommandsToDo;
-			//executor.RunCommands(_context, Print);
-
-			Target.Executor.CurrentCommandText = Target.CommandInput;
+		private void RunCommand() {
+			Target.Executor.CurrentInput = Target.CommandInput;
 			Target.ExecuteCurrentCommand();
-
 			RefreshInspector();
 		}
 
