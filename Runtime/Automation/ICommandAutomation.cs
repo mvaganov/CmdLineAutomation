@@ -46,7 +46,7 @@ namespace RunCmdRedux {
 
 	// redux
 	public interface ICommandProcessReference {
-		public ICommandProcess ReferencedCommand { get; } // TODO rename ReferencedProcess
+		public ICommandProcess Process { get; }
 	}
 
 	// redux

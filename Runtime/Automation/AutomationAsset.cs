@@ -39,7 +39,7 @@ namespace RunCmdRedux {
 
 		public ICommandAssetExecutor CommandExecutor => this;
 
-		public ICommandProcess ReferencedCommand => _executor.ReferencedCommand;
+		public ICommandProcess Process => _executor.Process;
 
 		public void AddToCommandOutput(string value) {
 			_executor.AddToCommandOutput(value);

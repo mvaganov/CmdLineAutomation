@@ -48,7 +48,7 @@ namespace RunCmdRedux {
 
 		public bool IsStarted => Shell != null;
 
-		public ICommandProcess ReferencedCommand => Target.ReferencedCommand;
+		public ICommandProcess Process => Target.Process;
 
 		private void OnEnable() {
 			if (Shell != null) {

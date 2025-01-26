@@ -5,7 +5,7 @@ namespace RunCmdRedux {
 	/// Processing logic to respond to a string command input. The main method is a non-blocking
 	/// cooperative-multithreaded function. This is a base command processing interface.
 	/// </summary>
-	public interface ICommandProcess {
+	public interface ICommandProcess : IDisposable {
 		/// <summary>
 		/// Event handling function, which starts a command. The command line system uses a cooperative
 		/// threading model, with status retrieved by <see cref="IsExecutionFinished"/>.
@@ -59,6 +59,7 @@ namespace RunCmdRedux {
 		public virtual object Result => null;
 		public virtual object Error => null;
 		public virtual void ContinueCooperativeFunction() { }
+		public void Dispose() { }
 	}
 
 	public abstract class BaseNamedProcess : BaseProcess, INamedProcess {

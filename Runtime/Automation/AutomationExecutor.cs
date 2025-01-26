@@ -51,12 +51,12 @@ namespace RunCmdRedux {
 
 		public bool IsExecuting => HaveCommandToDo();
 		public float Progress => currentCommand.GetProgress();
-		public ICommandProcess ReferencedCommand => currentCommand;
+		public ICommandProcess Process => currentCommand;
 		public ICommandProcess CurrentCommandEnd {
 			get {
 				ICommandProcess cursor = currentCommand;
 				while (cursor is ICommandProcessReference automation) {
-					cursor = automation.ReferencedCommand;
+					cursor = automation.Process;
 				}
 				return cursor;
 			}

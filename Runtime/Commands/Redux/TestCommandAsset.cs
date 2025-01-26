@@ -1,6 +1,5 @@
 using UnityEditor;
 using UnityEngine;
-using static UnityEngine.GraphicsBuffer;
 
 namespace RunCmdRedux {
 	/// <summary>
@@ -8,7 +7,8 @@ namespace RunCmdRedux {
 	/// </summary>
 	[CreateAssetMenu(fileName = "test", menuName = "ScriptableObjects/CommandAsset/_test")]
 	public class TestCommandAsset : ScriptableObject {
-		[SerializeField] protected Object commandAsset;
+		[Interface(nameof(_commandAsset))]
+		[SerializeField] protected UnityEngine.Object commandAsset;
 		private ICommandAsset _commandAsset;
 		[SerializeField] protected TestExecutor _executor = new TestExecutor();
 		[SerializeField] protected string _command;
@@ -37,6 +37,10 @@ namespace RunCmdRedux {
 
 		public ICommandProcess CurrentCommand(object context) => ReferencedAsset.GetCommandIfCreated(context);
 
+		private void OnValidate() {
+			_commandAsset = null;
+		}
+
 		public float Progress(object context) {
 			ICommandProcess proc = CurrentCommand(context);
 			if (proc == null) { return 0; }
@@ -49,36 +53,56 @@ namespace RunCmdRedux {
 			//waitingForCommandToFinish = !Target.IsExecutionFinished(_context);
 			if (waitingForCommandToFinish) {
 				//Debug.Log($"PROGRESSBAR {progress}");
-				bool stop = ComponentProgressBar.DisplayCancelableProgressBar(name, Executor.CurrentInput, progress);
-				if (stop) {
-					//Debug.Log("CANCEL");
-					CancelProcess(context);
-					ClearProgressBar();
-				}
-			} else if (ComponentProgressBar.IsProgressBarVisible && progress >= 1) {
+				HandleProgressBar(context, progress);
+			//} else if (ComponentProgressBar.IsProgressBarVisible && progress >= 1) {
 				//ClearProgressBar();
 			}
 			return waitingForCommandToFinish;
 		}
 
+		internal bool HandleProgressBar(object context, float progress) {
+			bool stop = ComponentProgressBar.DisplayCancelableProgressBar(name, Executor.CurrentInput, progress);
+			if (stop) {
+				//Debug.Log("CANCEL");
+				DoAbort(context);
+			}
+			return stop;
+		}
+
+		internal void DoAbort(object context) {
+			CancelProcess(context);
+			ClearProgressBar();
+			//EditorApplication.delayCall += ClearProgressBarAgain;
+			//void ClearProgressBarAgain() {
+			//	ClearProgressBar();
+			//}
+		}
+
 		public void CancelProcess(object context) {
-			Debug.Log($"canceling [{_executor.ReferencedCommand}] ({context})");
+			Debug.Log($"canceling [{_executor.Process}] ({context})");
 			ICommandProcess proc = CurrentCommand(context);
-			if (proc != _executor.ReferencedCommand) {
-				throw new System.Exception($"unexpected process to cancel. expected to cancel {_executor.ReferencedCommand}, found {proc}");
+			if (proc != _executor.Process) {
+				throw new System.Exception($"unexpected process to cancel. expected to cancel {_executor.Process}, found {proc}");
 			}
 			StopProcess(context, proc);
 		}
 		public void StopProcess(object context, ICommandProcess proc) {
+			if (proc != _executor.Process) {
+				Debug.LogWarning($"{_executor} no longer processing {proc}, which is being told to stop");
+			}
 			if (!ReferencedAsset.RemoveCommand(context, proc)) {
 				throw new System.Exception("NO SUCH PROCESS");
 			}
-			_executor.ReferencedCommand = null;
+			proc.Dispose();
+			_executor.Process = null;
 		}
 		public void ExecuteCurrentCommand() {
-			_executor.ReferencedCommand = ReferencedProcess;
-			_executor.CurrentInput = _command;
-			_executor.ExecuteCurrentCommand();
+			_executor.Execute(ReferencedProcess, _command);
+		}
+
+		public void ExecuteCommand(string command) {
+			CurrentCommandInput = command;
+			_executor.Execute(ReferencedProcess, command);
 		}
 
 		[ContextMenu(nameof(ClearProgressBar))]
@@ -111,6 +135,7 @@ namespace RunCmdRedux {
 
 		public override void OnInspectorGUI() {
 			CreateTextStyle();
+			EditorGUI.BeginChangeCheck();
 			DrawDefaultInspector();
 			//InputPromptGUI();
 			waitingForCommandToFinish = Target.UpdateExecution(Context);
@@ -122,8 +147,10 @@ namespace RunCmdRedux {
 			ClearOutputButtonGUI();
 			GUILayout.EndHorizontal();
 			EditorGUILayout.TextArea(Target.CommandOutput, _consoleTextStyle);
+			if (EditorGUI.EndChangeCheck()) {
 			serializedObject.Update();
-			serializedObject.ApplyModifiedProperties();
+				serializedObject.ApplyModifiedProperties();
+			}
 		}
 
 		private void CreateTextStyle() {
@@ -148,14 +175,8 @@ namespace RunCmdRedux {
 					$" working on\n  \"{Target.CurrentCommandInput}\"");
 				return;
 			}
-			ExecuteCommand(command);
+			Target.ExecuteCommand(command);
 			RefreshInspector();
-		}
-
-		public void ExecuteCommand(string command) {
-			Target.CurrentCommandInput = command;
-			// TODO make sure this command isn't marked as being a member of the command list. this should not advance the list.
-			Target.ExecuteCurrentCommand();
 		}
 
 		public string PromptGUI(GUIStyle style) {
@@ -203,10 +224,12 @@ namespace RunCmdRedux {
 						Target.StopProcess(Context, commandProcessor);
 						//AbortButton();
 					} else {
-						HandleProgressBar(commandProcessor.GetProgress());
+						//HandleProgressBar(commandProcessor.GetProgress());
+						Target.HandleProgressBar(Context, commandProcessor.GetProgress());
+						RefreshInspectorInternal();
 					}
-				//} else {
-				//	AbortButton();
+					//} else {
+					//	AbortButton();
 				}
 			}
 		}
