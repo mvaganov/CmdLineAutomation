@@ -93,7 +93,7 @@ namespace RunCmdRedux {
 			}
 			// get the list of filters
 			// pass current command through each filter until it is executed on a filter that consumes
-			if (!HaveCommandToDo() || currentCommand.IsExecutionFinished) {
+			if (!HaveCommandToDo() || currentCommand.ExecutionState == ICommandProcess.State.Finished) {
 				++commandExecutingIndex;
 			}
 			//if (HaveCommandToDo() && !_currentCommand.IsExecutionFinished()) { Debug.Log("       still doing it!"); }
@@ -110,7 +110,7 @@ namespace RunCmdRedux {
 
 		// TODO replace
 		private void DoCurrentCommand() {
-			if (currentCommand != null && !currentCommand.IsExecutionFinished) {
+			if (currentCommand != null && currentCommand.ExecutionState == ICommandProcess.State.Executing) {
 				Debug.Log($"still processing {currentCommand}");
 				return;
 			}
@@ -135,7 +135,7 @@ namespace RunCmdRedux {
 				if (loopguard++ > 100) {
 					throw new System.Exception("executor loop guard");
 				}
-				if (currentCommand != null && currentCommand.IsExecutionFinished) {
+				if (currentCommand != null && currentCommand.ExecutionState == ICommandProcess.State.Finished) {
 					currentCommand = null;
 				}
 				if (currentCommand == null) {
@@ -157,7 +157,7 @@ namespace RunCmdRedux {
 					//	_shell = osShell.Shell;
 					//}
 				}
-				bool currentCommandStillExecuting = currentCommand != null && !currentCommand.IsExecutionFinished;
+				bool currentCommandStillExecuting = currentCommand != null && currentCommand.ExecutionState == ICommandProcess.State.Executing;
 				if (currentCommandStillExecuting) {
 					Object commandObj = currentCommand as Object;
 					ICommandFilter filter = commandObj as ICommandFilter;

@@ -8,7 +8,7 @@ namespace RunCmdRedux {
 	public class CommandAssetLog : ScriptableObject, ICommandAsset {
 		public ICommandProcess CreateCommand(object context) {
 			Proc proc = new Proc(this);
-			CommandManager.Instance.Add(context, this, proc);
+			//CommandManager.Instance.Add(context, this, proc);
 			return proc;
 		}
 
@@ -21,21 +21,22 @@ namespace RunCmdRedux {
 
 			public override object Error => err;
 
-			public override bool IsExecutionFinished => true;
-
 			public override float GetProgress() => 1;
 
 			public override void StartCooperativeFunction(string command, PrintCallback print) {
+				_state = ICommandProcess.State.Executing;
 				IList<string> args = Parse.ParseArgs(command);
 				err = null;
 				if (args.Count > 1) {
 					for (int i = 1; i < args.Count; ++i) {
 						print(args[i] + "\n");
 					}
+					_state = ICommandProcess.State.Finished;
 				} else {
 					err = $"'{name}' missing parameters";
 					print($"{err}\n");
 					Debug.LogWarning(err);
+					_state = ICommandProcess.State.Error;
 				}
 			}
 		}

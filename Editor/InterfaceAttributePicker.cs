@@ -11,16 +11,14 @@ namespace RunCmdRedux {
 			public void Destroy() { DestroyImmediate(editor); }
 		}
 
-		private const float SELECT_BUTTON_HEIGHT_PX = 32f;
-		private const float LABEL_COLUMN_RATIO = 0.4f;
-		private const int EDGE_PADDING_PX = 8;
+		private const float SelectButtonHeightPx = 32f;
+		private const float LabelColumnRatio = 0.4f;
+		private const int EdgepaddingPx = 8;
 
 		private Object[] _targets;
 		private string _propertyPath;
 		private List<ComponentInspector> _inspectors;
 		private Vector2 _scrollPos = Vector2.zero;
-
-		public static bool AnyOpen => HasOpenInstances<InterfaceAttributePicker>();
 
 		public static void Show(SerializedProperty prop, List<Component> components) {
 			if (components == null || components.Count == 0 || prop == null) {
@@ -68,7 +66,7 @@ namespace RunCmdRedux {
 				ComponentInspector inspector = _inspectors[i];
 				EditorGUILayout.Separator();
 				EditorGUILayout.BeginVertical(PickerGuiStyle.Inspector);
-				DrawHeader(inspector);
+				DrawHeader(inspector, $"[{i}] {inspector.component.GetType().Name}");
 				EditorGUILayout.Separator();
 				DrawComponent(inspector);
 				EditorGUILayout.EndVertical();
@@ -77,9 +75,8 @@ namespace RunCmdRedux {
 			EditorGUILayout.EndScrollView();
 		}
 
-		private void DrawHeader(ComponentInspector inspector) {
-			if (GUILayout.Button($"{inspector.component.GetType().Name}",
-			GUILayout.Height(SELECT_BUTTON_HEIGHT_PX))) {
+		private void DrawHeader(ComponentInspector inspector, string name) {
+			if (GUILayout.Button(name, GUILayout.Height(SelectButtonHeightPx))) {
 				EditorApplication.delayCall += () => {
 					Apply(inspector.component);
 					Close();
@@ -89,7 +86,7 @@ namespace RunCmdRedux {
 
 		private void DrawComponent(ComponentInspector inspector) {
 			GUI.enabled = false;
-			EditorGUIUtility.labelWidth = position.width * LABEL_COLUMN_RATIO;
+			EditorGUIUtility.labelWidth = position.width * LabelColumnRatio;
 			inspector.editor.OnInspectorGUI();
 			GUI.enabled = true;
 		}
@@ -106,7 +103,7 @@ namespace RunCmdRedux {
 		private static class PickerGuiStyle {
 			public static readonly GUIStyle Default, Window, Inspector;
 			public static readonly RectOffset padding =
-					new RectOffset(EDGE_PADDING_PX, EDGE_PADDING_PX, EDGE_PADDING_PX, EDGE_PADDING_PX);
+					new RectOffset(EdgepaddingPx, EdgepaddingPx, EdgepaddingPx, EdgepaddingPx);
 			static PickerGuiStyle() {
 				Default = new GUIStyle();
 				Window = new GUIStyle(Default);

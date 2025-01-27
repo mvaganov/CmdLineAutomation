@@ -23,14 +23,14 @@ namespace RunCmdRedux {
 
 			public override string name => _source.name;
 
-			public override bool IsExecutionFinished => true;
-
 			public override float GetProgress() => 1;
 
 			public override void StartCooperativeFunction(string command, PrintCallback print) {
 				if (!_source._enabled) {
+					_state = ICommandProcess.State.Disabled;
 					return;
 				}
+				_state = ICommandProcess.State.Executing;
 				if (!string.IsNullOrEmpty(_source._linePrefix) || string.IsNullOrEmpty(_source._lineSuffix)) {
 					command = _source._linePrefix + command + _source._lineSuffix;
 				}
@@ -42,6 +42,7 @@ namespace RunCmdRedux {
 					case LogType.UnityDebugLog: Debug.Log(command); break;
 					case LogType.UnityDebugLogException: Debug.LogException(new System.Exception(command), _context as UnityEngine.Object); break;
 				}
+				_state = ICommandProcess.State.Finished;
 			}
 		}
 

@@ -19,12 +19,14 @@ public class CommandDelay {
 			call.Invoke();
 		}
 	}
+
 	private class CoroutineRunner : MonoBehaviour {
 		private static CoroutineRunner _instance;
 		public static CoroutineRunner Instance {
 			get {
 				if (_instance != null) { return _instance; }
 				GameObject go = new GameObject("<CoroutineRunner>");
+				go.hideFlags = HideFlags.HideAndDontSave;
 				DontDestroyOnLoad(go);
 				return _instance = go.AddComponent<CoroutineRunner>();
 			}

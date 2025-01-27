@@ -6,7 +6,7 @@ namespace RunCmdRedux {
 	public class CommandAssetExit : ScriptableObject, ICommandAsset {
 		public ICommandProcess CreateCommand(object context) {
 			Proc proc = new Proc(context, this);
-			CommandManager.Instance.Add(context, this, proc);
+			//CommandManager.Instance.Add(context, this, proc);
 			return proc;
 		}
 
@@ -17,20 +17,21 @@ namespace RunCmdRedux {
 
 			public override string name => source.name;
 
-			public override bool IsExecutionFinished => true;
-
 			public override float GetProgress() => 1;
 
 			public override void StartCooperativeFunction(string command, PrintCallback print) {
 				// TODO replace with redux version of ICommandExecutor
-				if (context is ICommandExecutor automation) {
+				if (context is RunCmd.ICommandExecutor automation) {
 					automation.CancelProcess(context);
+					_state = ICommandProcess.State.Cancelled;
 				}
 				if (!OperatingSystemCommandShell.RunningShells.TryGetValue(context, out OperatingSystemCommandShell shell)) {
 					Debug.LogError($"no shell for '{context}'");
+					_state = ICommandProcess.State.Error;
 					return;
 				}
 				shell.Exit();
+				_state = ICommandProcess.State.Finished;
 			}
 		}
 	}

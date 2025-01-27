@@ -148,7 +148,7 @@ namespace RunCmdRedux {
 				if (index < 0) {
 					index = 0;
 					isNewCommand = true;
-				} else if (proc == null || proc.IsExecutionFinished) {
+				} else if (proc == null || proc.ExecutionState == ICommandProcess.State.Finished) {
 					++index;
 					isNewCommand = true;
 				}

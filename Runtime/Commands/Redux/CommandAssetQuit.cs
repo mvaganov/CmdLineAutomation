@@ -16,7 +16,7 @@ namespace RunCmdRedux {
 
 		public ICommandProcess CreateCommand(object context) {
 			Proc proc = new Proc(this);
-			CommandManager.Instance.Add(context, this, proc);
+			//CommandManager.Instance.Add(context, this, proc);
 			return proc;
 		}
 
@@ -26,13 +26,13 @@ namespace RunCmdRedux {
 
 			public override string name => source.name;
 
-			public override bool IsExecutionFinished => true;
-
 			public override float GetProgress() => 1;
 
 			public override void StartCooperativeFunction(string command, PrintCallback print) {
+				_state = ICommandProcess.State.Executing;
 				print(command);
 				Quit();
+				_state = ICommandProcess.State.Finished;
 			}
 		}
 	}

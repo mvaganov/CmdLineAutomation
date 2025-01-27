@@ -31,7 +31,7 @@ namespace RunCmdRedux {
 
 		public ICommandProcess CreateCommand(object context) {
 			Proc proc = new Proc(context, this);
-			CommandManager.Instance.Add(context, this, proc);
+			//CommandManager.Instance.Add(context, this, proc);
 			return proc;
 		}
 
@@ -50,14 +50,14 @@ namespace RunCmdRedux {
 			public override string name => source.name;
 			public int TimeoutEnd => timeoutStart + timeoutDuration;
 
-			public override bool IsExecutionFinished {
+			public override ICommandProcess.State ExecutionState {
 				get {
 					if (source._blockUntilChoiceIsMade || finished) {
-						return finished;
+						return finished ? ICommandProcess.State.Finished : ICommandProcess.State.Executing;
 					}
 					int now = Environment.TickCount;
 					Debug.Log($"now {now} >= {finished} finish");
-					return now >= TimeoutEnd;
+					return now >= TimeoutEnd ? ICommandProcess.State.Finished : ICommandProcess.State.Executing;
 				}
 			}
 
@@ -74,6 +74,7 @@ namespace RunCmdRedux {
 			}
 
 			public override void StartCooperativeFunction(string command, PrintCallback print) {
+				_state = ICommandProcess.State.Executing;
 				UpdateMousePosition();
 				object parsed = Parse.ParseText($"[{command}]", out Parse.ParseResult err);
 				if (err.IsError) {

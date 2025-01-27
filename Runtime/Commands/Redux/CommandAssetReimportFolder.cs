@@ -5,30 +5,28 @@ namespace RunCmdRedux {
 	public class CommandAssetReimportFolder : ScriptableObject, ICommandAsset {
 		public ICommandProcess CreateCommand(object context) {
 			Proc proc = new Proc(this);
-			CommandManager.Instance.Add(context, this, proc);
+			//CommandManager.Instance.Add(context, this, proc);
 			return proc;
 		}
 
 		public class Proc : BaseNamedProcess {
 			public CommandAssetReimportFolder source;
 			public string folder;
-			public bool finished;
 			public Proc(CommandAssetReimportFolder source) { this.source = source; }
 
 			public override string name => source.name;
 
-			public override bool IsExecutionFinished => finished;
-
-			public override float GetProgress() => finished ? 1 : 0;
+			public override float GetProgress() => _state == ICommandProcess.State.Finished ? 1 : 0;
 
 			public override void StartCooperativeFunction(string command, PrintCallback print) {
+				_state = ICommandProcess.State.Executing;
 				string[] args = command.Split();
 				if (args.Length > 1) {
 					folder = args[1];
 					CommandDelay.DelayCall(() => ReimportCurrentPathFolder());
 				} else {
 					Debug.LogWarning($"missing folder parameter");
-					finished = true;
+					_state = ICommandProcess.State.Finished;
 				}
 			}
 
@@ -40,7 +38,7 @@ namespace RunCmdRedux {
 #else
 				Debug.LogWarning($"Unable to import Asset folder {folder} at runtime");
 #endif
-				finished = true;
+				_state = ICommandProcess.State.Finished;
 			}
 		}
 	}

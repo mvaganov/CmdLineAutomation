@@ -7,7 +7,7 @@ namespace RunCmdRedux {
 	public class CommandAssetSleep : ScriptableObject, ICommandAsset {
 		public ICommandProcess CreateCommand(object context) {
 			Proc proc = new Proc(this);
-			CommandManager.Instance.Add(context, this, proc);
+			//CommandManager.Instance.Add(context, this, proc);
 			return proc;
 		}
 
@@ -21,14 +21,21 @@ namespace RunCmdRedux {
 
 			public override object Error => err;
 
-			public override bool IsExecutionFinished {
+			public override ICommandProcess.State ExecutionState {
 				get {
-					if (err != null) {
-						return true;
+					if (_state == ICommandProcess.State.Executing) {
+						int now = Environment.TickCount;
+						if (now >= finished) {
+							_state = ICommandProcess.State.Finished;
+						}
 					}
-					int now = Environment.TickCount;
-					//Debug.Log($"now {now} >= {finished} finish : {now >= finished}");
-					return now >= finished;
+					return base.ExecutionState;
+					//if (err != null) {
+					//	return true;
+					//}
+					//int now = Environment.TickCount;
+					////Debug.Log($"now {now} >= {finished} finish : {now >= finished}");
+					//return now >= finished;
 				}
 			}
 
@@ -41,6 +48,7 @@ namespace RunCmdRedux {
 			}
 
 			public override void StartCooperativeFunction(string command, PrintCallback print) {
+				_state = ICommandProcess.State.Executing;
 				int now = started = finished = Environment.TickCount;
 				string[] args = command.Split();
 				err = null;
@@ -53,10 +61,12 @@ namespace RunCmdRedux {
 					} else {
 						err = $"unable to wait '{args[1]}' seconds";
 						Debug.LogWarning(err);
+						_state = ICommandProcess.State.Error;
 					}
 				} else {
 					err = $"'{name}' missing time parameter";
 					Debug.LogWarning(err);
+					_state = ICommandProcess.State.Error;
 				}
 			}
 		}

@@ -43,7 +43,14 @@ namespace RunCmdRedux {
 
 			public override string name => _shell != null ? _shell.Name : null;
 
-			public override bool IsExecutionFinished => !ShellIsExecutingSomething();
+			public override ICommandProcess.State ExecutionState {
+				get {
+					if (!ShellIsExecutingSomething()) {
+						return ICommandProcess.State.Finished;
+					}
+					return ICommandProcess.State.Executing;
+				}
+			}
 
 			public Proc(FilterAssetOperatingSystemCommandShell source, object context) {
 				_source = source;

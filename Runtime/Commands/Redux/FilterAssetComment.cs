@@ -21,7 +21,6 @@ namespace RunCmd {
 			}
 
 			protected string _result;
-			public override bool IsExecutionFinished => true;
 			public override object Result => _result;
 
 			public override string name => _source.name;
@@ -29,8 +28,10 @@ namespace RunCmd {
 			public override float GetProgress() => 0;
 			public override void StartCooperativeFunction(string command, PrintCallback print) {
 				if (!_source._enabled) {
+					_state = ICommandProcess.State.Disabled;
 					return;
 				}
+				_state = ICommandProcess.State.Executing;
 				_result = command;
 				if (!_inMultiLineComment && string.IsNullOrEmpty(_source._suffix)) {
 					if (command.StartsWith(_source._prefix)) {
@@ -69,6 +70,7 @@ namespace RunCmd {
 						_result = null;
 					}
 				}
+				_state = ICommandProcess.State.Finished;
 			}
 		}
 

@@ -72,7 +72,8 @@ namespace RunCmdRedux {
 				}
 			}
 
-			public override bool IsExecutionFinished => _currentProcess != null ? _currentProcess.IsExecutionFinished : true;
+			public override ICommandProcess.State ExecutionState => _currentProcess != null
+				? _currentProcess.ExecutionState : ICommandProcess.State.None;
 
 			public Proc(FilterAssetNamedCommand source, object context) { _source = source; _context = context; }
 
@@ -80,11 +81,13 @@ namespace RunCmdRedux {
 
 			// TODO mark if a command was found or not to the caller...
 			public override void StartCooperativeFunction(string command, PrintCallback print) {
+				_state = ICommandProcess.State.Executing;
 				string firstToken = GetFirstToken(command);
 				if (!_source._namedCommands.TryGetValue(firstToken, out ICommandAsset _currentAsset)) {
 					_currentProcess = null;
 					Debug.LogError($"unknown command {firstToken}\n{command}\n" +
 						$"Valid options:{string.Join("\n",_source._namedCommands.Keys)}");
+					_state = ICommandProcess.State.Error;
 					return;
 				}
 				_currentProcess = _currentAsset.CreateCommand(_context);
@@ -109,7 +112,7 @@ namespace RunCmdRedux {
 				if (_currentProcess == null) {
 					return;
 				}
-				if (_currentProcess.IsExecutionFinished) {
+				if (_currentProcess.ExecutionState == ICommandProcess.State.Finished) {
 					_currentProcess = null;
 				}
 			}
