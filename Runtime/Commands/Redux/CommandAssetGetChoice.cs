@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using UnityEngine.UIElements;
 using System.Collections;
 using System.Collections.Specialized;
-using UnityEngine.EventSystems;
 using RunCmd;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -31,7 +31,6 @@ namespace RunCmdRedux {
 
 		public ICommandProcess CreateCommand(object context) {
 			Proc proc = new Proc(context, this);
-			//CommandManager.Instance.Add(context, this, proc);
 			return proc;
 		}
 
@@ -52,12 +51,11 @@ namespace RunCmdRedux {
 
 			public override ICommandProcess.State ExecutionState {
 				get {
-					if (source._blockUntilChoiceIsMade || finished) {
-						return finished ? ICommandProcess.State.Finished : ICommandProcess.State.Executing;
+					if (_state == ICommandProcess.State.Executing && !source._blockUntilChoiceIsMade) {
+						int now = Environment.TickCount;
+						_state = now >= TimeoutEnd ? ICommandProcess.State.Finished : ICommandProcess.State.Executing;
 					}
-					int now = Environment.TickCount;
-					Debug.Log($"now {now} >= {finished} finish");
-					return now >= TimeoutEnd ? ICommandProcess.State.Finished : ICommandProcess.State.Executing;
+					return _state;
 				}
 			}
 
@@ -101,13 +99,22 @@ namespace RunCmdRedux {
 					Parse.Token token = (Parse.Token)entry.Key;
 					Parse.Token value = (Parse.Token)entry.Value;
 					argsOptions.Add(token.Text);
-					int index = entryIndex;
+					int index = entryIndex++;
 					argsActions.Add(() => {
 						onChoiceMade?.Invoke(index);
+						if (string.IsNullOrEmpty(value.Text)) {
+							_state = ICommandProcess.State.Finished;
+							return;
+						}
 						ICommandAutomation commandAutomation = context as ICommandAutomation;
-						commandAutomation.CommandExecutor.InsertNextCommandToExecute(context, value.Text);
+						if (commandAutomation != null) {
+							commandAutomation.CommandExecutor.InsertNextCommandToExecute(context, value.Text);
+							_state = ICommandProcess.State.Finished;
+						} else {
+							Debug.LogError($"unable to execute next command '{value.Text}'");
+							_state = ICommandProcess.State.Error;
+						}
 					});
-					++entryIndex;
 				}
 #if UNITY_EDITOR
 				if (!Application.isPlaying) {

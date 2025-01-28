@@ -5,7 +5,6 @@ namespace RunCmdRedux {
 	public class CommandAssetReimportFolder : ScriptableObject, ICommandAsset {
 		public ICommandProcess CreateCommand(object context) {
 			Proc proc = new Proc(this);
-			//CommandManager.Instance.Add(context, this, proc);
 			return proc;
 		}
 
@@ -26,7 +25,7 @@ namespace RunCmdRedux {
 					CommandDelay.DelayCall(() => ReimportCurrentPathFolder());
 				} else {
 					Debug.LogWarning($"missing folder parameter");
-					_state = ICommandProcess.State.Finished;
+					_state = ICommandProcess.State.Error;
 				}
 			}
 

@@ -75,8 +75,10 @@ MonoBehaviour:
     - sleep 3
     - echo done!
     cancelled: 1
-    currentCommandText: hi
-    commandOutput: 'executing "hi"
+    currentCommandText: log hi
+    commandOutput: 'executing "log hi"
+
+      hi
 
 '
     currentCommandAfterFilter: 

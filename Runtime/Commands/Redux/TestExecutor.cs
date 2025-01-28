@@ -5,8 +5,8 @@ namespace RunCmdRedux {
 	/// Wrapper around a <see cref="ICommandProcess"/> that helps keep track of it's state
 	/// </summary>
 	public class TestExecutor : ICommandProcessReference, ICommandExecutor {
-		[SerializeField] private string _executedCommandText;
-		[SerializeField] private string _executedCommandOutput;
+		private string _executedCommandText;
+		private string _executedCommandOutput;
 		private ICommandProcess _commandProcess;
 		private bool _startedCommand;
 		public string CommandInput { get => _executedCommandText; set => _executedCommandText = value; }

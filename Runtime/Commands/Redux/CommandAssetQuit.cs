@@ -6,6 +6,9 @@ namespace RunCmdRedux {
 		public string webplayerQuitURL;
 		public static void Quit() {
 #if UNITY_EDITOR
+			if (!UnityEditor.EditorApplication.isPlaying) {
+				Debug.LogWarning("Application not running, cannot quit");
+			}
 			UnityEditor.EditorApplication.isPlaying = false;
 #elif UNITY_WEBPLAYER
 			Application.OpenURL(webplayerQuitURL);
@@ -30,7 +33,6 @@ namespace RunCmdRedux {
 
 			public override void StartCooperativeFunction(string command, PrintCallback print) {
 				_state = ICommandProcess.State.Executing;
-				print(command);
 				Quit();
 				_state = ICommandProcess.State.Finished;
 			}

@@ -12,5 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d757a5c6cb92be4a84ee50bb15da04a, type: 3}
   m_Name: test
   m_EditorClassIdentifier: 
-  commandAsset: {fileID: 0}
-  command: 
+  _populateZeroArgWithCommand: 1
+  commandAsset: {fileID: 11400000, guid: f13b5c5d928bb6e4cb3fe753a8716290, type: 2}
+  _command: 
