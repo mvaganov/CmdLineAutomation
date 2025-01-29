@@ -9,7 +9,9 @@ namespace RunCmdRedux {
 	public class FilterAssetNamedCommand: ScriptableObject, ICommandAsset, ICommandAssetBranch {
 		/// <summary>
 		/// List of the possible custom commands written as C# <see cref="ICommandProcessor"/>
+		/// TODO error if _namedCommands references this asset itself.
 		/// </summary>
+		[Interface(typeof(ICommandAsset))]
 		[SerializeField] protected Object[] _commandListing;
 		Dictionary<string, ICommandAsset> _namedCommands = new Dictionary<string, ICommandAsset>();
 		bool FoundRecursion() => FoundRecursion(this, null);
@@ -82,11 +84,15 @@ namespace RunCmdRedux {
 			// TODO mark if a command was found or not to the caller...
 			public override void StartCooperativeFunction(string command, PrintCallback print) {
 				_state = ICommandProcess.State.Executing;
+				if (string.IsNullOrEmpty(command)) {
+					_state = ICommandProcess.State.Finished;
+					return;
+				}
 				string firstToken = GetFirstToken(command);
 				if (!_source._namedCommands.TryGetValue(firstToken, out ICommandAsset _currentAsset)) {
 					_currentProcess = null;
-					Debug.LogError($"unknown command {firstToken}\n{command}\n" +
-						$"Valid options:{string.Join("\n",_source._namedCommands.Keys)}");
+					print($"unknown command {firstToken}\n\"{command}\"\n" +
+						$"Valid options:{string.Join(", ", _source._namedCommands.Keys)}\n");
 					_state = ICommandProcess.State.Error;
 					return;
 				}

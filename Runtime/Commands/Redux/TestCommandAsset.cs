@@ -13,7 +13,7 @@ namespace RunCmdRedux {
 		[Interface(nameof(_commandAsset))]
 		[SerializeField] protected Object commandAsset;
 		private ICommandAsset _commandAsset;
-		[SerializeField] protected TestExecutor _executor = new TestExecutor();
+		protected TestExecutor _executor = new TestExecutor();
 		[SerializeField] protected string _command;
 
 		public TestExecutor Executor => _executor;
@@ -31,15 +31,15 @@ namespace RunCmdRedux {
 			set => _executor.CommandOutput = value;
 		}
 
-		/// TODO can this be replaced by <see cref="Process"/>
-		public ICommandAsset ReferencedAsset => _commandAsset != null ? _commandAsset : _commandAsset = commandAsset as ICommandAsset;
+		public ICommandAsset CommandAsset => _commandAsset != null
+			? _commandAsset : _commandAsset = commandAsset as ICommandAsset;
 
 		public ICommandProcess Process => _executor.Process;
 
-		public ICommandProcess GetProcess(object context) => ReferencedAsset != null ?
-			ReferencedAsset.GetCommandCreateIfMissing(context) : null;
+		public ICommandProcess GetProcess(object context) => CommandAsset != null ?
+			CommandAsset.GetCommandCreateIfMissing(context) : null;
 
-		public ICommandProcess CurrentCommand(object context) => ReferencedAsset.GetCommandIfCreated(context);
+		public ICommandProcess CurrentCommand(object context) => CommandAsset.GetCommandIfCreated(context);
 
 		private void OnValidate() {
 			_commandAsset = null;
@@ -64,7 +64,6 @@ namespace RunCmdRedux {
 		internal bool HandleProgressBar(object context, float progress) {
 			bool stop = ComponentProgressBar.DisplayCancelableProgressBar(name, Executor.CommandInput, progress);
 			if (stop) {
-				//Debug.Log("CANCEL");
 				DoAbort(context);
 			}
 			return stop;
@@ -79,7 +78,7 @@ namespace RunCmdRedux {
 			//Debug.Log($"canceling [{_executor.Process}] ({context})");
 			ICommandProcess proc = CurrentCommand(context);
 			if (proc != _executor.Process) {
-				throw new System.Exception($"unexpected process to cancel. expected to cancel {_executor.Process}, found {proc}");
+				throw new Exception($"unexpected process to cancel. expected to cancel {_executor.Process}, found {proc}");
 			}
 			StopProcess(context, proc);
 		}
@@ -88,8 +87,8 @@ namespace RunCmdRedux {
 			if (_executor.Process != null && proc != _executor.Process) {
 				Debug.LogWarning($"{_executor} no longer processing {proc}, which is being told to stop");
 			}
-			if (!ReferencedAsset.RemoveCommand(context, proc)) {
-				throw new System.Exception("NO SUCH PROCESS");
+			if (!CommandAsset.RemoveCommand(context, proc)) {
+				throw new Exception("NO SUCH PROCESS");
 			}
 			proc.Dispose();
 			_executor.Process = null;
@@ -253,13 +252,16 @@ namespace RunCmdRedux {
 			} catch { }
 			GUILayout.EndHorizontal();
 			Event e = Event.current;
+			if (e.type == EventType.KeyUp && e.keyCode == KeyCode.Escape) {
+				Target.CommandInput = "";
+				if (Target.IsExecuting) {
+					DoAbort();
+				}
+			}
 			if (Target.CommandInput != "" && e.type == EventType.KeyUp && e.keyCode == KeyCode.Return) {
 				string result = Target.CommandInput;
 				Target.CommandInput = "";
 				return result;
-			}
-			if (e.type == EventType.KeyUp && e.keyCode == KeyCode.Escape && Target.IsExecuting) {
-				DoAbort();
 			}
 			return null;
 		}
@@ -277,6 +279,5 @@ namespace RunCmdRedux {
 		private void RefreshInspectorInternal() {
 			EditorUtility.SetDirty(Target);
 		}
-
 	}
 }

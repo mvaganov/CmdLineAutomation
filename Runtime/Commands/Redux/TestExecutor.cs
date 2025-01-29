@@ -21,6 +21,8 @@ namespace RunCmdRedux {
 			}
 		}
 
+		public bool IsStarted => _startedCommand;
+
 		//public bool IsExecuting => _commandProcess != null && _startedCommand;
 
 		public void AddToCommandOutput(string value) {
