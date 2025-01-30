@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text;
 
 namespace RunCmdRedux {
@@ -6,8 +7,8 @@ namespace RunCmdRedux {
 	}
 
 	public interface ICommandAssetBranch {
-		public ICommandProcess GetProcessByIndex(int index);
-		public int GetProcessCount();
+		public ICommandAsset GetAssetByIndex(int index);
+		public int GetAssetCount();
 	}
 
 	public static class ICommandAssetExtension {
@@ -47,6 +48,37 @@ namespace RunCmdRedux {
 			CommandManager.Procedure selfProc = new CommandManager.Procedure(context, self);
 			//UnityEngine.Debug.Log($"removing {selfProc}");
 			return CommandManager.Instance.Remove(context, self, proc);
+		}
+
+		public static bool FoundRecursion(this ICommandAssetBranch self, List<ICommandAssetBranch> list) {
+
+			if (list != null) {
+				int found = list.IndexOf(self);
+				// self should be at the end of this list already, so ignore the end element.
+        if (found >= 0 && found < list.Count-1) {
+					return true;
+				}
+			}
+			for (int i = 0; i < self.GetAssetCount(); ++i) {
+				ICommandAsset proc = self.GetAssetByIndex(i);
+				if (proc == null) {
+					continue;
+				}
+				ICommandAssetBranch branch = proc as ICommandAssetBranch;
+				if (branch == null) {
+					continue;
+				}
+				if (list == null) {
+					list = new List<ICommandAssetBranch> { branch };
+				} else {
+					list.Add(branch);
+				}
+				if (FoundRecursion(branch, list)) {
+					return true;
+				}
+				list.RemoveAt(list.Count - 1);
+			}
+			return list != null && list.Count > 0;
 		}
 	}
 }

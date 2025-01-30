@@ -9,16 +9,15 @@ namespace RunCmdRedux {
 	public class FilterAssetNamedCommand: ScriptableObject, ICommandAsset, ICommandAssetBranch {
 		/// <summary>
 		/// List of the possible custom commands written as C# <see cref="ICommandProcessor"/>
-		/// TODO error if _namedCommands references this asset itself.
 		/// </summary>
 		[Interface(typeof(ICommandAsset))]
 		[SerializeField] protected Object[] _commandListing;
 		Dictionary<string, ICommandAsset> _namedCommands = new Dictionary<string, ICommandAsset>();
-		bool FoundRecursion() => FoundRecursion(this, null);
+		bool FoundRecursion() => this.FoundRecursion(null);
 
 		public void RefreshDictionary() {
 			_namedCommands.Clear();
-			for (int i = 0; i < GetProcessCount(); ++i) {
+			for (int i = 0; i < GetAssetCount(); ++i) {
 				ICommandAsset asset = _commandListing[i] as ICommandAsset;
 				if (asset == null) {
 					//Debug.LogWarning($"{this}[{i}]: unable to add {_commandListing[i]}, not a {nameof(ICommandAsset)}");
@@ -33,30 +32,11 @@ namespace RunCmdRedux {
 			}
 		}
 
-		bool FoundRecursion(ICommandAssetBranch self, List<int> list) {
-			for(int i = 0; i < GetProcessCount(); ++i) {
-				ICommandProcess proc = GetProcessByIndex(i);
-				if (proc == null) {
-					continue;
-				}
-				ICommandAssetBranch branch = proc as ICommandAssetBranch;
-				if (list == null) {
-					list = new List<int> { i };
-				} else {
-					list.Add(i);
-				}
-				if (FoundRecursion(branch, list)) {
-					return true;
-				}
-				list.Remove(list.Count - 1);
-			}
-			return list != null && list.Count > 0;
-		}
 
-		public ICommandProcess GetProcessByIndex(int index) =>
-			_commandListing[index] as ICommandProcess;
+		public ICommandAsset GetAssetByIndex(int index) =>
+			_commandListing[index] as ICommandAsset;
 
-		public int GetProcessCount() => _commandListing.Length;
+		public int GetAssetCount() => _commandListing.Length;
 
 		public static string GetFirstToken(string command) {
 			int index = command.IndexOf(' ');
