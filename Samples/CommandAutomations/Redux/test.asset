@@ -14,4 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _populateZeroArgWithCommand: 0
   commandAsset: {fileID: 11400000, guid: 275d909ddd1d2724c924b5c09a1e1595, type: 2}
-  _command: cls
+  _command: wat
